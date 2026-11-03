@@ -28,3 +28,4 @@ We enforce three architectural additions:
 
 ### Negative:
 - Adds one lightweight container (`pentesa-callback-sink`) to the Docker Compose topology.
+

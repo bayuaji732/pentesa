@@ -49,3 +49,4 @@ async def close_db(custom_engine: AsyncEngine = None) -> None:
     """Dispose of engine connections."""
     target_engine = custom_engine or engine
     await target_engine.dispose()
+

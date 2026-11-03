@@ -50,3 +50,4 @@ class ConflictError(PentesaError):
 class AuditIntegrityError(PentesaError):
     """Raised when cryptographic verification of the audit log chain fails."""
     pass
+

@@ -8,3 +8,4 @@ for t in tables:
     count = cur.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
     print(f"  - {t}: {count} records")
 con.close()
+

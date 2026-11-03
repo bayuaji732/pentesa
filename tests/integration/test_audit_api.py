@@ -25,3 +25,4 @@ async def test_audit_logs_query_and_verify(
     verify_data = verify_resp.json()
     assert verify_data["is_valid"] is True
     assert verify_data["broken_index"] is None
+

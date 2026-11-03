@@ -31,3 +31,4 @@ class TokenPayload(BaseModel):
     exp: int
     iat: int
     email: Optional[str] = None
+

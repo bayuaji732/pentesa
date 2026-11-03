@@ -14,10 +14,11 @@ pythonpath = [
     "apps/api",
     "packages/common",
     "packages/schemas",
-    "services/scope-engine",
+    "services/scope_engine",
     "database"
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",
     "ignore::PendingDeprecationWarning"
 ]
+

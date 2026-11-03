@@ -29,3 +29,4 @@ class ScopeRule(Base, UUIDPrimaryKeyMixin):
 
     # Relationships
     project: Mapped["Project"] = relationship("Project", back_populates="scope_rules")
+

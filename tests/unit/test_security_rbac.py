@@ -72,3 +72,4 @@ def test_constant_time_comparison():
     assert constant_time_compare("secret_string_123", "secret_string_123") is True
     assert constant_time_compare("secret_string_123", "secret_string_456") is False
     assert constant_time_compare("short", "long_string_different_length") is False
+

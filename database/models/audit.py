@@ -33,3 +33,4 @@ class AuditLog(Base, UUIDPrimaryKeyMixin):
         nullable=False,
         index=True
     )
+

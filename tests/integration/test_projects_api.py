@@ -87,3 +87,4 @@ async def test_add_project_member(
     data = resp.json()
     assert data["user_id"] == str(tester_user.id)
     assert data["role"] == "TESTER"
+

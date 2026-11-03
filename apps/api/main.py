@@ -102,3 +102,4 @@ async def conflict_handler(request: Request, exc: ConflictError):
         status_code=status.HTTP_409_CONFLICT,
         content={"error": "CONFLICT", "message": exc.message, "details": exc.details}
     )
+

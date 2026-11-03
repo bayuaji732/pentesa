@@ -68,3 +68,4 @@ class ScopeCheckResult(BaseModel):
     matched_rule_id: Optional[uuid.UUID] = None
     resolved_ips: List[str] = Field(default_factory=list)
     dns_rebinding_detected: bool = False
+

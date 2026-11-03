@@ -23,3 +23,4 @@ async def readiness_check(session: AsyncSession = Depends(get_db)):
         return {"status": "ready", "database": "connected"}
     except Exception as e:
         return {"status": "unready", "database": "disconnected", "error": str(e)}
+

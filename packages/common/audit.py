@@ -91,3 +91,4 @@ def verify_audit_chain(entries: List[Dict[str, Any]]) -> Tuple[bool, Optional[st
         expected_prev = recorded_hash
 
     return True, None, None
+

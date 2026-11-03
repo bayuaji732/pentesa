@@ -63,3 +63,4 @@ async def test_auth_me_profile(client: AsyncClient, admin_user: User, admin_toke
     # Without token
     resp_anon = await client.get("/api/v1/auth/me")
     assert resp_anon.status_code == 401
+

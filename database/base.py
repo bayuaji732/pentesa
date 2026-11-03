@@ -38,3 +38,4 @@ class UUIDPrimaryKeyMixin:
         default=uuid.uuid4,
         nullable=False
     )
+

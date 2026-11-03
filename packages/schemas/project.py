@@ -85,3 +85,4 @@ class ProjectResponse(ProjectBase):
     created_at: datetime
     updated_at: datetime
     members: List[ProjectMemberResponse] = Field(default_factory=list)
+

@@ -155,3 +155,4 @@ async def update_user(
     )
 
     return user
+

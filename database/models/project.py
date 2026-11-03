@@ -60,3 +60,4 @@ class ProjectMember(Base, UUIDPrimaryKeyMixin):
     # Relationships
     project: Mapped["Project"] = relationship("Project", back_populates="members")
     user: Mapped["User"] = relationship("User", back_populates="memberships")
+

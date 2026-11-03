@@ -83,3 +83,4 @@ async def verify_audit_integrity(
         first_hash=records[0].hash,
         last_hash=records[-1].hash
     )
+

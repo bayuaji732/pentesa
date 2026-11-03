@@ -161,3 +161,4 @@ def test_audit_tampering_detected_on_deletion():
     assert is_valid is False
     assert broken_idx == 1
     assert "Broken hash chain at index 1" in reason
+

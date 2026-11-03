@@ -6,3 +6,4 @@ Contains hardened subprocess wrappers for native binary security tools:
 - `integrations/katana`: High-speed web crawler wrapper (Phase 2 & 4)
 - `integrations/ffuf`: Controlled fuzzer & directory discovery wrapper (Phase 4)
 - `integrations/playwright`: Headless browser SPA crawler & session macro engine (Phase 2 & 4)
+

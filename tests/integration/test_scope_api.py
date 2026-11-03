@@ -82,3 +82,4 @@ async def test_scope_check_endpoint(
     res_exc_data = resp_exc.json()
     assert res_exc_data["is_in_scope"] is False
     assert res_exc_data["status"] == "EXCLUDED"
+

@@ -44,3 +44,4 @@ class AuditVerificationResponse(BaseModel):
     reason: Optional[str] = None
     first_hash: Optional[str] = None
     last_hash: Optional[str] = None
+

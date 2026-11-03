@@ -107,3 +107,4 @@ def verify_token(token: str, expected_type: str = "access") -> Dict[str, Any]:
 def constant_time_compare(val1: str, val2: str) -> bool:
     """Compare two strings in constant time to prevent timing side-channel attacks."""
     return hmac.compare_digest(val1.encode("utf-8"), val2.encode("utf-8"))
+

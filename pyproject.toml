@@ -1,0 +1,23 @@
+[project]
+name = "pentesa"
+version = "0.1.0"
+description = "AI-Powered Autonomous Web Application Penetration Testing Platform"
+readme = "README.md"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+pythonpath = [
+    ".",
+    "apps/api",
+    "packages/common",
+    "packages/schemas",
+    "services/scope-engine",
+    "database"
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning"
+]

@@ -1,0 +1,70 @@
+services:
+  # 1. Pentesa Core API Backend
+  api:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.api
+    container_name: pentesa-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PENTESA_ENV=production
+      - PENTESA_DEBUG=false
+      - DATABASE_URL=postgresql+asyncpg://pentesa_user:pentesa_password@db:5432/pentesa
+      - REDIS_URL=redis://redis:6379/0
+      - EGRESS_PROXY_HOST=egress-proxy
+      - EGRESS_PROXY_PORT=8080
+      - CALLBACK_SINK_HOST=callback-sink
+      - CALLBACK_SINK_HTTP_PORT=8888
+      - CALLBACK_SINK_DNS_PORT=8053
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - pentesa-internal
+
+  # 2. PostgreSQL 16 Relational Store
+  db:
+    image: postgres:16-alpine
+    container_name: pentesa-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: pentesa_user
+      POSTGRES_PASSWORD: pentesa_password
+      POSTGRES_DB: pentesa
+    volumes:
+      - pentesa-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pentesa_user -d pentesa"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pentesa-internal
+
+  # 3. Redis Task Broker & State Cache
+  redis:
+    image: redis:7-alpine
+    container_name: pentesa-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - pentesa-redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pentesa-internal
+
+volumes:
+  pentesa-pgdata:
+  pentesa-redisdata:
+
+networks:
+  pentesa-internal:
+    driver: bridge

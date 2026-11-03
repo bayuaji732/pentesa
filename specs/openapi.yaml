@@ -455,3 +455,4 @@ components:
                 properties:
                   code: { type: string, example: AUTH_UNAUTHORIZED }
                   message: { type: string }
+

@@ -259,3 +259,4 @@ Once an operator reviews and publishes a report:
 1. **Freezing:** The project state at that exact moment is serialized as an immutable JSON snapshot.
 2. **Cryptographic Sealing:** The compiled PDF file's SHA-256 hash is computed and permanently stored in the `reports` table.
 3. **Audit Verification:** Anyone with the PDF file can verify its authenticity by submitting it to `/api/v1/reports/verify`, which checks the file's hash against the project's historical database records.
+

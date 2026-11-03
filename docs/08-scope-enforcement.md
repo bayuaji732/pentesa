@@ -219,6 +219,33 @@ sequenceDiagram
   - Stripping double slashes (`//` $\to$ `/`).
   - Normalizing lowercase schemes and hostnames.
 
+### 6.5 Wildcard Subdomain Dot-Boundary Enforcement
+- **Threat:** A wildcard target like `*.example.com` matched with simple string suffix checks could mistakenly allow `attacker-example.com` or `notexample.com`.
+- **Mitigation:** The matching algorithm asserts strict dot boundaries:
+  ```python
+  # Dot-boundary regex matching
+  # For target *.example.com: matches "app.example.com" and "sub.app.example.com", rejects "evil-example.com"
+  pattern = r"^(?:[a-zA-Z0-9-]+\.)*" + re.escape(base_domain) + r"$"
+  ```
+
+### 6.6 IPv4-Mapped IPv6 and Alternative Number Representation Defense
+- **Threat:** An attacker crafts payloads using IPv4-mapped IPv6 syntax (`[::ffff:127.0.0.1]`), decimal integers (`http://2130706433/`), or octal notation (`http://0177.0.0.1/`) to bypass simple string-based private IP blocklists.
+- **Mitigation:** All resolved hostnames and IP strings are passed to Python's `ipaddress.ip_address()`:
+  - If an address is IPv6, `.ipv4_mapped` is unmapped to its standard IPv4 representation before validation.
+  - Checks against `.is_private`, `.is_loopback`, `.is_link_local`, `.is_multicast`, and `.is_reserved`.
+  - Non-standard decimal/octal notations are canonicalized by the URL parser before validation.
+
+### 6.7 Port Whitelist & Protocol Enforcement
+- **Threat:** An attacker redirects traffic to non-web administrative ports (e.g. `example.com:22` SSH, `example.com:9200` Elasticsearch) that are hosted on the same IP as an authorized web application.
+- **Mitigation:** If no port is specified in the scope target, the engine allows strictly standard web ports (`80`, `443`, `8080`, `8443`). Any request targeting a non-whitelisted port is dropped with `PORT_NOT_IN_SCOPE`.
+
+### 6.8 Multi-Record Round-Robin DNS Pinning Policy
+- **Threat:** A target domain returns multiple `A` records (`[192.168.1.10, 10.0.0.1]`). If the proxy validates record 0, but the OS socket connects to record 1, an internal probe bypass occurs.
+- **Mitigation:** **Unanimous Record Validation & Explicit Pinning.**
+  1. The resolver queries all `A` and `AAAA` records for the hostname.
+  2. Every single resolved IP in the set must validate as in-scope and non-private. If even one IP fails, the entire request is blocked.
+  3. The proxy selects one validated IP deterministically and explicitly connects to that specific IP string, setting TLS SNI and HTTP `Host` to the original domain.
+
 ---
 
 ## 7. Dynamic Scope Change Management & Invalidation
@@ -285,3 +312,4 @@ class ScopeEnforcer:
         """
         ...
 ```
+

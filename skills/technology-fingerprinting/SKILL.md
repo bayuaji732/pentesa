@@ -63,3 +63,4 @@ Target URLs validated against project scope. Probes route via Egress Proxy.
 
 ## 9. Validation Criteria
 - Accurately associates detected technologies with project record.
+

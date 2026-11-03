@@ -335,3 +335,4 @@ $$\text{Testing Health Score} = \frac{\text{Passed} + \text{Not Applicable}}{\te
 | **WSTG-BUSL** (Business Logic) | **AGT-14** (Business Logic Analysis) | **AGT-11** (Vulnerability Validation) |
 | **WSTG-CLNT** (Client-side Testing) | **AGT-04** (Attack Surface Mapping) | **AGT-08** (Input Validation) |
 | **WSTG-APIT** (API Testing) | **AGT-04** (Attack Surface Mapping) | **AGT-08** & **AGT-07** |
+

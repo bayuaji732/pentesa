@@ -32,3 +32,4 @@ We chose **PostgreSQL 16** with SQLAlchemy 2.0 ORM and Alembic migrations.
 ### Negative:
 - Schema migrations require Alembic management.
 - Deep nested querying inside complex JSONB structures requires specialized PostgreSQL operators (`->`, `->>`, `@>`).
+

@@ -62,3 +62,4 @@ Offline analytical evaluation; zero outbound network packets.
 
 ## 9. Validation Criteria
 - Accurately classifies and documents scanner noise with auditable reasoning.
+

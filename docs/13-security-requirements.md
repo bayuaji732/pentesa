@@ -212,3 +212,4 @@ flowchart LR
 1. Circuit breaker trips when target 500-level error rate $\ge 15\%$.
 2. All outbound queues for that target domain are paused for 120 seconds.
 3. Concurrency is automatically dialed back by 50% upon resumption.
+

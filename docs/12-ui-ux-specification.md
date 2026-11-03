@@ -377,3 +377,4 @@ flowchart TD
 - **WCAG 2.1 AA Compliance:** Minimum 4.5:1 text-to-background contrast ratio on all text and UI elements.
 - **Empty States:** Clear illustrations and calls-to-action for projects with zero discovered endpoints, zero findings, or empty scope.
 - **Responsive Layout:** Fluid layout down to 1280px minimum resolution (optimized for security workstation displays).
+

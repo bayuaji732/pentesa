@@ -71,3 +71,4 @@ Endpoint URL must be verified in scope. Outbound traffic routed through Egress P
 
 ## 9. Validation Criteria
 - Deterministic reproduction of reflection, calculation, or timing differential.
+

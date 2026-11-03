@@ -55,6 +55,7 @@ flowchart TB
         Beat["pentesa-beat\n(Celery Periodic Scheduler)"]
         Ollama["pentesa-llm\n(Ollama: Llama-3.1 / Qwen-2.5)"]
         EgressProxy["pentesa-egress-proxy\n(Scope Guard Proxy: Port 8080)"]
+        CallbackSink["pentesa-callback-sink\n(Local OAST Interaction Listener)"]
     end
 
     subgraph External Network
@@ -69,8 +70,10 @@ flowchart TB
     RedisQueue <--> Beat
     Worker <--> Postgres
     Worker <--> Ollama
+    Worker <--> CallbackSink
     Worker -->|HTTP_PROXY:8080| EgressProxy
     EgressProxy -->|Authorized Traffic Only| TargetApp
+    TargetApp -.->|Blind Callbacks Only| CallbackSink
 ```
 
 ---
@@ -86,6 +89,7 @@ flowchart TB
 | `pentesa-db` | `postgres:16-alpine` | Relational datastore with `pgcrypto` extension. | 1.0 Core | 1 GB | 2 GB |
 | `pentesa-redis` | `redis:7-alpine` | Task broker, rate limit cache, pub/sub log streaming. | 0.5 Core | 256 MB | 512 MB |
 | `pentesa-egress-proxy` | `python:3.12-slim` | Scope filtering forward proxy with DNS pinning. | 0.5 Core | 256 MB | 512 MB |
+| `pentesa-callback-sink` | `python:3.12-slim` | Local out-of-band (OAST) interaction listener (HTTP/DNS). | 0.5 Core | 256 MB | 512 MB |
 | `pentesa-llm` (Opt) | `ollama/ollama:latest` | Local LLM inference runner (Llama 3.1 8B / Qwen 2.5 14B). | 4.0 Cores | 8 GB | 16 GB (or GPU) |
 
 ---
@@ -208,3 +212,4 @@ Every service implements a Docker native health check:
 - `pentesa-egress-proxy`: `curl -f http://localhost:8080/health` (interval: 15s).
 
 If a Celery worker container crashes during an active scan, Celery's `acks_late=True` combined with LangGraph's PostgreSQL checkpoint saver guarantees that tasks resume from the last saved state upon worker container auto-restart.
+

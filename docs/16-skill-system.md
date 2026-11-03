@@ -316,3 +316,4 @@ flowchart TD
 - **Mandatory Scope Assertion:** The skill loader automatically checks `requires_scope_validation`. If `true`, the target parameter is validated against the database before any process or network socket is initialized.
 - **Human Approval Interceptor:** If `requires_human_approval` is `true` or dynamically triggered by high request volumes, the execution queue halts and requires a signed operator approval via WebSocket.
 - **Non-Bypassable Constraint:** Skills have no ability to disable egress proxy routing or bypass rate limiting.
+

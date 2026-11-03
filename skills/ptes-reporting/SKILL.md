@@ -63,3 +63,4 @@ Local document compilation and rendering; zero outbound network activity.
 
 ## 9. Validation Criteria
 - Produces complete, visually polished, and cryptographically hashed PTES document.
+

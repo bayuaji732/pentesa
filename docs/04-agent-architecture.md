@@ -376,3 +376,4 @@ Built on LangChain's `BaseChatModel`, supporting standardized structured output 
 ### 8.3 Prompt Management & Context Window Packing
 - Prompts are maintained in versioned templates.
 - Large HTTP response bodies are truncated or summarized using heuristic filters (e.g. stripping binary images or repetitive HTML boilerplate) before being passed to LLM context windows to preserve token budgets.
+

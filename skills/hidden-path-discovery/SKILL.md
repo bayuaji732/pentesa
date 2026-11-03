@@ -63,3 +63,4 @@ The target root URL must be validated by `scope-validation`. Outbound fuzzing tr
 
 ## 9. Validation Criteria
 - Discovered paths return valid, accessible HTTP responses within scope boundaries.
+

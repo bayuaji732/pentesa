@@ -70,3 +70,4 @@ Spiders in-scope web applications to discover hyperlinks, form actions, API rout
 
 ## 9. Validation Criteria
 - Discovered endpoints written to database with valid HTTP methods and parameter lists.
+

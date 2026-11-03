@@ -62,3 +62,4 @@ This skill is the authority that computes scope validity. It performs read-only 
 
 ## 9. Validation Criteria
 - Target is strictly within approved scope and outside all exclusion patterns.
+

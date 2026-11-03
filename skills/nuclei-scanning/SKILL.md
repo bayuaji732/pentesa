@@ -70,3 +70,4 @@ Every scanned URL must pass `scope-validation`. Outbound requests route through 
 
 ## 9. Validation Criteria
 - Accurately captures candidate detections with working reproduction details.
+

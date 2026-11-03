@@ -44,3 +44,4 @@ The objective of this Master Test Plan is to verify that Pentesa satisfies all f
 - **Critical (Severity 2):** False positive confirmed vulnerability; crash of Celery worker without recovery; failure to redact sensitive credentials.
 - **Major (Severity 3):** WSTG coverage calculation discrepancy; tool subprocess timeout not trapped cleanly.
 - **Minor (Severity 4):** Minor UI styling defect; missing tooltip in coverage heatmap.
+

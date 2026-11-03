@@ -357,3 +357,4 @@ gantt
 1. **Local LLM Model Sizing vs. Accuracy:** Should v1.0 mandate an external API key (e.g. OpenAI/Anthropic compatible endpoint) for complex reasoning tasks (Business Logic & False Positive Triage) while using local Ollama (Llama 3.1 8B / Qwen 2.5 14B) for routine parameter analysis?
 2. **Egress Proxy Implementation:** Should the network-level egress proxy be implemented as an internal Squid/Envoy sidecar container, or a custom Python `asyncio` streaming proxy embedded directly in the worker? (Current recommendation: lightweight custom Python proxy with DNS pinning).
 3. **Headless Browser Resource Footprint:** Crawling heavy SPAs via Chromium/Playwright consumes substantial memory (~300MB per tab). Should SPA DOM crawling be a toggleable scan profile (e.g. `Lightweight Katana` vs `Deep SPA Playwright`)?
+

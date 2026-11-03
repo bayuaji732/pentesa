@@ -67,3 +67,4 @@ All probes must target authorized hostnames via the Scope Egress Proxy.
 
 ## 9. Validation Criteria
 - All requested WSTG-INFO test instances updated with auditable statuses.
+

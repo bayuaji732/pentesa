@@ -26,3 +26,4 @@ flowchart TD
     Receive --> RedirectCheck{Is HTTP Status 3xx Redirect?}
     RedirectCheck -- No --> SuccessReturn([Return Response to Calling Agent])
     RedirectCheck -- Yes --> ExtractLocation[Extract Location Header] --> AppLayerCheck
+

@@ -26,3 +26,4 @@ All security testing tools (`nuclei`, `katana`, `ffuf`, `httpx`, `subfinder`) mu
 ### Negative:
 - The system cannot run arbitrary ad-hoc command-line utilities that have not been wrapped in a formal tool runner class.
 - Adding a new tool integration requires implementing a Python wrapper and Pydantic schema.
+

@@ -76,3 +76,4 @@ Targets must be verified in scope. Traffic routes through Egress Proxy.
 
 ## 9. Validation Criteria
 - Accurately identifies cookie attribute omissions and session lifecycle defects.
+

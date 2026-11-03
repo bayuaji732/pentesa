@@ -319,3 +319,4 @@ The platform shall maintain relational integrity across all entities in PostgreS
 | **SRS-FR-RP-001..004** | Reporting & Export | US-06 | PDF Render & Checksum Tests | Must Have |
 | **SRS-NFR-SEC-001..005** | Non-Functional Security | All | Static Analysis + Penetration Tests | Must Have |
 | **SRS-NFR-PERF-001..003**| Performance | All | Load Tests with Locust | Must Have |
+

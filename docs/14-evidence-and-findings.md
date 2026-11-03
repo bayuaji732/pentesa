@@ -217,3 +217,4 @@ sequenceDiagram
         API-->>UI: WebSocket Broadcast: Vulnerability Still Active!
     end
 ```
+

@@ -420,6 +420,52 @@ For large datasets (`endpoints`, `findings`, `audit_logs`):
 
 ---
 
+### 4.12 Module 12: Target Authentication Profiles & Credential Vault (Auth Profiles)
+
+#### 70. `POST /api/v1/projects/{project_id}/auth-profiles`
+- **Description:** Create target authentication profile (Bearer Token, Session Cookie, Multi-Role credential pair) with automatic AES-256-GCM encryption of secrets.
+- **Auth:** Lead_Tester, Admin.
+- **Request Body:**
+  ```json
+  {
+    "name": "Tenant-A Standard User",
+    "auth_type": "BEARER_TOKEN",
+    "login_url": "https://app.example.com/api/v1/login",
+    "credentials": { "token": "eyJhbGciOi..." }
+  }
+  ```
+- **Response (201 Created):** Auth profile object (secrets omitted/redacted).
+
+#### 71. `GET /api/v1/projects/{project_id}/auth-profiles`
+- **Description:** List all configured authentication profiles for project (masked secrets).
+
+#### 72. `GET /api/v1/projects/{project_id}/auth-profiles/{profile_id}`
+- **Description:** Retrieve specific auth profile metadata.
+
+#### 73. `PUT /api/v1/projects/{project_id}/auth-profiles/{profile_id}`
+- **Description:** Update authentication credentials or rotate token.
+
+#### 74. `DELETE /api/v1/projects/{project_id}/auth-profiles/{profile_id}`
+- **Description:** Remove authentication profile and securely wipe vaulted secrets.
+
+---
+
+### 4.13 Module 13: Advanced Evidence & Emergency Controls
+
+#### 75. `GET /api/v1/findings/{finding_id}/evidence/screenshot`
+- **Description:** Stream captured DOM screenshot image file (PNG) for client-side findings.
+
+#### 76. `POST /api/v1/projects/{project_id}/findings/batch-update`
+- **Description:** Perform bulk status transitions (e.g. bulk mark False Positive or Confirmed) with recorded justification.
+
+#### 77. `POST /api/v1/projects/{project_id}/agents/workflow/stop`
+- **Description:** Hard emergency stop: sends `SIGKILL` to all active tool subprocesses, aborts Celery task graphs, and invalidates temporary credentials.
+
+#### 78. `GET /api/v1/projects/{project_id}/callbacks`
+- **Description:** Query local out-of-band interaction callbacks recorded by `pentesa-callback-sink` for blind SSRF and blind injection correlation.
+
+---
+
 ## 5. Real-Time WebSocket Protocol
 
 ### Connection URL:
@@ -497,3 +543,4 @@ For large datasets (`endpoints`, `findings`, `audit_logs`):
 | `TOOL_EXECUTION_TIMEOUT` | 504 | Security tool exceeded maximum allowed runtime. |
 | `CIRCUIT_BREAKER_TRIGGERED`| 429 | Target server error rate exceeded 15%; scans paused. |
 | `REPRODUCTION_FAILED` | 422 | Vulnerability reproduction probe did not replicate defect. |
+

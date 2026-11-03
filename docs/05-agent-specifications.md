@@ -604,3 +604,4 @@ graph TD
 - **Human Approval:** None required (Operator approves final publication).
 - **Dependencies:** AGT-13, AGT-05, AGT-01.
 - **Error Handling:** Validates PDF page rendering; retries with simplified layout if WeasyPrint encounters CSS overflow.
+

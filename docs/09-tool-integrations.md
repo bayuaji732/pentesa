@@ -118,8 +118,20 @@ All CLI tool subprocesses execute within the worker container under strict sandb
 1. **Non-Root Execution:** Tools run under an unprivileged system user (`pentesa_worker`, UID 1001).
 2. **Read-Only Root Filesystem:** Subprocesses write only to dedicated temporary scratch directories (`/tmp/pentesa/runs/{execution_id}`) mounted with `noexec` flags.
 3. **Memory & CPU Limits:** Subprocesses are constrained using Linux cgroups (configurable max memory: 1024MB per process).
-4. **Environment Sanitization:** Environment variables are scrubbed; only `PATH`, `HOME`, and egress proxy variables (`HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY`) are passed to child processes.
+4. **Zero-Leakage Environment Sanitization:** Environment variables are strictly constructed from an allowlist. Platform secrets (`PENTESA_MASTER_KEY`, `POSTGRES_PASSWORD`, `JWT_SECRET_KEY`, database URLs) are completely excluded:
+   ```python
+   # Explicit allowlist environment construction
+   clean_env = {
+       "PATH": os.environ.get("PATH", "/usr/local/bin:/usr/bin:/bin"),
+       "HOME": f"/tmp/pentesa/runs/{execution_id}",
+       "HTTP_PROXY": "http://pentesa-egress-proxy:8080",
+       "HTTPS_PROXY": "http://pentesa-egress-proxy:8080",
+       "NO_PROXY": "localhost,127.0.0.1,pentesa-callback-sink",
+       "TMPDIR": f"/tmp/pentesa/runs/{execution_id}"
+   }
+   ```
 5. **Output Buffer Caps:** Stdout/stderr streams are limited to a maximum of 100MB per execution to prevent disk and memory exhaustion attacks.
+6. **Local Out-of-Band (OAST) Callback Sink:** For blind SSRF and blind injection testing, instead of relying on external third-party services (`interact.sh`), Pentesa provisions a dedicated local container (`pentesa-callback-sink`). The sink captures HTTP and DNS interaction callbacks locally, correlates the unique payload token with the test execution, and reports confirmed blind vulnerabilities without data leakage.
 
 ---
 
@@ -347,3 +359,4 @@ async def cancel_subprocess(proc: asyncio.subprocess.Process, timeout: int = 5):
         await proc.wait()
 ```
 - **Cleanup Guarantee:** All temporary files, wordlist extracts, and socket buffers are deleted automatically in an asynchronous `finally` block.
+

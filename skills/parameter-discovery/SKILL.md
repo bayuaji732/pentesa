@@ -60,3 +60,4 @@ Endpoint URL must be pre-validated by `scope-validation`. Fuzzing traffic routes
 
 ## 9. Validation Criteria
 - Discovered parameters produce verifiable differential server behavior.
+

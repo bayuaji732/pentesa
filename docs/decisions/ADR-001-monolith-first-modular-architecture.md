@@ -26,3 +26,4 @@ The codebase is organized into strict internal domain packages (`app.modules.pro
 - Single programming language constraint (Python 3.12) across backend services.
 - If a background task consumes excessive memory, it shares the worker container (mitigated via Celery task concurrency limits and Docker cgroups).
 - Future scaling to multi-server distributed worker clusters will require extracting the worker queue (which Celery already natively supports).
+

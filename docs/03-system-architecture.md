@@ -428,3 +428,4 @@ The following key architectural decisions are documented in detail in `docs/deci
 - **ADR-004:** Strict Deterministic Binary Execution over LLM-Generated Dynamic Shell Scripts.
 - **ADR-005:** Local-First, Sovereign Deployment Model with Offline Ollama Support.
 - **ADR-006:** Dual-Layer Scope Enforcement (Application URL Router + Network Egress Proxy with DNS Pinning).
+

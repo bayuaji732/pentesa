@@ -210,15 +210,16 @@ The centralized endpoint inventory.
 - `id` (UUID, PK)
 - `project_id` (UUID, FK $\to$ `projects.id`, ON DELETE CASCADE)
 - `domain_id` (UUID, FK $\to$ `discovered_domains.id`, ON DELETE SET NULL, NULLABLE)
+- `fqdn` (VARCHAR(255), NOT NULL) — e.g. `api.example.com`
 - `url_path` (TEXT, NOT NULL) — e.g. `/api/v1/users/{id}`
-- `http_method` (VARCHAR(10), NOT NULL) — `GET`, `POST`, `PUT`, `DELETE`, `PATCH`
+- `http_method` (VARCHAR(10), NOT NULL) — `GET`, `POST`, `PUT`, `DELETE`, `PATCH`, `HEAD`, `OPTIONS`
 - `parameter_schema` (JSONB) — structured list of query/body/header parameters
 - `content_type` (VARCHAR(100))
 - `auth_required` (BOOLEAN, default: FALSE)
 - `discovery_source` (VARCHAR(50), NOT NULL)
 - `testing_status` (VARCHAR(50), default: `Discovered`) — `Discovered`, `Testing`, `Tested`
 - `created_at` (TIMESTAMPTZ, default: `clock_timestamp()`)
-- *Unique Constraint:* `(project_id, url_path, http_method)`
+- *Unique Constraint:* `(project_id, fqdn, url_path, http_method)`
 
 #### Table 11: `technologies`
 Discovered framework and software stacks.
@@ -281,7 +282,7 @@ Individual automated execution runs.
 - `id` (UUID, PK)
 - `project_id` (UUID, FK $\to$ `projects.id`, ON DELETE CASCADE)
 - `wstg_instance_id` (UUID, FK $\to$ `wstg_test_instances.id`, ON DELETE CASCADE)
-- `endpoint_id` (UUID, FK $\to$ `endpoints.id`, ON DELETE CASCADE)
+- `endpoint_id` (UUID, FK $\to$ `endpoints.id`, ON DELETE CASCADE, NULLABLE) — NULL for host/domain-level tests (e.g. WSTG-INFO-01..04, WSTG-CONF-01)
 - `status` (VARCHAR(50), NOT NULL)
 - `start_time` (TIMESTAMPTZ, default: `clock_timestamp()`)
 - `end_time` (TIMESTAMPTZ)
@@ -303,7 +304,7 @@ Streaming execution output and debugging lines.
 Confirmed and candidate security vulnerabilities.
 - `id` (UUID, PK)
 - `project_id` (UUID, FK $\to$ `projects.id`, ON DELETE CASCADE)
-- `endpoint_id` (UUID, FK $\to$ `endpoints.id`, ON DELETE CASCADE)
+- `endpoint_id` (UUID, FK $\to$ `endpoints.id`, ON DELETE CASCADE, NULLABLE) — NULL for domain/host/TLS-level findings
 - `wstg_id` (VARCHAR(50), FK $\to$ `wstg_test_catalog.id`)
 - `title` (VARCHAR(255), NOT NULL)
 - `description` (TEXT, NOT NULL)
@@ -324,8 +325,9 @@ Confirmed and candidate security vulnerabilities.
 Forensic raw HTTP and screenshot artifacts.
 - `id` (UUID, PK)
 - `finding_id` (UUID, FK $\to$ `findings.id`, ON DELETE CASCADE)
-- `raw_request` (TEXT, NOT NULL) — with sensitive tokens redacted
-- `raw_response` (TEXT, NOT NULL)
+- `raw_request` (TEXT, NOT NULL) — sanitized text with sensitive tokens redacted
+- `raw_response` (TEXT, NOT NULL) — UTF-8 sanitized response body
+- `raw_response_bytes_path` (VARCHAR(500), NULLABLE) — path to raw byte payload on disk for compressed/binary responses
 - `reproduction_curl` (TEXT, NOT NULL)
 - `request_hash_sha256` (VARCHAR(64), NOT NULL)
 - `response_hash_sha256` (VARCHAR(64), NOT NULL)
@@ -525,3 +527,4 @@ Individual dispatched scan job runs.
 
 - Migrations are versioned sequentially: `migrations/versions/001_initial_core.py`, `002_scope_engine.py`, etc.
 - All migrations must supply both `upgrade()` and `downgrade()` routines tested against a disposable PostgreSQL testcontainer before deployment.
+

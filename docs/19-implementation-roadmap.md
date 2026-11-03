@@ -207,3 +207,4 @@ A delay in the Scope Enforcement Engine or Tool Wrappers directly pushes back th
 3. **WSTG Coverage:** Comprehensive coverage calculation working across all 12 OWASP categories.
 4. **Local-First Operation:** Complete execution running offline using local Ollama instance with zero external network leakage.
 5. **Report Quality:** Pixel-perfect PTES PDF report compiles in $< 15$ seconds.
+

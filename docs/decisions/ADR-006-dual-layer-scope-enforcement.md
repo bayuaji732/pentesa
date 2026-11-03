@@ -30,3 +30,4 @@ We mandate a **Dual-Layer Scope Enforcement Architecture**:
 ### Negative:
 - Minor latency overhead (~2–5ms) added to outbound requests for proxy socket inspection and local DNS caching.
 - Requires maintaining the lightweight Python asyncio forward proxy container.
+

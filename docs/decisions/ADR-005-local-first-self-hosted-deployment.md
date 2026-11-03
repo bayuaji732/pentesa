@@ -27,3 +27,4 @@ Pentesa is distributed as a self-contained Docker Compose application that deplo
 ### Negative:
 - The operator must provide adequate local compute hardware (minimum 16GB RAM; recommended NVIDIA GPU with 12GB+ VRAM for local 14B models).
 - Model updates and tool binary updates must be managed locally via container image pulls.
+

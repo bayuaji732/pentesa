@@ -62,3 +62,4 @@ Extracts endpoints only from assets originating from verified in-scope domains.
 
 ## 9. Validation Criteria
 - Valid routes and parameter signatures registered in `endpoints` inventory.
+

@@ -130,3 +130,4 @@ L  1 |                                        [RSK-14]     [RSK-13]
 - **Bi-Weekly Risk Reviews:** Product Manager and AppSec Lead review the Risk Register during sprint retrospectives.
 - **Pre-Engagement Checklist:** Prior to launching any scan, the system enforces a checklist: valid RoE dates verified, scope approved, emergency contact on file.
 - **Post-Assessment Review:** Any false positive reported by a client is analyzed to update heuristic suppression rules.
+

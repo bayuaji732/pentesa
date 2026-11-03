@@ -62,3 +62,4 @@ All discovered subdomains must be verified against `scope-validation` before bei
 
 ## 9. Validation Criteria
 - At least the root domain or verified subdomains are cataloged.
+

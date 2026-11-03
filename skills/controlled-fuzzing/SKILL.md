@@ -63,3 +63,4 @@ Endpoint URL must be pre-validated by `scope-validation`. Fuzzing traffic routes
 
 ## 9. Validation Criteria
 - Surfaces reproducible error conditions without causing denial-of-service.
+

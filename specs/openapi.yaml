@@ -1,0 +1,457 @@
+openapi: 3.0.3
+info:
+  title: Pentesa Autonomous Penetration Testing Platform API
+  description: >-
+    RESTful API specification for Pentesa, an autonomous, AI-powered, local-first
+    web application penetration testing platform aligned with OWASP WSTG v4.2 and PTES.
+  version: 1.0.0
+  contact:
+    name: Pentesa Architecture Team
+    email: security@pentesa.local
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local Development / Default Container Gateway
+
+paths:
+  /auth/login:
+    post:
+      summary: Authenticate User
+      operationId: login
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        '200':
+          description: Authentication successful; JWT issued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token: { type: string }
+                  refresh_token: { type: string }
+                  token_type: { type: string, example: bearer }
+                  expires_in: { type: integer, example: 900 }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/me:
+    get:
+      summary: Current User Profile
+      operationId: getMe
+      tags: [Auth]
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200':
+          description: Current user details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /projects:
+    get:
+      summary: List Projects
+      operationId: listProjects
+      tags: [Projects]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Project'
+    post:
+      summary: Create Project
+      operationId: createProject
+      tags: [Projects]
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectCreate'
+      responses:
+        '201':
+          description: Project successfully created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+
+  /projects/{project_id}:
+    get:
+      summary: Get Project Details
+      operationId: getProject
+      tags: [Projects]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+
+  /projects/{project_id}/scope/targets:
+    get:
+      summary: List In-Scope Targets
+      operationId: listScopeTargets
+      tags: [Scope]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ScopeTarget'
+    post:
+      summary: Add In-Scope Target
+      operationId: addScopeTarget
+      tags: [Scope]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScopeTargetCreate'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScopeTarget'
+
+  /projects/{project_id}/scope/validate:
+    post:
+      summary: Validate Target URL against Scope Engine
+      operationId: validateScopeUrl
+      tags: [Scope]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url: { type: string, format: uri }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  allowed: { type: boolean }
+                  resolved_ip: { type: string }
+                  reason: { type: string }
+
+  /projects/{project_id}/endpoints:
+    get:
+      summary: List Discovered Endpoints
+      operationId: listEndpoints
+      tags: [Discovery]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: method
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Endpoint'
+
+  /projects/{project_id}/wstg/plan:
+    get:
+      summary: Get WSTG Test Plan Matrix
+      operationId: getWstgPlan
+      tags: [WSTG]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WstgInstance'
+
+  /projects/{project_id}/wstg/coverage:
+    get:
+      summary: Get Mathematical Coverage Metrics
+      operationId: getWstgCoverage
+      tags: [WSTG]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CoverageReport'
+
+  /projects/{project_id}/findings:
+    get:
+      summary: List Project Findings
+      operationId: listFindings
+      tags: [Findings]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: severity
+          in: query
+          schema: { type: string, enum: [Critical, High, Medium, Low, Informational] }
+        - name: status
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Finding'
+
+  /findings/{finding_id}:
+    get:
+      summary: Get Finding Details
+      operationId: getFinding
+      tags: [Findings]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: finding_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Finding'
+
+  /findings/{finding_id}/retest:
+    post:
+      summary: Retest Vulnerability Reproduction
+      operationId: retestFinding
+      tags: [Findings]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: finding_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  retest_status: { type: string, enum: [Remediated, Still_Vulnerable] }
+
+  /projects/{project_id}/reports/generate:
+    post:
+      summary: Generate PTES Report
+      operationId: generateReport
+      tags: [Reports]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [format]
+              properties:
+                format: { type: string, enum: [PDF, HTML] }
+                template_name: { type: string, default: ptes_standard }
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  report_id: { type: string, format: uuid }
+                  download_url: { type: string }
+                  file_hash: { type: string }
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        full_name: { type: string }
+        role: { type: string, enum: [Admin, Lead_Tester, Tester, Viewer] }
+
+    Project:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        client_name: { type: string }
+        description: { type: string }
+        auth_start_date: { type: string, format: date-time }
+        auth_end_date: { type: string, format: date-time }
+        status: { type: string }
+        max_rps: { type: integer }
+
+    ProjectCreate:
+      type: object
+      required: [name, client_name, auth_signer_name, auth_signer_email, auth_start_date, auth_end_date]
+      properties:
+        name: { type: string }
+        client_name: { type: string }
+        auth_signer_name: { type: string }
+        auth_signer_email: { type: string, format: email }
+        auth_start_date: { type: string, format: date-time }
+        auth_end_date: { type: string, format: date-time }
+        max_rps: { type: integer, default: 20 }
+
+    ScopeTarget:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        project_id: { type: string, format: uuid }
+        target_type: { type: string, enum: [DOMAIN, WILDCARD, IP_ADDRESS, CIDR] }
+        value: { type: string }
+        port: { type: integer }
+        protocol: { type: string }
+
+    ScopeTargetCreate:
+      type: object
+      required: [target_type, value]
+      properties:
+        target_type: { type: string, enum: [DOMAIN, WILDCARD, IP_ADDRESS, CIDR] }
+        value: { type: string }
+        port: { type: integer }
+        protocol: { type: string, default: BOTH }
+
+    Endpoint:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        url_path: { type: string }
+        http_method: { type: string }
+        content_type: { type: string }
+        auth_required: { type: boolean }
+        testing_status: { type: string }
+
+    WstgInstance:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        wstg_id: { type: string }
+        status: { type: string }
+        notes: { type: string }
+
+    CoverageReport:
+      type: object
+      properties:
+        overall_coverage_pct: { type: number }
+        total_tests: { type: integer }
+        passed_count: { type: integer }
+        failed_count: { type: integer }
+        not_applicable_count: { type: integer }
+
+    Finding:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        severity: { type: string }
+        status: { type: string }
+        cwe_id: { type: string }
+        cvss_score: { type: number }
+        endpoint_url: { type: string }
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid JWT access token
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success: { type: boolean, example: false }
+              error:
+                type: object
+                properties:
+                  code: { type: string, example: AUTH_UNAUTHORIZED }
+                  message: { type: string }

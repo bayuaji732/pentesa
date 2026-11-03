@@ -1,0 +1,48 @@
+erDiagram
+    USERS ||--o{ PROJECTS : "creates"
+    USERS ||--o{ PROJECT_MEMBERS : "assigned_to"
+    PROJECTS ||--o{ PROJECT_MEMBERS : "contains"
+    PROJECTS ||--o{ AUDIT_LOGS : "logs"
+    
+    PROJECTS ||--o{ SCOPE_TARGETS : "bounds"
+    PROJECTS ||--o{ SCOPE_EXCLUSIONS : "excludes"
+    PROJECTS ||--o{ SCOPE_VALIDATIONS : "verifies"
+    PROJECTS ||--o{ SCOPE_CHANGES : "records_revisions"
+    
+    PROJECTS ||--o{ DISCOVERED_DOMAINS : "enumerates"
+    PROJECTS ||--o{ ENDPOINTS : "catalogs"
+    DISCOVERED_DOMAINS ||--o{ ENDPOINTS : "hosts"
+    ENDPOINTS ||--o{ TECHNOLOGIES : "uses"
+    ENDPOINTS ||--o{ COOKIES : "sets"
+    ENDPOINTS ||--o{ HEADERS : "exposes"
+    
+    WSTG_CATALOG ||--o{ WSTG_INSTANCES : "defines"
+    PROJECTS ||--o{ WSTG_INSTANCES : "tracks_plan"
+    WSTG_INSTANCES ||--o{ TEST_EXECUTIONS : "dispatches"
+    ENDPOINTS ||--o{ TEST_EXECUTIONS : "tested_by"
+    TEST_EXECUTIONS ||--o{ TEST_EXECUTION_LOGS : "streams"
+    
+    PROJECTS ||--o{ FINDINGS : "contains"
+    ENDPOINTS ||--o{ FINDINGS : "affects"
+    WSTG_CATALOG ||--o{ FINDINGS : "categorizes"
+    FINDINGS ||--o{ FINDING_EVIDENCE : "forensically_proven_by"
+    FINDINGS ||--o{ FINDING_REPRODUCTIONS : "verified_by"
+    FINDINGS ||--o{ FINDING_STATUS_HISTORY : "transitions"
+    FINDINGS ||--o{ FALSE_POSITIVES : "refuted_by"
+    
+    PROJECTS ||--o{ TOOL_CONFIGURATIONS : "configures"
+    PROJECTS ||--o{ TOOL_EXECUTIONS : "runs"
+    
+    PROJECTS ||--o{ AGENT_EXECUTIONS : "spawns"
+    AGENT_EXECUTIONS ||--o{ AGENT_DECISIONS : "reasons"
+    AGENT_EXECUTIONS ||--o{ AGENT_TOOL_CALLS : "invokes"
+    
+    PROJECTS ||--o{ REPORTS : "publishes"
+    REPORT_TEMPLATES ||--o{ REPORTS : "formats"
+    
+    PROJECTS ||--o{ AUTH_PROFILES : "stores_identities"
+    AUTH_PROFILES ||--o{ TEST_CREDENTIALS : "vaults"
+    
+    PROJECTS ||--o{ SCAN_SCHEDULES : "automates"
+    SCAN_SCHEDULES ||--o{ SCAN_JOBS : "triggers"
+    PROJECTS ||--o{ SCAN_JOBS : "tracks_scans"

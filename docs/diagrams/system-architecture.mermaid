@@ -1,0 +1,65 @@
+flowchart TB
+    subgraph Client Tier
+        Browser[Security Engineer Workstation / Web Browser]
+    end
+
+    subgraph Pentesa Host Boundary [Docker Compose Environment]
+        subgraph Ingress & Presentation
+            Nginx["Nginx Reverse Proxy & TLS\n(Port 443 / 80)"]
+            FastAPI["FastAPI Backend & WebSocket Server\n(Port 8000)"]
+        end
+
+        subgraph Asynchronous Task & Queue Tier
+            RedisQueue[("Redis 7 Task Broker & State Store")]
+            CeleryWorker["Celery Execution Workers"]
+            CeleryBeat["Celery Periodic Beat Scheduler"]
+        end
+
+        subgraph AI Agent & Reasoning Subsystem
+            LangGraph["LangGraph Supervisor Orchestrator"]
+            AgentPool["15 Specialized AI Security Agents"]
+            LocalOllama["Local Ollama AI Inference Engine\n(Llama 3.1 / Qwen 2.5)"]
+        end
+
+        subgraph Deterministic Tool Sandbox
+            NucleiWrap["Nuclei Scanner Wrapper"]
+            KatanaWrap["Katana Crawler Wrapper"]
+            FfufWrap["Ffuf Fuzzer Wrapper"]
+            HttpxWrap["Httpx Prober Wrapper"]
+            PythonChecks["Custom Python Security Checks"]
+        end
+
+        subgraph Scope & Egress Security
+            EgressProxy["Scope-Enforcing Egress Proxy\n(DNS Pinning & Socket Filtering: Port 8080)"]
+        end
+
+        subgraph Data Tier
+            Postgres[("PostgreSQL 16 Relational Datastore\n(pgcrypto Encrypted Tables)")]
+            EvidenceStorage[("Local Forensic Evidence Storage\n(/var/pentesa/evidence)")]
+            ReportStorage[("Local PTES Report Storage\n(/var/pentesa/reports)")]
+        end
+    end
+
+    subgraph Target Infrastructure
+        TargetWeb["Authorized Target Web Applications & APIs"]
+    end
+
+    Browser <-->|HTTPS 443 / WSS| Nginx
+    Nginx <-->|HTTP / WS| FastAPI
+    FastAPI <-->|SQLAlchemy ORM| Postgres
+    FastAPI <-->|Enqueue Tasks| RedisQueue
+    
+    RedisQueue <--> CeleryWorker
+    RedisQueue <--> CeleryBeat
+    CeleryWorker <--> Postgres
+    CeleryWorker <--> LangGraph
+    
+    LangGraph <--> AgentPool
+    AgentPool <--> LocalOllama
+    AgentPool --> NucleiWrap & KatanaWrap & FfufWrap & HttpxWrap & PythonChecks
+    
+    NucleiWrap & KatanaWrap & FfufWrap & HttpxWrap & PythonChecks -->|HTTP_PROXY| EgressProxy
+    EgressProxy -->|Validated Scope Only| TargetWeb
+    
+    CeleryWorker --> EvidenceStorage
+    CeleryWorker --> ReportStorage

@@ -1,0 +1,29 @@
+graph TD
+    Operator([Security Engineer]) <-->|Approvals & Overrides| Supervisor[AGT-01: Project Planning Supervisor]
+
+    subgraph Phase 1: Recon & Discovery
+        Supervisor --> AGT02[AGT-02: Scope Validation Agent]
+        AGT02 --> AGT03[AGT-03: Reconnaissance Agent]
+        AGT03 --> AGT04[AGT-04: Attack Surface Mapping Agent]
+    end
+
+    subgraph Phase 2: WSTG Planning & Active Testing
+        AGT04 --> AGT05[AGT-05: WSTG Test Planning Agent]
+        AGT05 --> AGT06[AGT-06: Authentication Testing Agent]
+        AGT05 --> AGT07[AGT-07: Authorization / IDOR Agent]
+        AGT05 --> AGT08[AGT-08: Input Validation Agent]
+        AGT05 --> AGT09[AGT-09: Vulnerability Detection Agent]
+        AGT05 --> AGT10[AGT-10: Controlled Fuzzing Agent]
+        AGT05 --> AGT14[AGT-14: Business Logic Agent]
+    end
+
+    subgraph Phase 3: Validation, Triage & Evidence
+        AGT06 & AGT07 & AGT08 & AGT09 & AGT10 & AGT14 --> AGT11[AGT-11: Vulnerability Validation Agent]
+        AGT11 -->|Refuted / Ambiguous| AGT12[AGT-12: False Positive Analysis Agent]
+        AGT11 -->|Confirmed Bug| AGT13[AGT-13: Evidence Collection Agent]
+    end
+
+    subgraph Phase 4: Reporting & Verification
+        AGT12 & AGT13 --> AGT15[AGT-15: PTES Reporting Agent]
+        AGT15 --> FinalReport[Published PTES Deliverable PDF/HTML]
+    end

@@ -1,0 +1,142 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PentesaFindingSchema",
+  "description": "Standardized schema for security findings, evidence, and CVSS metadata in Pentesa",
+  "type": "object",
+  "required": [
+    "id",
+    "project_id",
+    "title",
+    "description",
+    "severity",
+    "status",
+    "confidence",
+    "cwe_id",
+    "wstg_id",
+    "endpoint_url",
+    "http_method",
+    "detection_source",
+    "created_at"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "endpoint_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["Critical", "High", "Medium", "Low", "Informational"]
+    },
+    "cvss_v31": {
+      "type": "object",
+      "required": ["score", "vector"],
+      "properties": {
+        "score": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 10.0
+        },
+        "vector": {
+          "type": "string",
+          "pattern": "^CVSS:3\\.1/.*"
+        }
+      }
+    },
+    "cwe_id": {
+      "type": "string",
+      "pattern": "^CWE-[0-9]+$"
+    },
+    "owasp_top10": {
+      "type": "string",
+      "pattern": "^A[0-9]{2}:2021.*"
+    },
+    "wstg_id": {
+      "type": "string",
+      "pattern": "^WSTG-[A-Z]{4}-[0-9]{2}$"
+    },
+    "endpoint_url": {
+      "type": "string",
+      "format": "uri"
+    },
+    "http_method": {
+      "type": "string",
+      "enum": ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"]
+    },
+    "affected_parameter": {
+      "type": "string"
+    },
+    "detection_source": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Detected",
+        "Triaged",
+        "Validating",
+        "Confirmed",
+        "False Positive",
+        "Needs Manual Review",
+        "Remediated",
+        "Retested",
+        "Accepted Risk"
+      ]
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["Confirmed", "High", "Medium", "Low"]
+    },
+    "reproduction": {
+      "type": "object",
+      "required": ["curl_command"],
+      "properties": {
+        "curl_command": { "type": "string" },
+        "python_script": { "type": "string" },
+        "reproduction_status": { "type": "string", "enum": ["SUCCESS", "FAILED", "INCONCLUSIVE"] },
+        "last_verified_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "required": ["raw_request", "raw_response", "request_sha256", "response_sha256"],
+      "properties": {
+        "raw_request": { "type": "string" },
+        "raw_response": { "type": "string" },
+        "request_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "response_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "screenshot_url": { "type": "string" },
+        "response_time_ms": { "type": "integer" }
+      }
+    },
+    "remediation": {
+      "type": "object",
+      "properties": {
+        "guidance": { "type": "string" },
+        "code_snippet": { "type": "string" },
+        "references": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

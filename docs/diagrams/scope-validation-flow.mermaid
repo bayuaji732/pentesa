@@ -1,0 +1,28 @@
+flowchart TD
+    CandidateURL([Candidate URL Target]) --> AppLayerCheck{Layer 1: App Guard\nIs Hostname in Scope DB?}
+    
+    AppLayerCheck -- No --> DropApp[DROP: Hostname Out of Scope\nRaise ScopeViolationException]
+    AppLayerCheck -- Yes --> PathExclusionCheck{Is URL in\nExcluded Paths / Regex?}
+    
+    PathExclusionCheck -- Yes --> DropExclusion[DROP: Path explicitly excluded\n(e.g. /logout or /admin/purge)]
+    PathExclusionCheck -- No --> ForwardProxy[Forward Request to\nScope Egress Proxy]
+    
+    ForwardProxy --> DNSResolve[Perform Isolated DNS Resolution]
+    DNSResolve --> DNSSuccess{DNS Succeeded?}
+    DNSSuccess -- No --> DropDNS[DROP: Host unresolvable]
+    
+    DNSSuccess -- Yes --> PrivateCheck{Is Resolved IP Private / Loopback?\n(127.0.0.1, 10.0.0.0/8, 169.254.x.x)}
+    PrivateCheck -- Yes --> ScopeAllowsPrivate{Project Scope explicitly\nincludes this Private CIDR?}
+    ScopeAllowsPrivate -- No --> DropSSRF[DROP: Private IP Forbidden\n(Anti-SSRF Protection)]
+    ScopeAllowsPrivate -- Yes --> CheckAllowedCIDR
+    
+    PrivateCheck -- No --> CheckAllowedCIDR{Layer 2: Network Check\nIs IP in Allowed CIDR / Host List?}
+    CheckAllowedCIDR -- No --> DropIP[DROP TCP SOCKET:\nIP out of approved scope]
+    CheckAllowedCIDR -- Yes --> PinSocket[Pin Socket directly to Resolved IP\nInject Original Host Header]
+    
+    PinSocket --> Transmit[Transmit HTTP Request to Target]
+    Transmit --> Receive[Receive HTTP Response]
+    
+    Receive --> RedirectCheck{Is HTTP Status 3xx Redirect?}
+    RedirectCheck -- No --> SuccessReturn([Return Response to Calling Agent])
+    RedirectCheck -- Yes --> ExtractLocation[Extract Location Header] --> AppLayerCheck

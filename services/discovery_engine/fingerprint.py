@@ -213,3 +213,4 @@ def detect_technologies(
                     }
 
     return sorted(list(detected.values()), key=lambda x: x["name"])
+

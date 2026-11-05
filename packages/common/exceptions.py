@@ -51,3 +51,15 @@ class AuditIntegrityError(PentesaError):
     """Raised when cryptographic verification of the audit log chain fails."""
     pass
 
+
+class BadRequestError(PentesaError):
+    """Raised when an operation receives invalid parameters or triggers an illegal state transition."""
+    pass
+
+
+# Aliases for naming compatibility
+BadRequestException = BadRequestError
+NotFoundException = ResourceNotFoundError
+ScopeViolationException = ScopeViolationError
+
+

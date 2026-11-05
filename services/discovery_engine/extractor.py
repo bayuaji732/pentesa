@@ -301,3 +301,4 @@ def parse_openapi_spec(spec_data: Dict[str, Any]) -> List[Dict[str, Any]]:
                 })
 
     return endpoints
+

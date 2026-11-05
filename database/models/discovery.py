@@ -141,3 +141,4 @@ class SecurityHeader(Base, UUIDPrimaryKeyMixin):
     # Relationships
     project: Mapped["Project"] = relationship("Project")
     endpoint: Mapped[Optional["Endpoint"]] = relationship("Endpoint", back_populates="headers")
+

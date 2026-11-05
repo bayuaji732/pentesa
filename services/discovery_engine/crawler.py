@@ -301,3 +301,4 @@ class ScopeEnforcedCrawler:
                                     self._record_endpoint(u, method="GET", source="SITEMAP")
                     except Exception:
                         pass
+

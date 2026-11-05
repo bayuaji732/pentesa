@@ -1,2 +1,145 @@
 """Pentesa Pydantic v2 schemas package."""
 
+from packages.schemas.audit import AuditLogResponse
+from packages.schemas.auth import (
+    LoginRequest,
+    RefreshTokenRequest,
+    TokenPayload,
+    TokenResponse
+)
+from packages.schemas.discovery import (
+    AttackSurfaceGraphResponse,
+    CookieResponse,
+    CrawlRequest,
+    CrawlSummaryResponse,
+    DiscoveredDomainCreate,
+    DiscoveredDomainResponse,
+    EndpointCreate,
+    EndpointListResponse,
+    EndpointResponse,
+    EndpointUpdate,
+    GraphEdge,
+    GraphNode,
+    SecurityHeaderResponse,
+    TechnologyResponse
+)
+from packages.schemas.project import (
+    ProjectCreate,
+    ProjectMemberCreate,
+    ProjectMemberResponse,
+    ProjectResponse,
+    ProjectRole,
+    ProjectStatus,
+    ProjectUpdate
+)
+from packages.schemas.scope import (
+    ScopeCheckRequest,
+    ScopeCheckResult,
+    ScopeRuleCreate,
+    ScopeRuleResponse,
+    ScopeRuleType,
+    ScopeTargetType
+)
+from packages.schemas.user import (
+    UserBase,
+    UserCreate,
+    UserPasswordUpdate,
+    UserResponse,
+    UserRole,
+    UserUpdate
+)
+from packages.schemas.wstg import (
+    CoverageCategoryMetrics,
+    TestExecutionCreate,
+    TestExecutionLogResponse,
+    TestExecutionResponse,
+    TestPlanRecalculateResponse,
+    WSTGCatalogItemResponse,
+    WSTGCoverageReport,
+    WSTGTestInstanceResponse,
+    WSTGTestInstanceUpdate
+)
+from packages.schemas.finding import (
+    FalsePositiveCreate,
+    FalsePositiveResponse,
+    FindingCreate,
+    FindingEvidenceCreate,
+    FindingEvidenceResponse,
+    FindingReproductionCreate,
+    FindingReproductionResponse,
+    FindingResponse,
+    FindingStatusUpdate
+)
+from packages.schemas.tool import (
+    HttpTestRequest,
+    HttpTestResponse,
+    ToolConfigUpdate,
+    ToolExecutionRequest,
+    ToolExecutionResponse,
+    ToolInfoResponse
+)
+
+__all__ = [
+    "AuditLogResponse",
+    "LoginRequest",
+    "RefreshTokenRequest",
+    "TokenPayload",
+    "TokenResponse",
+    "UserRole",
+    "UserBase",
+    "UserCreate",
+    "UserUpdate",
+    "UserPasswordUpdate",
+    "UserResponse",
+    "ProjectStatus",
+    "ProjectRole",
+    "ProjectCreate",
+    "ProjectUpdate",
+    "ProjectResponse",
+    "ProjectMemberCreate",
+    "ProjectMemberResponse",
+    "ScopeRuleType",
+    "ScopeTargetType",
+    "ScopeRuleCreate",
+    "ScopeRuleResponse",
+    "ScopeCheckRequest",
+    "ScopeCheckResult",
+    "DiscoveredDomainCreate",
+    "DiscoveredDomainResponse",
+    "EndpointCreate",
+    "EndpointUpdate",
+    "EndpointListResponse",
+    "EndpointResponse",
+    "TechnologyResponse",
+    "CookieResponse",
+    "SecurityHeaderResponse",
+    "GraphNode",
+    "GraphEdge",
+    "AttackSurfaceGraphResponse",
+    "CrawlRequest",
+    "CrawlSummaryResponse",
+    "WSTGCatalogItemResponse",
+    "WSTGTestInstanceResponse",
+    "WSTGTestInstanceUpdate",
+    "CoverageCategoryMetrics",
+    "WSTGCoverageReport",
+    "TestExecutionCreate",
+    "TestExecutionResponse",
+    "TestExecutionLogResponse",
+    "TestPlanRecalculateResponse",
+    "FindingCreate",
+    "FindingResponse",
+    "FindingStatusUpdate",
+    "FindingEvidenceCreate",
+    "FindingEvidenceResponse",
+    "FindingReproductionCreate",
+    "FindingReproductionResponse",
+    "FalsePositiveCreate",
+    "FalsePositiveResponse",
+    "ToolInfoResponse",
+    "ToolExecutionRequest",
+    "ToolExecutionResponse",
+    "ToolConfigUpdate",
+    "HttpTestRequest",
+    "HttpTestResponse"
+]

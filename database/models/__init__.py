@@ -11,6 +11,23 @@ from database.models.discovery import (
     SecurityHeader,
     Technology
 )
+from database.models.wstg import (
+    TestExecution,
+    TestExecutionLog,
+    WSTGTestCatalog,
+    WSTGTestInstance,
+)
+from database.models.finding import (
+    FalsePositive,
+    Finding,
+    FindingEvidence,
+    FindingReproduction,
+    FindingStatusHistory,
+)
+from database.models.tool import (
+    ToolConfiguration,
+    ToolExecution,
+)
 
 __all__ = [
     "User",
@@ -22,5 +39,16 @@ __all__ = [
     "Endpoint",
     "Technology",
     "Cookie",
-    "SecurityHeader"
+    "SecurityHeader",
+    "WSTGTestCatalog",
+    "WSTGTestInstance",
+    "TestExecution",
+    "TestExecutionLog",
+    "Finding",
+    "FindingEvidence",
+    "FindingReproduction",
+    "FindingStatusHistory",
+    "FalsePositive",
+    "ToolExecution",
+    "ToolConfiguration"
 ]

@@ -8,10 +8,14 @@ from fastapi.responses import JSONResponse
 from apps.api.routers import (
     auth_router,
     audit_router,
+    discovery_router,
+    findings_router,
     health_router,
     projects_router,
     scope_router,
-    users_router
+    tools_router,
+    users_router,
+    wstg_router
 )
 from database.session import AsyncSessionLocal, close_db, init_db
 from database.seeds.seed_data import seed_initial_data
@@ -59,6 +63,10 @@ app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(projects_router)
 app.include_router(scope_router)
+app.include_router(discovery_router)
+app.include_router(wstg_router)
+app.include_router(tools_router)
+app.include_router(findings_router)
 app.include_router(audit_router)
 
 

@@ -235,3 +235,4 @@ class CrawlSummaryResponse(BaseModel):
     technologies_detected: int
     domains_discovered: int
     errors: List[str] = Field(default_factory=list)
+

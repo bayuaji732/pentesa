@@ -35,6 +35,10 @@ from database.models.agent import (
     ApprovalRequest,
     WorkflowExecution,
 )
+from database.models.report import (
+    Report,
+    ReportTemplate,
+)
 
 __all__ = [
     "User",
@@ -62,5 +66,7 @@ __all__ = [
     "AgentDecision",
     "AgentToolCall",
     "WorkflowExecution",
-    "ApprovalRequest"
+    "ApprovalRequest",
+    "Report",
+    "ReportTemplate"
 ]

@@ -13,6 +13,7 @@ from apps.api.routers import (
     findings_router,
     health_router,
     projects_router,
+    reports_router,
     scope_router,
     tools_router,
     users_router,
@@ -69,6 +70,7 @@ app.include_router(wstg_router)
 app.include_router(tools_router)
 app.include_router(findings_router)
 app.include_router(agents_router)
+app.include_router(reports_router)
 app.include_router(audit_router)
 
 

@@ -62,13 +62,26 @@ from packages.schemas.wstg import (
 from packages.schemas.finding import (
     FalsePositiveCreate,
     FalsePositiveResponse,
+    FindingBatchUpdate,
     FindingCreate,
     FindingEvidenceCreate,
     FindingEvidenceResponse,
     FindingReproductionCreate,
     FindingReproductionResponse,
     FindingResponse,
+    FindingRetestRequest,
+    FindingRetestResponse,
     FindingStatusUpdate
+)
+from packages.schemas.report import (
+    FindingReportItem,
+    ReportContext,
+    ReportGenerateRequest,
+    ReportResponse,
+    ReportTemplateResponse,
+    ReportVerificationRequest,
+    ReportVerificationResponse,
+    WSTGCategoryReportItem
 )
 from packages.schemas.tool import (
     HttpTestRequest,
@@ -157,5 +170,16 @@ __all__ = [
     "AgentDecisionResponse",
     "AgentToolCallResponse",
     "ApprovalRequestResponse",
-    "ApprovalDecisionRequest"
+    "ApprovalDecisionRequest",
+    "FindingBatchUpdate",
+    "FindingRetestRequest",
+    "FindingRetestResponse",
+    "ReportGenerateRequest",
+    "ReportResponse",
+    "ReportTemplateResponse",
+    "ReportVerificationRequest",
+    "ReportVerificationResponse",
+    "ReportContext",
+    "FindingReportItem",
+    "WSTGCategoryReportItem"
 ]

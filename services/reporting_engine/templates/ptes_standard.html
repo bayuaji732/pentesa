@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ ctx.report_title }}</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 20mm 15mm 25mm 15mm;
+      @top-right {
+        content: "{{ ctx.classification }}";
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-size: 8pt;
+        color: #94a3b8;
+      }
+      @bottom-right {
+        content: "Page " counter(page) " of " counter(pages);
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-size: 8pt;
+        color: #94a3b8;
+      }
+    }
+    @page :first {
+      margin: 0;
+      @top-right { content: normal; }
+      @bottom-right { content: normal; }
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #0f172a;
+      line-height: 1.6;
+      font-size: 10pt;
+      margin: 0;
+      padding: 0;
+      background-color: #ffffff;
+    }
+    .cover-page {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 60px 40px;
+      background: linear-gradient(135deg, #090d16 0%, #1e293b 100%);
+      color: #ffffff;
+      page-break-after: always;
+      box-sizing: border-box;
+    }
+    .cover-badge {
+      display: inline-block;
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid #ef4444;
+      color: #fca5a5;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 9pt;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+    .cover-title {
+      font-size: 28pt;
+      font-weight: 800;
+      margin-top: 40px;
+      margin-bottom: 10px;
+      color: #f8fafc;
+      line-height: 1.2;
+    }
+    .cover-subtitle {
+      font-size: 14pt;
+      color: #94a3b8;
+      margin-bottom: 30px;
+    }
+    .cover-meta {
+      background: rgba(255, 255, 255, 0.05);
+      border-left: 4px solid #3b82f6;
+      padding: 20px;
+      border-radius: 4px;
+      margin-top: 30px;
+    }
+    .cover-meta table {
+      width: 100%;
+      border-collapse: collapse;
+      color: #cbd5e1;
+      font-size: 9pt;
+    }
+    .cover-meta td {
+      padding: 6px 0;
+    }
+    .cover-meta td.label {
+      width: 35%;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+    .page-break {
+      page-break-before: always;
+    }
+    .section-title {
+      font-size: 16pt;
+      font-weight: 700;
+      color: #0f172a;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 8px;
+      margin-top: 35px;
+      margin-bottom: 16px;
+    }
+    .risk-cards {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .risk-card {
+      flex: 1;
+      min-width: 100px;
+      padding: 14px;
+      border-radius: 6px;
+      text-align: center;
+      border: 1px solid #e2e8f0;
+    }
+    .risk-card.critical { background: #fef2f2; border-color: #fca5a5; }
+    .risk-card.high { background: #fff7ed; border-color: #fdba74; }
+    .risk-card.medium { background: #fefce8; border-color: #fde047; }
+    .risk-card.low { background: #f0fdf4; border-color: #86efac; }
+    .risk-card.info { background: #f8fafc; border-color: #cbd5e1; }
+    .risk-count { font-size: 20pt; font-weight: 800; line-height: 1; margin-bottom: 4px; }
+    .risk-card.critical .risk-count { color: #dc2626; }
+    .risk-card.high .risk-count { color: #ea580c; }
+    .risk-card.medium .risk-count { color: #ca8a04; }
+    .risk-card.low .risk-count { color: #16a34a; }
+    .risk-card.info .risk-count { color: #475569; }
+    .risk-label { font-size: 8pt; font-weight: 700; text-transform: uppercase; color: #64748b; }
+
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      margin-bottom: 20px;
+      font-size: 9pt;
+    }
+    table.data-table th {
+      background-color: #f1f5f9;
+      color: #334155;
+      text-align: left;
+      padding: 8px 10px;
+      font-weight: 700;
+      border: 1px solid #cbd5e1;
+    }
+    table.data-table td {
+      padding: 8px 10px;
+      border: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+    table.data-table tr:nth-child(even) { background-color: #f8fafc; }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 7.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .badge-critical { background: #fee2e2; color: #b91c1c; border: 1px solid #f87171; }
+    .badge-high { background: #ffedd5; color: #c2410c; border: 1px solid #fb923c; }
+    .badge-medium { background: #fef9c3; color: #a16207; border: 1px solid #facc15; }
+    .badge-low { background: #dcfce7; color: #15803d; border: 1px solid #4ade80; }
+    .badge-info { background: #f1f5f9; color: #475569; border: 1px solid #94a3b8; }
+
+    .finding-sheet {
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      margin-bottom: 30px;
+      background: #ffffff;
+      page-break-inside: avoid;
+    }
+    .finding-header {
+      background: #f8fafc;
+      padding: 12px 16px;
+      border-bottom: 1px solid #cbd5e1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .finding-title {
+      font-size: 12pt;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0;
+    }
+    .finding-body {
+      padding: 16px;
+    }
+    .finding-prop-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+      font-size: 8.5pt;
+    }
+    .finding-prop {
+      background: #f8fafc;
+      padding: 6px 10px;
+      border-radius: 4px;
+      border: 1px solid #e2e8f0;
+    }
+    .finding-prop-label {
+      font-weight: 700;
+      color: #64748b;
+      margin-bottom: 2px;
+    }
+    .finding-section-heading {
+      font-size: 9.5pt;
+      font-weight: 700;
+      color: #1e293b;
+      margin-top: 12px;
+      margin-bottom: 4px;
+    }
+    pre, code {
+      font-family: 'JetBrains Mono', Consolas, 'Courier New', monospace;
+      font-size: 8pt;
+      background-color: #0f172a;
+      color: #f8fafc;
+      padding: 10px;
+      border-radius: 4px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      margin: 6px 0 12px 0;
+    }
+    .evidence-block {
+      background: #090d16;
+      border: 1px solid #1e293b;
+      border-radius: 4px;
+      padding: 10px;
+      margin-top: 6px;
+    }
+    .evidence-meta {
+      font-size: 7.5pt;
+      color: #94a3b8;
+      margin-bottom: 6px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .footer-seal {
+      margin-top: 40px;
+      padding: 15px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 8pt;
+      color: #64748b;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SECTION 1: COVER PAGE -->
+  <div class="cover-page">
+    <div>
+      <span class="cover-badge">{{ ctx.classification }}</span>
+      <div class="cover-title">{{ ctx.report_title }}</div>
+      <div class="cover-subtitle">Penetration Testing Execution Standard (PTES) & OWASP WSTG v4.2 Security Assessment</div>
+    </div>
+    <div class="cover-meta">
+      <table>
+        <tr><td class="label">Client Organization:</td><td><strong>{{ ctx.client_name }}</strong></td></tr>
+        <tr><td class="label">Project Scope:</td><td>{{ ctx.project_name }}</td></tr>
+        <tr><td class="label">Assessment Period:</td><td>{{ ctx.start_date }} to {{ ctx.end_date }}</td></tr>
+        <tr><td class="label">Lead Security Auditor:</td><td>{{ ctx.lead_tester }}</td></tr>
+        <tr><td class="label">Framework Compliance:</td><td>PTES Technical Guidelines & OWASP WSTG v4.2</td></tr>
+        <tr><td class="label">Publication Timestamp:</td><td>{{ ctx.generated_at }}</td></tr>
+      </table>
+    </div>
+    <div style="font-size: 8pt; color: #64748b;">
+      Confidentiality Notice: The contents of this document are strictly confidential and intended solely for the recipient organization.
+    </div>
+  </div>
+
+  <!-- SECTION 2: TABLE OF CONTENTS & DOCUMENT METADATA -->
+  <div class="page-break"></div>
+  <div class="section-title">2. Table of Contents & Document Metadata</div>
+  <table class="data-table">
+    <thead>
+      <tr><th>Section Number</th><th>Deliverable Heading</th><th>Standard Reference</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Section 1</td><td>Cover Page & Engagement Identification</td><td>PTES Executive Standard</td></tr>
+      <tr><td>Section 2</td><td>Table of Contents & Document Metadata</td><td>PENTESA-SPEC-15</td></tr>
+      <tr><td>Section 3</td><td>Executive Summary & Risk Posture Assessment</td><td>PTES Phase 7</td></tr>
+      <tr><td>Section 4</td><td>Assessment Scope & Boundary Rules</td><td>Rules of Engagement (RoE)</td></tr>
+      <tr><td>Section 5</td><td>Testing Methodology & Tooling Disclosure</td><td>OWASP WSTG v4.2</td></tr>
+      <tr><td>Section 6</td><td>Rules of Engagement & Operational Controls</td><td>PTES RoE</td></tr>
+      <tr><td>Section 7</td><td>Attack Surface Overview & Technology Inventory</td><td>PTES Intelligence Gathering</td></tr>
+      <tr><td>Section 8</td><td>Testing Coverage & OWASP WSTG Matrix</td><td>OWASP 12 Categories</td></tr>
+      <tr><td>Section 9</td><td>Findings Summary Matrix</td><td>CVSS v3.1 Scoring</td></tr>
+      <tr><td>Section 10</td><td>Detailed Technical Findings</td><td>Forensic Bug Sheets</td></tr>
+      <tr><td>Section 11</td><td>Deterministic Reproduction Procedures</td><td>PoC curl Scripts</td></tr>
+      <tr><td>Section 12</td><td>Forensic Evidence Dumps & Cryptographic Hashes</td><td>SHA-256 Integrity</td></tr>
+      <tr><td>Section 13</td><td>Business Impact & Regulatory Exposure</td><td>Operational Risk</td></tr>
+      <tr><td>Section 14</td><td>Risk Rating Methodology</td><td>CVSS v3.1 Metrics</td></tr>
+      <tr><td>Section 15</td><td>Prioritized Remediation Roadmap</td><td>1-7 / 30 / 90 Days</td></tr>
+      <tr><td>Section 16</td><td>Assessment Limitations & Caveats</td><td>Engagement Caveats</td></tr>
+      <tr><td>Section 17</td><td>Appendices (Endpoint Inventory & Glossary)</td><td>Catalog Reference</td></tr>
+    </tbody>
+  </table>
+
+  <!-- SECTION 3: EXECUTIVE SUMMARY -->
+  <div class="section-title">3. Executive Summary & Security Posture</div>
+  <p>{{ ctx.executive_narrative }}</p>
+
+  <div class="risk-cards">
+    <div class="risk-card critical">
+      <div class="risk-count">{{ ctx.critical_findings }}</div>
+      <div class="risk-label">Critical</div>
+    </div>
+    <div class="risk-card high">
+      <div class="risk-count">{{ ctx.high_findings }}</div>
+      <div class="risk-label">High</div>
+    </div>
+    <div class="risk-card medium">
+      <div class="risk-count">{{ ctx.medium_findings }}</div>
+      <div class="risk-label">Medium</div>
+    </div>
+    <div class="risk-card low">
+      <div class="risk-count">{{ ctx.low_findings }}</div>
+      <div class="risk-label">Low</div>
+    </div>
+    <div class="risk-card info">
+      <div class="risk-count">{{ ctx.info_findings }}</div>
+      <div class="risk-label">Informational</div>
+    </div>
+  </div>
+
+  <!-- SECTION 4: ASSESSMENT SCOPE -->
+  <div class="section-title">4. Assessment Scope & Boundaries</div>
+  <p>Testing activities were strictly restricted to the authorized assets defined in the engagement authorization. Layer 2 kernel/proxy egress enforcement prevented out-of-scope transmissions.</p>
+  <table class="data-table">
+    <thead>
+      <tr><th>Scope Type</th><th>Target Descriptor</th><th>Enforcement Policy</th></tr>
+    </thead>
+    <tbody>
+      {% for target in ctx.target_scope %}
+      <tr><td><span class="badge badge-low">IN-SCOPE</span></td><td><code>{{ target }}</code></td><td>Active Probing Authorized</td></tr>
+      {% endfor %}
+      {% for target in ctx.excluded_scope %}
+      <tr><td><span class="badge badge-critical">EXCLUDED</span></td><td><code>{{ target }}</code></td><td>Strict Egress Drop (Forbidden)</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- SECTION 5: METHODOLOGY & TOOLING -->
+  <div class="section-title">5. Testing Methodology & Tooling Disclosure</div>
+  <p>The engagement combined automated deterministic security tools with specialized AI agents operating under strict zero-shell sandboxes:</p>
+  <ul>
+    <li><strong>OWASP WSTG v4.2 Framework:</strong> Systematic evaluation across 12 vulnerability categories.</li>
+    <li><strong>Deterministic Tooling:</strong> Nuclei v3 (vulnerability templates), Katana (headless crawler), Ffuf (controlled fuzzing), Httpx (probing).</li>
+    <li><strong>AI Specialized Agents:</strong> Planner, Recon, WSTG, Authorization, Validation, and Reporting agents governed by LangGraph.</li>
+  </ul>
+
+  <!-- SECTION 6: RULES OF ENGAGEMENT -->
+  <div class="section-title">6. Rules of Engagement (RoE)</div>
+  <p>All testing conformed to pre-authorized operational guardrails:</p>
+  <ul>
+    <li><strong>Rate Limiting:</strong> Maximum outbound requests capped to avoid denial of service.</li>
+    <li><strong>Testing Window:</strong> Authorized from {{ ctx.start_date }} through {{ ctx.end_date }}.</li>
+    <li><strong>Destructive Testing Policy:</strong> Destructive commands, data exfiltration, and service disruptions were strictly disallowed.</li>
+  </ul>
+
+  <!-- SECTION 7: ATTACK SURFACE OVERVIEW -->
+  <div class="section-title">7. Attack Surface Overview</div>
+  <table class="data-table">
+    <tr><td style="width: 35%;"><strong>Mapped Endpoints:</strong></td><td>{{ ctx.discovered_endpoints_count }} active HTTP endpoints</td></tr>
+    <tr><td><strong>Discovered Hostnames:</strong></td><td>{{ ctx.discovered_domains_count }} subdomains and domains</td></tr>
+    <tr><td><strong>Identified Technologies:</strong></td><td>{{ ctx.discovered_technologies | join(', ') if ctx.discovered_technologies else 'Standard Web Stack' }}</td></tr>
+    <tr><td><strong>Sample Target Hosts:</strong></td><td><code>{{ ctx.domains_sample | join(', ') if ctx.domains_sample else 'target.internal' }}</code></td></tr>
+  </table>
+
+  <!-- SECTION 8: WSTG COVERAGE MATRIX -->
+  <div class="page-break"></div>
+  <div class="section-title">8. Testing Coverage & OWASP WSTG Matrix</div>
+  <p>Overall Mathematical WSTG Testing Coverage Score: <strong>{{ "%.1f"|format(ctx.coverage_score) }}%</strong></p>
+  <table class="data-table">
+    <thead>
+      <tr><th>Category Code</th><th>Category Description</th><th>Total Tests</th><th>Executed</th><th>Pass</th><th>Fail</th><th>Coverage</th></tr>
+    </thead>
+    <tbody>
+      {% for cat in ctx.wstg_categories %}
+      <tr>
+        <td><strong>{{ cat.code }}</strong></td>
+        <td>{{ cat.name }}</td>
+        <td>{{ cat.total_tests }}</td>
+        <td>{{ cat.executed_tests }}</td>
+        <td>{{ cat.passed_tests }}</td>
+        <td>{{ cat.failed_tests }}</td>
+        <td>{{ "%.1f"|format(cat.coverage_percentage) }}%</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- SECTION 9: FINDINGS SUMMARY MATRIX -->
+  <div class="section-title">9. Findings Summary Matrix</div>
+  <table class="data-table">
+    <thead>
+      <tr><th>ID</th><th>Vulnerability Title</th><th>Severity</th><th>CVSS v3.1</th><th>CWE</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      {% for f in ctx.findings %}
+      <tr>
+        <td><strong>{{ f.id }}</strong></td>
+        <td>{{ f.title }}</td>
+        <td><span class="badge badge-{{ f.severity | lower }}">{{ f.severity }}</span></td>
+        <td>{{ f.cvss_score if f.cvss_score is not none else 'N/A' }}</td>
+        <td>{{ f.cwe_id }}</td>
+        <td>{{ f.status }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" style="text-align: center; color: #64748b;">No confirmed vulnerabilities found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- SECTION 10 & 11 & 12: DETAILED TECHNICAL FINDINGS & EVIDENCE -->
+  <div class="page-break"></div>
+  <div class="section-title">10, 11 & 12. Detailed Technical Findings, Reproduction & Forensic Evidence</div>
+
+  {% for f in ctx.findings %}
+  <div class="finding-sheet">
+    <div class="finding-header">
+      <div class="finding-title">{{ f.id }}: {{ f.title }}</div>
+      <span class="badge badge-{{ f.severity | lower }}">{{ f.severity }}</span>
+    </div>
+    <div class="finding-body">
+      <div class="finding-prop-grid">
+        <div class="finding-prop"><div class="finding-prop-label">Affected Endpoint:</div><code>{{ f.http_method }} {{ f.endpoint_url }}</code></div>
+        <div class="finding-prop"><div class="finding-prop-label">Controllable Parameter:</div><code>{{ f.affected_parameter or 'None / URL Path' }}</code></div>
+        <div class="finding-prop"><div class="finding-prop-label">CWE Taxonomy:</div>{{ f.cwe_id }}</div>
+        <div class="finding-prop"><div class="finding-prop-label">CVSS v3.1 Vector:</div><code>{{ f.cvss_vector or 'N/A' }}</code> (Score: {{ f.cvss_score }})</div>
+      </div>
+
+      <div class="finding-section-heading">Description & Technical Analysis:</div>
+      <p>{{ f.description }}</p>
+
+      <div class="finding-section-heading">Business & Operational Impact:</div>
+      <p>{{ f.business_impact }}</p>
+
+      <div class="finding-section-heading">Recommended Remediation:</div>
+      <p>{{ f.remediation_guidance }}</p>
+
+      {% if f.reproduction_curl %}
+      <div class="finding-section-heading">Deterministic Reproduction Command (Section 11):</div>
+      <pre>{{ f.reproduction_curl }}</pre>
+      {% endif %}
+
+      {% if ctx.include_raw_evidence and f.raw_request and f.raw_response %}
+      <div class="finding-section-heading">Forensic Evidence Streams & Checksums (Section 12):</div>
+      <div class="evidence-block">
+        <div class="evidence-meta">RAW HTTP REQUEST STREAM [SHA-256: {{ f.request_hash_sha256 }}]</div>
+        <pre>{{ f.raw_request }}</pre>
+      </div>
+      <div class="evidence-block">
+        <div class="evidence-meta">RAW HTTP RESPONSE STREAM [SHA-256: {{ f.response_hash_sha256 }}]</div>
+        <pre>{{ f.raw_response }}</pre>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+
+  <!-- SECTION 13: BUSINESS IMPACT ANALYSIS -->
+  <div class="page-break"></div>
+  <div class="section-title">13. Business Impact Analysis</div>
+  <p>Identified vulnerabilities present direct exposure across key operational dimensions:</p>
+  <ul>
+    <li><strong>Data Confidentiality & Privacy:</strong> Risk of unauthorized access to sensitive records and user identity data.</li>
+    <li><strong>Regulatory Compliance:</strong> Exposure to potential non-compliance under GDPR, HIPAA, and PCI-DSS requirements for access control and injection handling.</li>
+    <li><strong>System Integrity:</strong> Potential for unauthorized state modification on vulnerable API endpoints.</li>
+  </ul>
+
+  <!-- SECTION 14: RISK RATING METHODOLOGY -->
+  <div class="section-title">14. Risk Rating Methodology</div>
+  <p>Vulnerabilities are evaluated using the Common Vulnerability Scoring System (CVSS v3.1) Base Metric Group:</p>
+  <table class="data-table">
+    <thead>
+      <tr><th>Severity Level</th><th>CVSS v3.1 Base Score Range</th><th>Required Remediation Window</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><span class="badge badge-critical">Critical</span></td><td>9.0 – 10.0</td><td>Immediate (1 – 48 hours)</td></tr>
+      <tr><td><span class="badge badge-high">High</span></td><td>7.0 – 8.9</td><td>Urgent (7 days)</td></tr>
+      <tr><td><span class="badge badge-medium">Medium</span></td><td>4.0 – 6.9</td><td>Planned sprint (30 days)</td></tr>
+      <tr><td><span class="badge badge-low">Low</span></td><td>0.1 – 3.9</td><td>Defense-in-depth backlog (90 days)</td></tr>
+      <tr><td><span class="badge badge-info">Informational</span></td><td>0.0</td><td>Hardening best practice</td></tr>
+    </tbody>
+  </table>
+
+  <!-- SECTION 15: PRIORITIZED REMEDIATION ROADMAP -->
+  <div class="section-title">15. Prioritized Remediation Roadmap</div>
+  <table class="data-table">
+    <thead>
+      <tr><th>Time Horizon</th><th>Target Remediation Objective</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Immediate (1–7 Days)</strong></td>
+        <td>
+          <ul>
+            {% for act in ctx.immediate_actions %}
+            <li>{{ act }}</li>
+            {% endfor %}
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Near-Term (30 Days)</strong></td>
+        <td>
+          <ul>
+            {% for act in ctx.near_term_actions %}
+            <li>{{ act }}</li>
+            {% endfor %}
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Long-Term (90 Days)</strong></td>
+        <td>
+          <ul>
+            {% for act in ctx.long_term_actions %}
+            <li>{{ act }}</li>
+            {% endfor %}
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- SECTION 16: LIMITATIONS & CAVEATS -->
+  <div class="section-title">16. Assessment Limitations & Caveats</div>
+  <p>The penetration test represents a point-in-time security audit conducted under authorized constraints:</p>
+  <ul>
+    <li>Testing was confined exclusively to the designated target hosts and endpoints.</li>
+    <li>Third-party authentication providers and external cloud services were not subject to denial-of-service or infrastructure attacks.</li>
+    <li>New vulnerabilities introduced via subsequent code deployments require re-testing.</li>
+  </ul>
+
+  <!-- SECTION 17: APPENDICES -->
+  <div class="section-title">17. Appendices</div>
+  <p><strong>A. Discovered Endpoints Sample:</strong></p>
+  <p>{{ ctx.discovered_endpoints_count }} endpoints cataloged during discovery.</p>
+  <p><strong>B. Cryptographic Report Integrity Check:</strong></p>
+  <div class="footer-seal">
+    <strong>CRYPTOGRAPHIC INTEGRITY SEAL</strong><br>
+    This report was rendered by Pentesa Autonomous Security Platform.<br>
+    Methodology: PTES & OWASP WSTG v4.2 | Generated At: {{ ctx.generated_at }}<br>
+    Verification Endpoint: <code>POST /api/v1/reports/verify</code>
+  </div>
+
+</body>
+</html>
+

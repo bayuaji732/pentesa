@@ -11,6 +11,7 @@ from apps.api.routers.wstg import router as wstg_router
 from apps.api.routers.tools import router as tools_router
 from apps.api.routers.findings import router as findings_router
 from apps.api.routers.agents import router as agents_router
+from apps.api.routers.reports import router as reports_router
 
 __all__ = [
     "auth_router",
@@ -23,7 +24,8 @@ __all__ = [
     "wstg_router",
     "tools_router",
     "findings_router",
-    "agents_router"
+    "agents_router",
+    "reports_router"
 ]
 
 

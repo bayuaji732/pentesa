@@ -100,6 +100,31 @@ class FindingCreate(BaseModel):
     raw_response: Optional[str] = None
 
 
+class FindingBatchUpdate(BaseModel):
+    """Payload to perform batch status transition across multiple findings."""
+    finding_ids: List[uuid.UUID] = Field(..., min_length=1, description="List of finding UUIDs to update")
+    status: str = Field(..., description="Target status for all specified findings")
+    justification: str = Field(..., min_length=5, description="Auditable justification for batch triage")
+
+
+class FindingRetestRequest(BaseModel):
+    """Payload to trigger an empirical retest on an existing finding."""
+    verification_payload: Optional[str] = Field(None, description="Optional custom payload override for retest")
+    expected_status_code: Optional[int] = Field(None, description="Expected status code indicating fixed behavior")
+
+
+class FindingRetestResponse(BaseModel):
+    """Outcome of a finding retest execution."""
+    finding_id: uuid.UUID
+    previous_status: str
+    new_status: str
+    is_remediated: bool
+    reproduction_success: bool
+    http_status_code: Optional[int] = None
+    verification_notes: str
+    tested_at: datetime
+
+
 class FindingResponse(BaseModel):
     """Detailed finding representation with forensic evidence."""
     model_config = ConfigDict(from_attributes=True)

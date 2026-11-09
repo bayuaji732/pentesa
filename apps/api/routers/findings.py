@@ -12,11 +12,14 @@ from packages.common.exceptions import BadRequestError, ResourceNotFoundError
 from packages.schemas.finding import (
     FalsePositiveCreate,
     FalsePositiveResponse,
+    FindingBatchUpdate,
     FindingCreate,
     FindingEvidenceResponse,
     FindingReproductionCreate,
     FindingReproductionResponse,
     FindingResponse,
+    FindingRetestRequest,
+    FindingRetestResponse,
     FindingStatusUpdate
 )
 from services.evidence_engine.finding_service import FindingService
@@ -71,6 +74,54 @@ async def create_finding(
             ip_address=ip_address,
             user_agent=user_agent
         )
+    except ResourceNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.get(
+    "/deduplicate",
+    summary="Cluster duplicate findings by cryptographic signature"
+)
+async def deduplicate_findings(
+    project_id: uuid.UUID,
+    session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Cluster duplicate findings by computing SHA256(project_id || path || method || param || cwe)."""
+    await verify_project_access(project_id, current_user, session)
+    service = FindingService(session)
+    return await service.deduplicate_findings(project_id)
+
+
+@router.post(
+    "/batch-update",
+    response_model=List[FindingResponse],
+    summary="Batch update finding status"
+)
+async def batch_update_finding_status(
+    project_id: uuid.UUID,
+    payload: FindingBatchUpdate,
+    request: Request,
+    session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Perform batch status transitions across multiple findings enforcing the lifecycle state machine."""
+    await verify_project_access(project_id, current_user, session)
+    service = FindingService(session)
+
+    ip_address = request.client.host if request.client else None
+    user_agent = request.headers.get("user-agent")
+
+    try:
+        return await service.batch_update_status(
+            project_id=project_id,
+            payload=payload,
+            user_id=current_user.id,
+            ip_address=ip_address,
+            user_agent=user_agent
+        )
+    except BadRequestError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except ResourceNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
@@ -202,4 +253,38 @@ async def get_finding_evidence(
     service = FindingService(session)
     finding = await service.get_finding(finding_id, project_id)
     return finding.evidence
+
+
+@router.post(
+    "/{finding_id}/retest",
+    response_model=FindingRetestResponse,
+    summary="One-click remediation verification retest"
+)
+async def retest_finding(
+    project_id: uuid.UUID,
+    finding_id: uuid.UUID,
+    payload: FindingRetestRequest,
+    request: Request,
+    session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Re-execute reproduction recipe to verify whether developer patch resolved the vulnerability."""
+    await verify_project_access(project_id, current_user, session)
+    service = FindingService(session)
+
+    ip_address = request.client.host if request.client else None
+    user_agent = request.headers.get("user-agent")
+
+    try:
+        return await service.retest_finding(
+            finding_id=finding_id,
+            project_id=project_id,
+            payload=payload,
+            user_id=current_user.id,
+            ip_address=ip_address,
+            user_agent=user_agent
+        )
+    except ResourceNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
 

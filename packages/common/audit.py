@@ -29,7 +29,17 @@ def compute_audit_hash(
     Compute cryptographic SHA-256 hash for an audit log entry.
     Format: prev_hash:timestamp_iso:user_id:action:resource_type:resource_id:ip:canonical_details
     """
-    ts_str = timestamp.isoformat() if isinstance(timestamp, datetime) else str(timestamp)
+    if isinstance(timestamp, datetime):
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.replace(tzinfo=timezone.utc)
+        ts_str = timestamp.isoformat()
+    elif isinstance(timestamp, str):
+        if not timestamp.endswith("+00:00") and not timestamp.endswith("Z"):
+            ts_str = timestamp + "+00:00"
+        else:
+            ts_str = timestamp.replace("Z", "+00:00")
+    else:
+        ts_str = str(timestamp)
     payload = ":".join([
         prev_hash or GENESIS_HASH,
         ts_str,
@@ -68,6 +78,8 @@ def verify_audit_chain(entries: List[Dict[str, Any]]) -> Tuple[bool, Optional[st
                 ts = datetime.fromisoformat(ts.replace("Z", "+00:00"))
             except Exception:
                 pass
+        if isinstance(ts, datetime) and ts.tzinfo is None:
+            ts = ts.replace(tzinfo=timezone.utc)
 
         calculated_hash = compute_audit_hash(
             prev_hash=actual_prev,

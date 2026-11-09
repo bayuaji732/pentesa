@@ -9,6 +9,7 @@ from database.models.user import User
 from database.models.project import Project, ProjectMember
 from database.models.scope import ScopeRule
 from packages.common.security import hash_password
+from services.execution_engine.planner import seed_wstg_catalog
 
 
 async def seed_initial_data(session: AsyncSession) -> None:
@@ -76,3 +77,7 @@ async def seed_initial_data(session: AsyncSession) -> None:
         )
         session.add_all([rule1, rule2])
         await session.commit()
+
+    # Always ensure WSTG catalog is seeded and current
+    await seed_wstg_catalog(session)
+    await session.commit()

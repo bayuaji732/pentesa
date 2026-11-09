@@ -61,7 +61,10 @@ class FindingService:
         """Query project findings with multi-dimensional filtering."""
         stmt = (
             select(Finding)
-            .options(selectinload(Finding.evidence))
+            .options(
+                selectinload(Finding.evidence),
+                selectinload(Finding.endpoint)
+            )
             .where(Finding.project_id == project_id)
         )
 
@@ -91,6 +94,7 @@ class FindingService:
             .execution_options(populate_existing=True)
             .options(
                 selectinload(Finding.evidence),
+                selectinload(Finding.endpoint),
                 selectinload(Finding.reproductions),
                 selectinload(Finding.false_positives),
                 selectinload(Finding.status_history)

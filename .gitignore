@@ -48,5 +48,10 @@ Thumbs.db
 
 # Environment variables
 .env
+.env.*
 !.env.example
+
+# Runtime data & generated deliverables
+data/reports/
+data/evidence/
 

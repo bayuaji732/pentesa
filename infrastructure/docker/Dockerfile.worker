@@ -1,0 +1,45 @@
+# Pentesa Autonomous Execution Worker Dockerfile
+FROM python:3.12-slim-bookworm
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH="/app"
+
+WORKDIR /app
+
+# Install system dependencies & common network testing utilities
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    ca-certificates \
+    libpq-dev \
+    git \
+    dnsutils \
+    iputils-ping \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv for fast dependency resolution
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+
+# Copy requirements and install dependencies
+COPY requirements.txt .
+RUN uv pip install --system -r requirements.txt
+
+# Copy source trees
+COPY packages/ ./packages/
+COPY database/ ./database/
+COPY services/ ./services/
+COPY agents/ ./agents/
+COPY integrations/ ./integrations/
+COPY apps/ ./apps/
+COPY scripts/ ./scripts/
+
+# Create persistent storage mount points and unprivileged service user
+RUN mkdir -p /app/data/reports /app/data/evidence && \
+    useradd -m -u 10001 pentesa && \
+    chown -R pentesa:pentesa /app
+USER pentesa
+
+# Default command: start worker process or health loop
+CMD ["python", "-m", "services.execution_engine.worker"]
+

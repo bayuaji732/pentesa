@@ -54,6 +54,18 @@ class Settings(BaseSettings):
     callback_sink_http_port: int = 8888
     callback_sink_dns_port: int = 8053
 
+    # Storage Mounts
+    report_storage_dir: str = Field(
+        default="./data/reports",
+        validation_alias=AliasChoices("pentesa_report_storage_dir", "report_storage_dir"),
+        description="Directory path for compiled HTML/PDF deliverables"
+    )
+    evidence_storage_dir: str = Field(
+        default="./data/evidence",
+        validation_alias=AliasChoices("pentesa_evidence_storage_dir", "evidence_storage_dir"),
+        description="Directory path for forensic request/response artifacts"
+    )
+
     # Safety Guardrails
     default_max_rps: int = 50
     max_fuzz_requests_without_approval: int = 5000

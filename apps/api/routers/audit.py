@@ -1,5 +1,6 @@
 """Audit log retrieval and verification router."""
 
+import uuid
 from typing import List, Optional
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy import select
@@ -18,7 +19,7 @@ router = APIRouter(prefix="/api/v1/audit-logs", tags=["Audit Logs"])
 
 @router.get("", response_model=List[AuditLogResponse])
 async def list_audit_logs(
-    project_id: Optional[str] = Query(None, description="Filter by project UUID"),
+    project_id: Optional[uuid.UUID] = Query(None, description="Filter by project UUID"),
     action: Optional[str] = Query(None, description="Filter by action code"),
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),

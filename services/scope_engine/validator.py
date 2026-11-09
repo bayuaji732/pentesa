@@ -192,6 +192,10 @@ class ScopeValidator:
                 except ValueError:
                     continue
 
+    def is_in_scope(self, target_url: str) -> bool:
+        """Return True if target_url is strictly in-scope."""
+        return self.validate_url(target_url).is_in_scope
+
     def validate_url(self, target_url: str) -> ScopeCheckResult:
         """Validate an absolute URL against the compiled scope rules."""
         if not target_url or not isinstance(target_url, str):

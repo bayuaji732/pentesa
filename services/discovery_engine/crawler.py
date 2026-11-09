@@ -22,6 +22,7 @@ from services.discovery_engine.extractor import (
 )
 from services.discovery_engine.fingerprint import detect_technologies
 from services.scope_engine.service import scope_service
+from services.scope_engine.validator import parse_port_range
 
 USER_AGENT = "Pentesa-Security-Scanner/1.0 (Authorized Penetration Testing Platform)"
 
@@ -112,25 +113,57 @@ class ScopeEnforcedCrawler:
         """Execute automated attack surface crawl starting from seed URLs."""
         # Determine seed URLs
         seeds: List[str] = []
-        if config.seed_urls:
-            seeds = config.seed_urls
+        if config.seed_urls and len(config.seed_urls) > 0:
+            seeds = [s.strip() for s in config.seed_urls if s and s.strip()]
         else:
-            target_domains = getattr(self.project, "target_domains", [])
-            for d in target_domains:
-                clean_d = d.lstrip("*.")
-                seeds.append(f"https://{clean_d}/")
+            target_domains = getattr(self.project, "target_domains", []) or []
+            rules = self.rules if self.rules is not None else getattr(self.project, "scope_rules", [])
+
+            rule_ports: Set[int] = set()
+            in_scope_patterns: List[str] = []
+            for r in (rules or []):
+                t_type = getattr(r, "target_type", "") or (r.get("target_type") if isinstance(r, dict) else "")
+                if t_type == "IN_SCOPE":
+                    pat = getattr(r, "pattern", "") or (r.get("pattern", "") if isinstance(r, dict) else "")
+                    pr = getattr(r, "port_range", None) or (r.get("port_range") if isinstance(r, dict) else None)
+                    if pat:
+                        clean_p = pat.split("/")[0].lstrip("*.")
+                        if clean_p:
+                            in_scope_patterns.append(clean_p)
+                    if pr:
+                        for p in parse_port_range(pr):
+                            rule_ports.add(p)
+
+            candidates = list(dict.fromkeys([d.lstrip("*.") for d in target_domains if d] + in_scope_patterns))
+
+            for d in candidates:
+                if not d:
+                    continue
+                if rule_ports:
+                    for port in sorted(list(rule_ports)):
+                        if port == 443:
+                            seeds.append(f"https://{d}/")
+                        elif port == 80:
+                            seeds.append(f"http://{d}/")
+                        else:
+                            proto = "https" if port in (8443, 4433) else "http"
+                            seeds.append(f"{proto}://{d}:{port}/")
+                else:
+                    seeds.append(f"https://{d}/")
+                    seeds.append(f"http://{d}/")
 
         # Filter initial seeds by scope
         queue: List[Tuple[str, int]] = []
         for s in seeds:
             if self._is_url_in_scope(s):
-                queue.append((s, 1))
+                if s not in [q[0] for q in queue]:
+                    queue.append((s, 1))
             else:
                 self.errors.append(f"Seed URL '{s}' is out of scope; skipping.")
 
         client = self.custom_client or httpx.AsyncClient(
             headers={"User-Agent": USER_AGENT},
-            timeout=10.0,
+            timeout=httpx.Timeout(5.0, connect=2.0),
             verify=False,
             follow_redirects=True
         )
@@ -187,7 +220,7 @@ class ScopeEnforcedCrawler:
                             parsed_seed = urlparse(clean_url)
                             for ep in api_endpoints:
                                 self._record_endpoint(
-                                    url=f"{parsed_seed.scheme}://{parsed_seed.hostname}{ep['url_path']}",
+                                    url=f"{parsed_seed.scheme}://{parsed_seed.netloc}{ep['url_path']}",
                                     method=ep["http_method"],
                                     parameters=ep["parameters"],
                                     content_type=ep.get("content_type"),
@@ -233,7 +266,7 @@ class ScopeEnforcedCrawler:
                                         routes = extract_js_endpoints(js_resp.text)
                                         parsed_base = urlparse(clean_url)
                                         for r in routes:
-                                            full_r = f"{parsed_base.scheme}://{parsed_base.hostname}{r}"
+                                            full_r = f"{parsed_base.scheme}://{parsed_base.netloc}{r}"
                                             if self._is_url_in_scope(full_r):
                                                 self._record_endpoint(url=full_r, method="GET", source="JS_ANALYSIS")
                                 except Exception:
@@ -268,7 +301,7 @@ class ScopeEnforcedCrawler:
 
         for s in seeds:
             parsed = urlparse(s)
-            host_key = f"{parsed.scheme}://{parsed.hostname}"
+            host_key = f"{parsed.scheme}://{parsed.netloc}"
             if host_key in probed_hosts:
                 continue
             probed_hosts.add(host_key)

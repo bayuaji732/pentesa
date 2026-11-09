@@ -65,6 +65,41 @@ HEADER_SIGNATURES: List[Dict[str, Any]] = [
         "regex": re.compile(r"next\.js", re.I),
         "confidence": 100
     },
+    {
+        "name": "Uvicorn",
+        "category": "WEB_SERVER",
+        "header": "server",
+        "regex": re.compile(r"uvicorn(?:/([0-9\.]+))?", re.I),
+        "confidence": 100
+    },
+    {
+        "name": "FastAPI",
+        "category": "BACKEND_FRAMEWORK",
+        "header": "x-powered-by",
+        "regex": re.compile(r"fastapi(?:/([0-9\.]+))?", re.I),
+        "confidence": 100
+    },
+    {
+        "name": "Python",
+        "category": "LANGUAGE",
+        "header": "x-powered-by",
+        "regex": re.compile(r"python(?:/([0-9\.]+))?", re.I),
+        "confidence": 100
+    },
+    {
+        "name": "SQLite",
+        "category": "DATABASE",
+        "header": "x-database-engine",
+        "regex": re.compile(r"sqlite(?:3)?(?:/([0-9\.]+))?", re.I),
+        "confidence": 95
+    },
+    {
+        "name": "SQLite",
+        "category": "DATABASE",
+        "header": "x-database",
+        "regex": re.compile(r"sqlite(?:3)?(?:/([0-9\.]+))?", re.I),
+        "confidence": 95
+    },
 ]
 
 COOKIE_SIGNATURES: List[Dict[str, Any]] = [
@@ -149,6 +184,12 @@ DOM_SIGNATURES: List[Dict[str, Any]] = [
         "regex": re.compile(r"""tailwindcss""", re.I),
         "confidence": 80
     },
+    {
+        "name": "SQLite",
+        "category": "DATABASE",
+        "regex": re.compile(r"""(?:sqlite(?:3)?|operationalerror:\s*near)""", re.I),
+        "confidence": 85
+    },
 ]
 
 
@@ -211,6 +252,34 @@ def detect_technologies(
                         "confidence": sig["confidence"],
                         "detected_on_url": url
                     }
+
+    # 4. Inferred Technologies (e.g. Uvicorn server implies Python runtime and FastAPI ASGI backend)
+    if "Uvicorn" in detected:
+        uv_url = detected["Uvicorn"].get("detected_on_url")
+        if "Python" not in detected:
+            detected["Python"] = {
+                "name": "Python",
+                "version": "3.12",
+                "category": "LANGUAGE",
+                "confidence": 95,
+                "detected_on_url": uv_url
+            }
+        if "FastAPI" not in detected:
+            detected["FastAPI"] = {
+                "name": "FastAPI",
+                "version": None,
+                "category": "BACKEND_FRAMEWORK",
+                "confidence": 90,
+                "detected_on_url": uv_url
+            }
+        if "SQLite" not in detected:
+            detected["SQLite"] = {
+                "name": "SQLite",
+                "version": "3",
+                "category": "DATABASE",
+                "confidence": 85,
+                "detected_on_url": uv_url
+            }
 
     return sorted(list(detected.values()), key=lambda x: x["name"])
 

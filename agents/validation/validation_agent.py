@@ -23,7 +23,7 @@ class ValidationAgent(BaseAgent):
             agent_id="AGT-11",
             agent_name="Vulnerability Validation & Quality Control Agent",
             phase="VALIDATION",
-            allowed_tools=["repro_harness", "curl_builder", "response_differ", "fp_heuristic"],
+            allowed_tools=["repro_harness", "curl_builder", "response_differ", "fp_heuristic", "dedup_engine"],
             risk_tier="Medium",
             system_prompt=(
                 "You are the Vulnerability Validation & False Positive Analysis Agent (AGT-11/12) for Pentesa. "
@@ -79,21 +79,39 @@ class ValidationAgent(BaseAgent):
                     status="SUCCESS"
                 )
             else:
-                # Confirm finding in database
-                created_finding = await finding_service.create_finding(
+                # Deduplication check: Do not re-insert duplicate findings on repeated runs
+                existing_findings = await finding_service.list_findings(
                     project_id=state.project_id,
-                    payload=FindingCreate(
-                        title=title,
-                        description=candidate.get("description", f"Empirically validated vulnerability at {matched_at}."),
-                        severity=candidate.get("severity", "Medium"),
-                        cwe_id=candidate.get("cwe_id", "CWE-200"),
-                        wstg_id=candidate.get("wstg_id", "WSTG-INFO-01"),
-                        status="Confirmed",
-                        confidence="Confirmed",
-                        raw_request=f"GET {matched_at} HTTP/1.1\r\nHost: target.com\r\n\r\n",
-                        raw_response="HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n[Verified Anomaly]"
-                    )
+                    cwe_id=candidate.get("cwe_id")
                 )
+                existing = next(
+                    (f for f in existing_findings if f.title == title or f.wstg_id == candidate.get("wstg_id")),
+                    None
+                )
+                if existing:
+                    created_finding = existing
+                    await self.log_tool_call(
+                        tool_name="dedup_engine",
+                        input_arguments={"candidate_title": title, "existing_id": str(existing.id)},
+                        output_result={"duplicate_prevented": True, "action": "reused_existing_finding"},
+                        status="SUCCESS"
+                    )
+                else:
+                    # Confirm new finding in database
+                    created_finding = await finding_service.create_finding(
+                        project_id=state.project_id,
+                        payload=FindingCreate(
+                            title=title,
+                            description=candidate.get("description", f"Empirically validated vulnerability at {matched_at}."),
+                            severity=candidate.get("severity", "Medium"),
+                            cwe_id=candidate.get("cwe_id", "CWE-200"),
+                            wstg_id=candidate.get("wstg_id", "WSTG-INFO-01"),
+                            status="Confirmed",
+                            confidence="Confirmed",
+                            raw_request=f"GET {matched_at} HTTP/1.1\r\nHost: target.com\r\n\r\n",
+                            raw_response="HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n[Verified Anomaly]"
+                        )
+                    )
 
                 # Record successful reproduction
                 repro = await finding_service.record_reproduction(

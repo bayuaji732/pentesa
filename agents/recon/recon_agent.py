@@ -52,7 +52,8 @@ class ReconnaissanceAgent(BaseAgent):
         # 2. Extract seed URLs from project scope
         domains_stmt = select(DiscoveredDomain).where(DiscoveredDomain.project_id == state.project_id)
         existing_domains = (await self.session.execute(domains_stmt)).scalars().all()
-        subdomains = [d.domain for d in existing_domains]
+        subdomains = [getattr(d, "fqdn", None) or getattr(d, "domain", "") for d in existing_domains]
+        subdomains = [s for s in subdomains if s]
 
         if not subdomains:
             # Seed default target from scope if none persisted yet

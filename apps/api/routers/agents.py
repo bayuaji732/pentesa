@@ -67,6 +67,7 @@ async def start_pentest_workflow(
             project_id=project_id,
             user_id=current_user.id,
             phases=payload.phases,
+            scan_profile=payload.scan_profile or "QUICK",
             ip_address=ip_address,
             user_agent=user_agent
         )
@@ -75,6 +76,26 @@ async def start_pentest_workflow(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     except BadRequestError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.post(
+    "/workflow/reset",
+    summary="Reset active or stuck workflow execution"
+)
+async def reset_pentest_workflow(
+    project_id: uuid.UUID,
+    request: Request,
+    session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Emergency reset any stuck or running workflow for the project."""
+    await verify_project_access(project_id, current_user, session)
+    supervisor = WorkflowSupervisor(session)
+    await supervisor.reset_workflow(project_id=project_id, user_id=current_user.id)
+    try:
+        return await supervisor.get_workflow_status(project_id)
+    except ResourceNotFoundError:
+        return {"status": "STOPPED", "message": "Workflow successfully reset"}
 
 
 @router.post(

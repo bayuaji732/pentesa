@@ -64,7 +64,7 @@ async def build_report_context(
     # 3. Fetch Attack Surface (Domains, Endpoints, Technologies)
     domains_stmt = select(DiscoveredDomain).where(DiscoveredDomain.project_id == project_id)
     domains = list((await session.execute(domains_stmt)).scalars().all())
-    domains_sample = [d.domain for d in domains[:10]]
+    domains_sample = [getattr(d, "fqdn", None) or getattr(d, "domain", "") for d in domains[:10]]
 
     endpoints_stmt = select(Endpoint).where(Endpoint.project_id == project_id)
     endpoints = list((await session.execute(endpoints_stmt)).scalars().all())

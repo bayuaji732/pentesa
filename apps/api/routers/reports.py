@@ -3,14 +3,17 @@
 import os
 import uuid
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from fastapi.responses import FileResponse
+from fastapi.security import HTTPAuthorizationCredentials
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.api.dependencies import get_current_user, verify_project_access
+from apps.api.dependencies import get_current_user, security_scheme, verify_project_access
 from database.models.user import User
 from database.session import get_db
-from packages.common.exceptions import BadRequestError, ResourceNotFoundError
+from packages.common.exceptions import AuthenticationError, BadRequestError, ResourceNotFoundError
+from packages.common.security import verify_token
 from packages.schemas.report import (
     ReportGenerateRequest,
     ReportResponse,
@@ -89,10 +92,35 @@ async def list_project_reports(
 )
 async def download_report_file(
     report_id: uuid.UUID,
-    session: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    token: Optional[str] = Query(None, description="Optional bearer token for direct browser downloads"),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security_scheme),
+    session: AsyncSession = Depends(get_db)
 ):
     """Stream raw PDF or HTML report deliverable file to client."""
+    raw_token = credentials.credentials if (credentials and credentials.credentials) else token
+    if not raw_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing authentication token",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+    try:
+        token_payload = verify_token(raw_token, expected_type="access")
+    except AuthenticationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e),
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+    user_id_str = token_payload.get("sub")
+    stmt = select(User).where(User.id == uuid.UUID(user_id_str))
+    res = await session.execute(stmt)
+    current_user = res.scalar_one_or_none()
+    if not current_user or not current_user.is_active:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive")
+
     service = ReportingService(session)
     try:
         report = await service.get_report(report_id)

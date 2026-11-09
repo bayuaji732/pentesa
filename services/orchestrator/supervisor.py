@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from agents.authorization.authz_agent import AuthorizationAgent
-from agents.llm.provider import BaseLLMProvider, get_default_llm_provider
+from agents.llm.provider import BaseLLMProvider, get_default_llm_provider, MockLLMProvider
 from agents.planner.planner_agent import ProjectPlanningAgent
 from agents.recon.recon_agent import ReconnaissanceAgent
 from agents.reporting.reporting_agent import ReportingAgent
@@ -60,6 +60,7 @@ class WorkflowSupervisor:
         project_id: uuid.UUID,
         user_id: Optional[uuid.UUID] = None,
         phases: Optional[List[str]] = None,
+        scan_profile: str = "QUICK",
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None
     ) -> WorkflowExecution:
@@ -80,10 +81,17 @@ class WorkflowSupervisor:
                     f"Engagement authorization window expired on {auth_end.isoformat()}."
                 )
 
-        # 2. Check for already running workflow
+        # 2. Check for already running workflow (auto-recover stale ones > 3 min)
         active = await self.get_active_workflow(project_id)
         if active and active.status == "RUNNING":
-            raise BadRequestError("A penetration testing workflow is already actively executing for this project.")
+            created_at = active.created_at
+            if created_at and created_at.tzinfo is None:
+                created_at = created_at.replace(tzinfo=datetime.timezone.utc)
+            if created_at and (now - created_at) > datetime.timedelta(minutes=3):
+                active.status = "INTERRUPTED"
+                await self.session.commit()
+            else:
+                raise BadRequestError("A penetration testing workflow is already actively executing for this project.")
 
         # 3. Compile approved scope metadata
         scope_stmt = select(ScopeRule).where(ScopeRule.project_id == project_id)
@@ -100,7 +108,7 @@ class WorkflowSupervisor:
             project_id=project_id,
             current_phase="PLANNING",
             status="RUNNING",
-            state_data={"approved_scope": scope_summary}
+            state_data={"approved_scope": scope_summary, "scan_profile": scan_profile}
         )
         self.session.add(workflow)
         await self.session.commit()
@@ -112,7 +120,7 @@ class WorkflowSupervisor:
             action="WORKFLOW_STARTED",
             resource_type="WorkflowExecution",
             resource_id=str(workflow.id),
-            details={"phases": phases or "ALL", "scope": scope_summary},
+            details={"phases": phases or "ALL", "scan_profile": scan_profile, "scope": scope_summary},
             project_id=project_id,
             user_id=user_id,
             ip_address=ip_address,
@@ -128,44 +136,58 @@ class WorkflowSupervisor:
             approved_scope=scope_summary
         )
 
-        # 6. Execute Agent Sequence (Phase DAG)
+        # 6. Execute Agent Sequence with Selected Profile LLM
+        effective_llm = MockLLMProvider() if (scan_profile or "").upper() == "QUICK" else self.llm
         agents = [
-            ProjectPlanningAgent(self.session, self.llm),
-            ReconnaissanceAgent(self.session, self.llm),
-            WSTGAssessmentAgent(self.session, self.llm),
-            VulnerabilityAgent(self.session, self.llm),
-            AuthorizationAgent(self.session, self.llm),
-            ValidationAgent(self.session, self.llm),
-            ReportingAgent(self.session, self.llm)
+            ProjectPlanningAgent(self.session, effective_llm),
+            ReconnaissanceAgent(self.session, effective_llm),
+            WSTGAssessmentAgent(self.session, effective_llm),
+            VulnerabilityAgent(self.session, effective_llm),
+            AuthorizationAgent(self.session, effective_llm),
+            ValidationAgent(self.session, effective_llm),
+            ReportingAgent(self.session, effective_llm)
         ]
 
-        for agent in agents:
-            # Check if workflow was paused or stopped asynchronously
+        try:
+            for agent in agents:
+                # Check if workflow was paused or stopped asynchronously
+                await self.session.refresh(workflow)
+                if workflow.status in ["PAUSED", "STOPPED"]:
+                    state.add_log("SUPERVISOR", f"Workflow execution interrupted with status: {workflow.status}")
+                    break
+
+                state = await agent.run(state)
+
+                # Checkpoint state diff
+                workflow.current_phase = state.current_phase
+                workflow.state_data = {
+                    "approved_scope": state.approved_scope,
+                    "scan_profile": scan_profile,
+                    "discovered_subdomains": state.discovered_subdomains,
+                    "endpoints_count": len(state.endpoints_inventory),
+                    "candidate_findings_count": len(state.candidate_findings),
+                    "confirmed_findings_count": len(state.confirmed_findings),
+                    "false_positives_count": len(state.false_positives),
+                    "logs_count": len(state.execution_logs)
+                }
+                await self.session.commit()
+
+            # Finalize workflow completion if finished without interruptions
             await self.session.refresh(workflow)
-            if workflow.status in ["PAUSED", "STOPPED"]:
-                state.add_log("SUPERVISOR", f"Workflow execution interrupted with status: {workflow.status}")
-                break
+            if workflow.status == "RUNNING":
+                workflow.status = "COMPLETED"
+                workflow.current_phase = "COMPLETED"
+                workflow.completed_at = datetime.datetime.now(datetime.timezone.utc)
+                await self.session.commit()
 
-            state = await agent.run(state)
-
-            # Checkpoint state diff
-            workflow.current_phase = state.current_phase
+        except Exception as exc:
+            workflow.status = "FAILED"
             workflow.state_data = {
-                "approved_scope": state.approved_scope,
-                "discovered_subdomains": state.discovered_subdomains,
-                "endpoints_count": len(state.endpoints_inventory),
-                "candidate_findings_count": len(state.candidate_findings),
-                "confirmed_findings_count": len(state.confirmed_findings),
-                "false_positives_count": len(state.false_positives),
-                "logs_count": len(state.execution_logs)
+                **(workflow.state_data or {}),
+                "error": str(exc)
             }
             await self.session.commit()
-
-        # Finalize workflow completion if finished
-        if state.status == "COMPLETED":
-            workflow.status = "COMPLETED"
-            workflow.completed_at = datetime.datetime.now(datetime.timezone.utc)
-            await self.session.commit()
+            raise
 
         return workflow
 
@@ -260,6 +282,28 @@ class WorkflowSupervisor:
         await self.session.commit()
         return workflow
 
+    async def reset_workflow(
+        self,
+        project_id: uuid.UUID,
+        user_id: Optional[uuid.UUID] = None,
+        ip_address: Optional[str] = None,
+        user_agent: Optional[str] = None
+    ) -> Optional[WorkflowExecution]:
+        """Reset all active/running workflows for project to STOPPED."""
+        stmt = (
+            select(WorkflowExecution)
+            .where(
+                WorkflowExecution.project_id == project_id,
+                WorkflowExecution.status.in_(["RUNNING", "PAUSED", "WAITING_APPROVAL"])
+            )
+        )
+        active_list = (await self.session.execute(stmt)).scalars().all()
+        for w in active_list:
+            w.status = "STOPPED"
+            w.completed_at = datetime.datetime.now(datetime.timezone.utc)
+        await self.session.commit()
+        return await self.get_active_workflow(project_id)
+
     async def get_workflow_status(self, project_id: uuid.UUID) -> WorkflowStatusResponse:
         """Fetch current workflow status and real-time metrics for all agents."""
         workflow = await self.get_active_workflow(project_id)
@@ -275,8 +319,13 @@ class WorkflowSupervisor:
         )
         execs = (await self.session.execute(stmt)).scalars().all()
 
-        agent_statuses = []
+        # Deduplicate agent executions keeping latest record per agent
+        latest_by_agent: Dict[str, AgentExecution] = {}
         for e in execs:
+            latest_by_agent[e.agent_id] = e
+
+        agent_statuses = []
+        for e in latest_by_agent.values():
             agent_statuses.append(
                 AgentStatusResponse(
                     agent_id=e.agent_id,

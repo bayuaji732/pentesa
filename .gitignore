@@ -55,3 +55,9 @@ Thumbs.db
 data/reports/
 data/evidence/
 
+# Node & Next.js
+node_modules/
+.next/
+out/
+
+

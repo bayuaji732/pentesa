@@ -24,6 +24,10 @@ class AgentStatusResponse(BaseModel):
 
 class WorkflowStartRequest(BaseModel):
     """Payload to launch the autonomous penetration testing workflow DAG."""
+    scan_profile: str = Field(
+        default="QUICK",
+        description="Scan depth profile: 'QUICK' (Rapid smoke test), 'FULL' (Standard OWASP WSTG), 'DEEP' (Exhaustive fuzzing)"
+    )
     phases: Optional[List[str]] = Field(
         default=None,
         description="Target phases to execute: RECON, MAPPING, WSTG_PLANNING, ACTIVE_ASSESSMENT, VALIDATION, REPORTING"

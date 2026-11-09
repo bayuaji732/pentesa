@@ -170,3 +170,14 @@ async def calculate_project_wstg_coverage(
         generated_at=datetime.now(timezone.utc)
     )
 
+
+class WSTGCoverageService:
+    """Service wrapper for mathematical WSTG coverage calculations."""
+
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def calculate_project_coverage(self, project_id: uuid.UUID) -> WSTGCoverageReport:
+        return await calculate_project_wstg_coverage(self.session, project_id)
+
+

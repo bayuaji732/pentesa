@@ -1,7 +1,7 @@
 """Pentesa configuration settings powered by Pydantic."""
 
 from typing import List
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -58,6 +58,64 @@ class Settings(BaseSettings):
     default_max_rps: int = 50
     max_fuzz_requests_without_approval: int = 5000
     max_auth_attempts_without_approval: int = 15
+
+    # LLM Provider Configuration
+    llm_provider: str = Field(
+        default="mock",
+        validation_alias=AliasChoices("pentesa_llm_provider", "llm_provider"),
+        description="Active LLM provider: 'mock', 'litellm', 'ollama', 'openai'"
+    )
+
+    # LiteLLM Configuration (Proxy / Enterprise Gateway)
+    litellm_base_url: str = Field(
+        default="http://localhost:4000",
+        validation_alias=AliasChoices("pentesa_litellm_base_url", "litellm_base_url", "litellm_url"),
+        description="LiteLLM proxy server URL (e.g. http://localhost:4000 or http://localhost:4000/v1)"
+    )
+    litellm_api_key: str = Field(
+        default="sk-placeholder",
+        validation_alias=AliasChoices("pentesa_litellm_api_key", "litellm_api_key"),
+        description="LiteLLM proxy API key or virtual token"
+    )
+    litellm_model: str = Field(
+        default="gpt-4o",
+        validation_alias=AliasChoices("pentesa_litellm_model", "litellm_model"),
+        description="Model routed via LiteLLM proxy (e.g., gpt-4o, claude-3-5-sonnet, gemini-1.5-pro, ollama/llama3)"
+    )
+    litellm_timeout: float = Field(
+        default=120.0,
+        validation_alias=AliasChoices("pentesa_litellm_timeout", "litellm_timeout"),
+        description="LiteLLM proxy timeout in seconds"
+    )
+
+    # Local Ollama Configuration
+    ollama_base_url: str = Field(
+        default="http://localhost:11434",
+        validation_alias=AliasChoices("pentesa_ollama_base_url", "ollama_base_url"),
+        description="Ollama server base URL"
+    )
+    ollama_model: str = Field(
+        default="llama3.1",
+        validation_alias=AliasChoices("pentesa_ollama_model", "ollama_model"),
+        description="Ollama model name"
+    )
+
+    # Direct OpenAI / Compatible Configuration
+    openai_base_url: str = Field(
+        default="https://api.openai.com/v1",
+        validation_alias=AliasChoices("pentesa_openai_base_url", "openai_base_url"),
+        description="Direct OpenAI-compatible API base URL"
+    )
+    openai_api_key: str = Field(
+        default="sk-placeholder",
+        validation_alias=AliasChoices("pentesa_openai_api_key", "openai_api_key"),
+        description="OpenAI API key"
+    )
+    openai_model: str = Field(
+        default="gpt-4o-mini",
+        validation_alias=AliasChoices("pentesa_openai_model", "openai_model"),
+        description="OpenAI model name"
+    )
 
     # CORS
     cors_origins: List[str] = ["*"]

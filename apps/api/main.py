@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from apps.api.routers import (
+    agents_router,
     auth_router,
     audit_router,
     discovery_router,
@@ -67,6 +68,7 @@ app.include_router(discovery_router)
 app.include_router(wstg_router)
 app.include_router(tools_router)
 app.include_router(findings_router)
+app.include_router(agents_router)
 app.include_router(audit_router)
 
 

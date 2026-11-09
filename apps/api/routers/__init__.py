@@ -10,6 +10,7 @@ from apps.api.routers.health import router as health_router
 from apps.api.routers.wstg import router as wstg_router
 from apps.api.routers.tools import router as tools_router
 from apps.api.routers.findings import router as findings_router
+from apps.api.routers.agents import router as agents_router
 
 __all__ = [
     "auth_router",
@@ -21,7 +22,8 @@ __all__ = [
     "health_router",
     "wstg_router",
     "tools_router",
-    "findings_router"
+    "findings_router",
+    "agents_router"
 ]
 
 

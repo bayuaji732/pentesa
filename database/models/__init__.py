@@ -28,6 +28,13 @@ from database.models.tool import (
     ToolConfiguration,
     ToolExecution,
 )
+from database.models.agent import (
+    AgentDecision,
+    AgentExecution,
+    AgentToolCall,
+    ApprovalRequest,
+    WorkflowExecution,
+)
 
 __all__ = [
     "User",
@@ -50,5 +57,10 @@ __all__ = [
     "FindingStatusHistory",
     "FalsePositive",
     "ToolExecution",
-    "ToolConfiguration"
+    "ToolConfiguration",
+    "AgentExecution",
+    "AgentDecision",
+    "AgentToolCall",
+    "WorkflowExecution",
+    "ApprovalRequest"
 ]

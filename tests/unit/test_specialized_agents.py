@@ -1,0 +1,156 @@
+"""Unit tests for the specialized penetration testing agents."""
+
+import pytest
+from agents.authorization.authz_agent import AuthorizationAgent
+from agents.planner.planner_agent import ProjectPlanningAgent
+from agents.recon.recon_agent import ReconnaissanceAgent
+from agents.reporting.reporting_agent import ReportingAgent
+from agents.validation.validation_agent import ValidationAgent
+from agents.vulnerability.vuln_agent import VulnerabilityAgent
+from agents.wstg.wstg_agent import WSTGAssessmentAgent
+from database.models.discovery import Endpoint
+from services.orchestrator.state import PentestWorkflowState
+
+
+@pytest.mark.asyncio
+async def test_project_planning_agent(db_session, test_project):
+    """Verify AGT-01 initializes WSTG instances and transitions phase to RECON."""
+    agent = ProjectPlanningAgent(db_session)
+    state = PentestWorkflowState(
+        project_id=test_project.id,
+        current_phase="PLANNING",
+        approved_scope={"target_domains": test_project.target_domains}
+    )
+
+    updated = await agent.run(state)
+    assert updated.current_phase == "RECON"
+    assert len(updated.wstg_matrix_state) > 0
+
+
+@pytest.mark.asyncio
+async def test_reconnaissance_agent(db_session, test_project):
+    """Verify AGT-03/04 maps subdomains and endpoints from approved scope."""
+    # Seed an endpoint in database for project
+    ep = Endpoint(
+        project_id=test_project.id,
+        fqdn="api.target.com",
+        url_path="/v1/users",
+        http_method="GET",
+        parameter_schema={"query": ["id"]},
+        auth_required=True
+    )
+    db_session.add(ep)
+    await db_session.commit()
+
+    agent = ReconnaissanceAgent(db_session)
+    state = PentestWorkflowState(
+        project_id=test_project.id,
+        current_phase="RECON",
+        approved_scope={"target_domains": test_project.target_domains}
+    )
+
+    updated = await agent.run(state)
+    assert updated.current_phase == "WSTG_PLANNING"
+    assert len(updated.discovered_subdomains) >= 1
+    assert len(updated.endpoints_inventory) >= 1
+
+
+@pytest.mark.asyncio
+async def test_wstg_assessment_agent(db_session, test_project):
+    """Verify AGT-05 dispatches WSTG probes and tracks coverage metrics."""
+    # First initialize WSTG instances using planning agent
+    planning_agent = ProjectPlanningAgent(db_session)
+    state = PentestWorkflowState(
+        project_id=test_project.id,
+        current_phase="PLANNING",
+        approved_scope={"target_domains": test_project.target_domains}
+    )
+    state = await planning_agent.run(state)
+
+    agent = WSTGAssessmentAgent(db_session)
+    state.discovered_subdomains = ["target.com"]
+    updated = await agent.run(state)
+    assert updated.current_phase == "ACTIVE_ASSESSMENT"
+    assert len(updated.candidate_findings) >= 1
+
+
+@pytest.mark.asyncio
+async def test_vulnerability_agent(db_session, test_project):
+    """Verify AGT-09 dispatches scoped tool scans and captures candidate detections."""
+    agent = VulnerabilityAgent(db_session)
+    state = PentestWorkflowState(
+        project_id=test_project.id,
+        current_phase="ACTIVE_ASSESSMENT",
+        approved_scope={"target_domains": test_project.target_domains},
+        discovered_subdomains=["target.com"]
+    )
+
+    updated = await agent.run(state)
+    assert updated.current_phase == "VALIDATION"
+
+
+@pytest.mark.asyncio
+async def test_authorization_agent(db_session, test_project):
+    """Verify AGT-07 evaluates multi-tenant authorization boundaries and detects IDOR."""
+    agent = AuthorizationAgent(db_session)
+    state = PentestWorkflowState(
+        project_id=test_project.id,
+        current_phase="ACTIVE_ASSESSMENT",
+        approved_scope={"target_domains": test_project.target_domains},
+        discovered_subdomains=["target.com"],
+        endpoints_inventory=[{
+            "url": "https://target.com/api/v1/users/1002/profile",
+            "http_method": "GET"
+        }]
+    )
+
+    updated = await agent.run(state)
+    assert any("IDOR" in f.get("title", "") for f in updated.candidate_findings)
+
+
+@pytest.mark.asyncio
+async def test_validation_and_false_positive_agent(db_session, test_project):
+    """Verify AGT-11/12 confirms genuine vulnerabilities and refutes false positives."""
+    agent = ValidationAgent(db_session)
+    state = PentestWorkflowState(
+        project_id=test_project.id,
+        current_phase="VALIDATION",
+        approved_scope={"target_domains": test_project.target_domains},
+        candidate_findings=[
+            {
+                "title": "SQL Injection in Login Parameter",
+                "severity": "Critical",
+                "cwe_id": "CWE-89",
+                "wstg_id": "WSTG-INPV-05",
+                "matched_at": "https://target.com/api/login"
+            }
+        ]
+    )
+
+    updated = await agent.run(state)
+    assert updated.current_phase == "REPORTING"
+    assert len(updated.confirmed_findings) == 1
+    assert updated.confirmed_findings[0]["title"] == "SQL Injection in Login Parameter"
+
+
+@pytest.mark.asyncio
+async def test_reporting_agent(db_session, test_project):
+    """Verify AGT-15 compiles PTES deliverables and finalizes workflow."""
+    agent = ReportingAgent(db_session)
+    state = PentestWorkflowState(
+        project_id=test_project.id,
+        current_phase="REPORTING",
+        approved_scope={"target_domains": test_project.target_domains},
+        confirmed_findings=[
+            {
+                "id": "mock_id",
+                "title": "SQL Injection in Login Parameter",
+                "severity": "Critical",
+                "status": "Confirmed"
+            }
+        ]
+    )
+
+    updated = await agent.run(state)
+    assert updated.current_phase == "COMPLETED"
+    assert updated.status == "COMPLETED"

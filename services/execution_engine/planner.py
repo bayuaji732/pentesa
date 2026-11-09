@@ -339,3 +339,23 @@ async def recalculate_project_test_plan(
         "not_applicable_count": na_count,
         "summary": f"Recalculated test plan: {planned_count} tests planned, {na_count} marked not applicable."
     }
+
+
+class WSTGPlannerService:
+    """Service wrapper for WSTG catalog seeding, instance initialization, and plan calculation."""
+
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def seed_catalog(self) -> int:
+        return await seed_wstg_catalog(self.session)
+
+    async def initialize_project_instances(self, project_id: uuid.UUID) -> List[WSTGTestInstance]:
+        await initialize_project_wstg_instances(self.session, project_id)
+        stmt = select(WSTGTestInstance).where(WSTGTestInstance.project_id == project_id)
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def recalculate_test_plan(self, project_id: uuid.UUID) -> Dict[str, Any]:
+        return await recalculate_project_test_plan(self.session, project_id)
+

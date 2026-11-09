@@ -1,8 +1,13 @@
 """OWASP WSTG Execution Engine package."""
 
-from services.execution_engine.coverage import calculate_project_wstg_coverage, compute_metrics
+from services.execution_engine.coverage import (
+    WSTGCoverageService,
+    calculate_project_wstg_coverage,
+    compute_metrics
+)
 from services.execution_engine.planner import (
     VALID_STATE_TRANSITIONS,
+    WSTGPlannerService,
     initialize_project_wstg_instances,
     recalculate_project_test_plan,
     seed_wstg_catalog,

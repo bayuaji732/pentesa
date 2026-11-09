@@ -78,6 +78,15 @@ from packages.schemas.tool import (
     ToolExecutionResponse,
     ToolInfoResponse
 )
+from packages.schemas.agent import (
+    AgentDecisionResponse,
+    AgentStatusResponse,
+    AgentToolCallResponse,
+    ApprovalDecisionRequest,
+    ApprovalRequestResponse,
+    WorkflowStartRequest,
+    WorkflowStatusResponse
+)
 
 __all__ = [
     "AuditLogResponse",
@@ -141,5 +150,12 @@ __all__ = [
     "ToolExecutionResponse",
     "ToolConfigUpdate",
     "HttpTestRequest",
-    "HttpTestResponse"
+    "HttpTestResponse",
+    "AgentStatusResponse",
+    "WorkflowStartRequest",
+    "WorkflowStatusResponse",
+    "AgentDecisionResponse",
+    "AgentToolCallResponse",
+    "ApprovalRequestResponse",
+    "ApprovalDecisionRequest"
 ]

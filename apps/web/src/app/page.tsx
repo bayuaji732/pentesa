@@ -27,12 +27,12 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [startingWorkflow, setStartingWorkflow] = useState(false);
 
-  const loadData = async () => {
+  const loadData = async (isPoll = false) => {
     if (!currentProject) {
       setLoading(false);
       return;
     }
-    setLoading(true);
+    if (!isPoll) setLoading(true);
     try {
       const [fList, cov, wf] = await Promise.allSettled([
         api.listFindings(currentProject.id),
@@ -54,14 +54,22 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    loadData();
+    loadData(false);
   }, [currentProject]);
+
+  useEffect(() => {
+    if (!currentProject || workflow?.status !== "RUNNING") return;
+    const timer = setInterval(() => {
+      loadData(true);
+    }, 2500);
+    return () => clearInterval(timer);
+  }, [currentProject, workflow?.status]);
 
   const handleStartAutonomousScan = async () => {
     if (!currentProject) return;
     setStartingWorkflow(true);
     try {
-      const started = await api.startWorkflow(currentProject.id, true);
+      const started = await api.startWorkflow(currentProject.id, true, "QUICK", true);
       setWorkflow(started);
       await loadData();
     } catch (err: any) {

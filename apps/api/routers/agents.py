@@ -1,7 +1,9 @@
 """AI Agents observability, workflow DAG control, and approval gate router."""
 
+import asyncio
+import logging
 import uuid
-from typing import List, Optional
+from typing import Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,10 +11,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from apps.api.dependencies import get_current_user, verify_project_access
 from database.models.agent import ApprovalRequest
 from database.models.user import User
-from database.session import get_db
+from database.session import AsyncSessionLocal, get_db
 from packages.common.exceptions import BadRequestError, ProjectAuthorizationExpiredError, ResourceNotFoundError
 from packages.schemas.agent import (
     AgentDecisionResponse,
+    AgentToolCallResponse,
     ApprovalDecisionRequest,
     ApprovalRequestResponse,
     WorkflowStartRequest,
@@ -20,7 +23,41 @@ from packages.schemas.agent import (
 )
 from services.orchestrator.supervisor import WorkflowSupervisor
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/api/v1/projects/{project_id}/agents", tags=["AI Agents & Workflow"])
+
+# In-process registry of running background workflow tasks keyed by WorkflowExecution ID
+_ACTIVE_WORKFLOW_TASKS: Dict[uuid.UUID, asyncio.Task] = {}
+
+
+async def _run_workflow_background(workflow_id: uuid.UUID, step_delay_seconds: float = 0.0) -> None:
+    """Execute or resume a WorkflowExecution in its own isolated AsyncSession."""
+    try:
+        async with AsyncSessionLocal() as bg_session:
+            supervisor = WorkflowSupervisor(bg_session)
+            await supervisor.execute_workflow(
+                workflow_id=workflow_id,
+                step_delay_seconds=step_delay_seconds
+            )
+    except asyncio.CancelledError:
+        logger.info("Background workflow task %s was cancelled.", workflow_id)
+    except Exception as exc:
+        logger.exception("Background workflow %s failed: %s", workflow_id, exc)
+    finally:
+        current = asyncio.current_task()
+        if _ACTIVE_WORKFLOW_TASKS.get(workflow_id) is current:
+            _ACTIVE_WORKFLOW_TASKS.pop(workflow_id, None)
+
+
+def _ensure_background_task(workflow_id: uuid.UUID, scan_profile: str = "QUICK") -> None:
+    """Spawn background workflow task if one is not already active."""
+    existing = _ACTIVE_WORKFLOW_TASKS.get(workflow_id)
+    if existing and not existing.done():
+        return
+    delay = 0.25 if (scan_profile or "").upper() == "QUICK" else 0.0
+    task = asyncio.create_task(_run_workflow_background(workflow_id, step_delay_seconds=delay))
+    _ACTIVE_WORKFLOW_TASKS[workflow_id] = task
 
 
 @router.get(
@@ -33,7 +70,7 @@ async def get_agents_status(
     session: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Retrieve operational state, active phases, and metrics for all 15 agents."""
+    """Retrieve operational state, active phases, and metrics for all specialized agents."""
     await verify_project_access(project_id, current_user, session)
     supervisor = WorkflowSupervisor(session)
     try:
@@ -61,17 +98,36 @@ async def start_pentest_workflow(
 
     ip_address = request.client.host if request.client else None
     user_agent = request.headers.get("user-agent")
+    scan_profile = (payload.scan_profile or "QUICK").upper()
 
     try:
-        await supervisor.start_workflow(
-            project_id=project_id,
-            user_id=current_user.id,
-            phases=payload.phases,
-            scan_profile=payload.scan_profile or "QUICK",
-            ip_address=ip_address,
-            user_agent=user_agent
-        )
-        return await supervisor.get_workflow_status(project_id)
+        if payload.async_execution:
+            workflow = await supervisor.prepare_workflow(
+                project_id=project_id,
+                user_id=current_user.id,
+                phases=payload.phases,
+                scan_profile=scan_profile,
+                auto_approve_medium=payload.auto_approve_medium,
+                ip_address=ip_address,
+                user_agent=user_agent
+            )
+            # Mark async_execution flag inside state_data for resume/approval awareness
+            workflow.state_data = {**(workflow.state_data or {}), "async_execution": True}
+            await session.commit()
+
+            _ensure_background_task(workflow.id, scan_profile=scan_profile)
+            return await supervisor.get_workflow_status(project_id)
+        else:
+            await supervisor.start_workflow(
+                project_id=project_id,
+                user_id=current_user.id,
+                phases=payload.phases,
+                scan_profile=scan_profile,
+                auto_approve_medium=payload.auto_approve_medium,
+                ip_address=ip_address,
+                user_agent=user_agent
+            )
+            return await supervisor.get_workflow_status(project_id)
     except ProjectAuthorizationExpiredError as e:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     except BadRequestError as e:
@@ -91,11 +147,19 @@ async def reset_pentest_workflow(
     """Emergency reset any stuck or running workflow for the project."""
     await verify_project_access(project_id, current_user, session)
     supervisor = WorkflowSupervisor(session)
+
+    # Cancel any in-memory background task for this project's active workflow
+    active = await supervisor.get_active_workflow(project_id)
+    if active and active.id in _ACTIVE_WORKFLOW_TASKS:
+        task = _ACTIVE_WORKFLOW_TASKS.pop(active.id, None)
+        if task and not task.done():
+            task.cancel()
+
     await supervisor.reset_workflow(project_id=project_id, user_id=current_user.id)
     try:
         return await supervisor.get_workflow_status(project_id)
     except ResourceNotFoundError:
-        return {"status": "STOPPED", "message": "Workflow successfully reset"}
+        return {"status": "STOPPED", "message": "Workflow successfully reset", "active_agents": []}
 
 
 @router.post(
@@ -147,12 +211,15 @@ async def resume_pentest_workflow(
     user_agent = request.headers.get("user-agent")
 
     try:
-        await supervisor.resume_workflow(
+        workflow = await supervisor.resume_workflow(
             project_id=project_id,
             user_id=current_user.id,
             ip_address=ip_address,
             user_agent=user_agent
         )
+        if (workflow.state_data or {}).get("async_execution"):
+            scan_profile = (workflow.state_data or {}).get("scan_profile", "QUICK")
+            _ensure_background_task(workflow.id, scan_profile=scan_profile)
         return await supervisor.get_workflow_status(project_id)
     except BadRequestError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -177,12 +244,16 @@ async def stop_pentest_workflow(
     user_agent = request.headers.get("user-agent")
 
     try:
-        await supervisor.stop_workflow(
+        workflow = await supervisor.stop_workflow(
             project_id=project_id,
             user_id=current_user.id,
             ip_address=ip_address,
             user_agent=user_agent
         )
+        if workflow.id in _ACTIVE_WORKFLOW_TASKS:
+            task = _ACTIVE_WORKFLOW_TASKS.pop(workflow.id, None)
+            if task and not task.done():
+                task.cancel()
         return await supervisor.get_workflow_status(project_id)
     except BadRequestError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -195,7 +266,7 @@ async def stop_pentest_workflow(
 )
 async def list_agent_decisions(
     project_id: uuid.UUID,
-    agent_id: Optional[str] = Query(None, description="Filter by agent ID, e.g. AGT-01, AGT-08"),
+    agent_id: Optional[str] = Query(None, description="Filter by agent ID, e.g. AGT-01, AGT-09"),
     limit: int = Query(50, ge=1, le=200),
     session: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -204,6 +275,24 @@ async def list_agent_decisions(
     await verify_project_access(project_id, current_user, session)
     supervisor = WorkflowSupervisor(session)
     return await supervisor.list_agent_decisions(project_id, agent_id=agent_id, limit=limit)
+
+
+@router.get(
+    "/tool-calls",
+    response_model=List[AgentToolCallResponse],
+    summary="Stream and query structured tool calls invoked by agents"
+)
+async def list_agent_tool_calls(
+    project_id: uuid.UUID,
+    agent_id: Optional[str] = Query(None, description="Filter by agent ID, e.g. AGT-09"),
+    limit: int = Query(50, ge=1, le=200),
+    session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Retrieve structured zero-shell tool invocations and outputs across agent executions."""
+    await verify_project_access(project_id, current_user, session)
+    supervisor = WorkflowSupervisor(session)
+    return await supervisor.list_agent_tool_calls(project_id, agent_id=agent_id, limit=limit)
 
 
 @router.get(
@@ -247,7 +336,7 @@ async def decide_approval_request(
     user_agent = request.headers.get("user-agent")
 
     try:
-        return await supervisor.handle_approval(
+        res = await supervisor.handle_approval(
             approval_id=approval_id,
             project_id=project_id,
             decision=payload.decision,
@@ -256,5 +345,12 @@ async def decide_approval_request(
             ip_address=ip_address,
             user_agent=user_agent
         )
+        # If workflow is waiting at HITL gate with async_execution enabled, resume DAG cleanly
+        wf = await supervisor.get_active_workflow(project_id)
+        if wf and wf.status == "WAITING_APPROVAL" and (wf.state_data or {}).get("async_execution"):
+            wf.status = "RUNNING"
+            await session.commit()
+            _ensure_background_task(wf.id, scan_profile=(wf.state_data or {}).get("scan_profile", "FULL"))
+        return res
     except ResourceNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))

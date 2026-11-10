@@ -130,3 +130,46 @@ async def test_base_agent_human_approval_request(db_session, test_project):
     assert approval.status == "PENDING"
     assert approval.risk_level == "HIGH"
     assert approval.target == "https://target.com/admin/FUZZ"
+
+
+@pytest.mark.asyncio
+async def test_base_agent_accumulates_tokens_and_cost(db_session, test_project):
+    """Verify generate_llm_response records token counts and calculates commercial cost accurately."""
+    import json
+    import httpx
+    from agents.llm.provider import LiteLLMProvider
+
+    def mock_handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            status_code=200,
+            json={
+                "model": "gpt-5.6",
+                "choices": [{"message": {"content": '{"ok": true}'}}],
+                "usage": {"prompt_tokens": 1000, "completion_tokens": 500, "total_tokens": 1500}
+            }
+        )
+
+    provider = LiteLLMProvider(
+        base_url="http://localhost:4000",
+        api_key="sk-test",
+        model="gpt-5.6",
+        transport=httpx.MockTransport(mock_handler)
+    )
+    agent = DummyTestAgent(db_session)
+    agent.llm = provider
+    execution = AgentExecution(
+        project_id=test_project.id,
+        agent_id=agent.agent_id,
+        agent_name=agent.agent_name,
+        status="RUNNING"
+    )
+    db_session.add(execution)
+    await db_session.commit()
+    await db_session.refresh(execution)
+    agent.current_execution = execution
+
+    await agent.generate_llm_response("Run analysis", json_mode=True)
+    assert execution.prompt_tokens == 1000
+    assert execution.completion_tokens == 500
+    assert execution.total_cost_usd > 0.0
+

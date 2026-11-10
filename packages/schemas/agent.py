@@ -19,6 +19,7 @@ class AgentStatusResponse(BaseModel):
     total_cost_usd: float = 0.0
     decisions_count: int = 0
     tool_calls_count: int = 0
+    error_message: Optional[str] = None
     last_active: Optional[datetime] = None
 
 
@@ -35,6 +36,10 @@ class WorkflowStartRequest(BaseModel):
     auto_approve_medium: bool = Field(
         default=False,
         description="Whether to automatically approve medium-risk tasks without manual operator intervention"
+    )
+    async_execution: bool = Field(
+        default=False,
+        description="Execute workflow asynchronously in a background task and return RUNNING status immediately"
     )
 
 
@@ -58,6 +63,9 @@ class AgentDecisionResponse(BaseModel):
 
     id: uuid.UUID
     agent_execution_id: uuid.UUID
+    agent_id: Optional[str] = None
+    agent_name: Optional[str] = None
+    phase: Optional[str] = None
     thought_trace: str
     intent: str
     context_summary: Optional[str] = None
@@ -71,6 +79,9 @@ class AgentToolCallResponse(BaseModel):
 
     id: uuid.UUID
     agent_execution_id: uuid.UUID
+    agent_id: Optional[str] = None
+    agent_name: Optional[str] = None
+    phase: Optional[str] = None
     tool_name: str
     input_arguments: Dict[str, Any]
     output_result: Optional[Dict[str, Any]] = None

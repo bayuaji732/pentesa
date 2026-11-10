@@ -241,3 +241,49 @@ def test_get_default_llm_provider_factory(monkeypatch):
     assert provider.api_key == "sk-custom-master-key"
     assert provider.model == "deepseek-v3"
 
+
+@pytest.mark.asyncio
+async def test_litellm_provider_json_prompt_injection_and_null_usage_fallback():
+    """Verify LiteLLMProvider adds JSON instruction, tolerates null usage, and retries if empty choice."""
+    calls = []
+
+    def fallback_handler(request: httpx.Request) -> httpx.Response:
+        payload = json.loads(request.read().decode("utf-8"))
+        calls.append(payload)
+        sys_msg = payload["messages"][0]["content"]
+        assert "json" in sys_msg.lower()
+
+        if len(calls) == 1:
+            assert payload.get("response_format") == {"type": "json_object"}
+            return httpx.Response(status_code=200, json={"choices": [{"message": {}}], "usage": None})
+
+        assert "response_format" not in payload
+        return httpx.Response(
+            status_code=200,
+            json={
+                "choices": [{"message": {"content": '{"strategy": "Verified fallback json"}'}}],
+                "usage": None
+            }
+        )
+
+    transport = httpx.MockTransport(fallback_handler)
+    provider = LiteLLMProvider(
+        base_url="https://litellm.example.com/v1/",
+        api_key="sk-test",
+        model="azure/gpt-5.6-terra-dev-gtw",
+        transport=transport
+    )
+
+    resp = await provider.generate(
+        prompt="Summarize target recon posture",
+        system_prompt="You are a security planner.",
+        json_mode=True,
+        temperature=0.2
+    )
+    assert len(calls) == 2
+    assert "temperature" not in calls[0]
+    assert "Verified fallback json" in resp.content
+    assert resp.prompt_tokens > 0
+    assert resp.completion_tokens > 0
+
+

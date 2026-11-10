@@ -146,6 +146,51 @@ def test_report_renderer_pdf(tmp_path, sample_report_context):
     assert header == b"%PDF-"
 
 
+def test_report_renderer_pdf_escapes_xml_special_chars(tmp_path, sample_report_context):
+    """Verify ReportLab PDF & HTML rendering succeed when findings contain <script> and & characters."""
+    sample_report_context.project_name = "R&D Sandbox <Target>"
+    sample_report_context.report_title = "PTES & WSTG Assessment <Live>"
+    sample_report_context.executive_narrative = "Validated R&D risks including <script>alert('xss')</script> & SQLi."
+    sample_report_context.immediate_actions = ["Encode <script> output & parameterize queries"]
+    sample_report_context.findings = [
+        FindingReportItem(
+            id="FIND-XSS1",
+            title="Reflected Cross-Site Scripting & Config Disclosure",
+            severity="Critical",
+            cvss_score=9.1,
+            cvss_vector="CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",
+            cwe_id="CWE-79",
+            wstg_id="WSTG-INPV-01",
+            owasp_category="A03:2021-Injection",
+            endpoint_url="http://127.0.0.1:9000/search?q=<script>alert('pentesa_xss_8421')</script>&mode=1",
+            http_method="GET",
+            affected_parameter=None,
+            description="Parameter reflects unescaped <script>alert('pentesa_xss_8421')</script> & raw JSON.",
+            business_impact="Session hijacking & credential exposure.",
+            remediation_guidance="Escape <, >, & in HTML responses and apply CSP.",
+            reproduction_curl="curl -i -s \"http://127.0.0.1:9000/search?q=%3Cscript%3Ealert(1)%3C/script%3E&a=1&b=2\"",
+            raw_request="GET /search?q=<script>alert(1)</script>&a=1 HTTP/1.1\nHost: 127.0.0.1:9000\n\n",
+            raw_response="HTTP/1.1 200 OK\n\n<script>alert(1)</script> & debug",
+            request_hash_sha256="a" * 64,
+            response_hash_sha256="b" * 64,
+            status="Confirmed",
+            confidence="Confirmed"
+        )
+    ]
+
+    renderer = ReportRenderer(output_dir=str(tmp_path))
+    pdf_path, pdf_hash = renderer.render_pdf(sample_report_context)
+    html_path, html_hash = renderer.render_html(sample_report_context)
+
+    assert os.path.exists(pdf_path) and len(pdf_hash) == 64
+    assert os.path.exists(html_path) and len(html_hash) == 64
+    with open(pdf_path, "rb") as f:
+        assert f.read(5) == b"%PDF-"
+    with open(html_path, "r", encoding="utf-8") as f:
+        html_text = f.read()
+    assert "&lt;script&gt;alert(&#39;pentesa_xss_8421&#39;)&lt;/script&gt;" in html_text or "&lt;script&gt;" in html_text
+
+
 @pytest.mark.asyncio
 async def test_reporting_service_lifecycle(db_session: AsyncSession, admin_user: User, tmp_path):
     """Verify full reporting service lifecycle: generation, database persistence, listing, and verification."""

@@ -25,7 +25,10 @@ async def test_workflow_start_and_status_api(client, admin_token, test_project):
         headers={"Authorization": f"Bearer {admin_token}"}
     )
     assert status_resp.status_code == 200
-    assert status_resp.json()["id"] == wf_data["id"]
+    status_json = status_resp.json()
+    assert status_json["id"] == wf_data["id"]
+    assert all(a["prompt_tokens"] > 0 and a["completion_tokens"] > 0 for a in status_json["active_agents"])
+    assert status_json["active_agents"][0]["phase"] == "PLANNING"
 
     # Query Decisions API
     dec_resp = await client.get(
@@ -34,8 +37,22 @@ async def test_workflow_start_and_status_api(client, admin_token, test_project):
     )
     assert dec_resp.status_code == 200
     decisions = dec_resp.json()
-    assert len(decisions) >= 1
+    assert len(decisions) >= 7
     assert "thought_trace" in decisions[0]
+    assert decisions[0]["agent_id"] is not None
+    assert decisions[0]["agent_name"] is not None
+    assert decisions[0]["phase"] is not None
+
+    # Query Tool Calls API
+    tools_resp = await client.get(
+        f"/api/v1/projects/{test_project.id}/agents/tool-calls",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert tools_resp.status_code == 200
+    tools = tools_resp.json()
+    assert len(tools) >= 6
+    assert tools[0]["agent_id"] is not None
+    assert tools[0]["tool_name"] is not None
 
 
 @pytest.mark.asyncio

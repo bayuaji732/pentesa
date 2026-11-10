@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from agents.llm.provider import BaseLLMProvider, get_default_llm_provider
+from agents.llm.provider import BaseLLMProvider, LLMResponse, get_default_llm_provider
 from database.models.agent import (
     AgentDecision,
     AgentExecution,
@@ -64,6 +64,39 @@ class BaseAgent(abc.ABC):
         )
         return check_res.is_in_scope
 
+    def _estimate_cost_usd(self, model: str, prompt_tokens: int, completion_tokens: int) -> float:
+        """Estimate token cost in USD (mock providers incur zero real cost)."""
+        if "mock" in (model or "").lower():
+            return 0.0
+        # Standard commercial LLM blend estimate ($2.50 / 1M input, $10.00 / 1M output)
+        return round((prompt_tokens * 0.0000025) + (completion_tokens * 0.000010), 6)
+
+    async def generate_llm_response(
+        self,
+        prompt: str,
+        system_prompt: Optional[str] = None,
+        json_mode: bool = False,
+        temperature: Optional[float] = None
+    ) -> LLMResponse:
+        """Invoke LLM provider and accumulate token & cost telemetry onto AgentExecution."""
+        resp = await self.llm.generate(
+            prompt=prompt,
+            system_prompt=system_prompt if system_prompt is not None else self.system_prompt,
+            json_mode=json_mode,
+            temperature=temperature
+        )
+        if self.current_execution:
+            p_tok = int(resp.prompt_tokens or 0)
+            c_tok = int(resp.completion_tokens or 0)
+            self.current_execution.prompt_tokens = int(self.current_execution.prompt_tokens or 0) + p_tok
+            self.current_execution.completion_tokens = int(self.current_execution.completion_tokens or 0) + c_tok
+            inc_cost = self._estimate_cost_usd(resp.model, p_tok, c_tok)
+            self.current_execution.total_cost_usd = round(
+                float(self.current_execution.total_cost_usd or 0.0) + inc_cost, 6
+            )
+            await self.session.commit()
+        return resp
+
     async def log_decision(
         self,
         thought_trace: str,
@@ -75,9 +108,13 @@ class BaseAgent(abc.ABC):
         if not self.current_execution:
             raise RuntimeError("Cannot log decision without an active AgentExecution.")
 
+        clean_trace = (thought_trace or "").strip()
+        if not clean_trace:
+            clean_trace = f"[{self.agent_id}] Evaluated intent '{intent}' (empty provider output fallback)."
+
         decision = AgentDecision(
             agent_execution_id=self.current_execution.id,
-            thought_trace=thought_trace,
+            thought_trace=clean_trace,
             intent=intent,
             context_summary=context_summary,
             confidence=confidence
@@ -143,28 +180,46 @@ class BaseAgent(abc.ABC):
         await self.session.refresh(req)
         return req
 
-    async def run(self, state: PentestWorkflowState) -> PentestWorkflowState:
+    async def run(
+        self,
+        state: PentestWorkflowState,
+        existing_execution: Optional[AgentExecution] = None
+    ) -> PentestWorkflowState:
         """Lifecycle wrapper managing execution record persistence, timing, and error handling."""
         start_time = time.time()
-        execution = AgentExecution(
-            project_id=state.project_id,
-            agent_id=self.agent_id,
-            agent_name=self.agent_name,
-            status="RUNNING"
-        )
-        self.session.add(execution)
-        await self.session.commit()
-        await self.session.refresh(execution)
+        if existing_execution is not None:
+            execution = existing_execution
+            execution.status = "RUNNING"
+            execution.started_at = datetime.now(timezone.utc)
+            execution.error_message = None
+            await self.session.commit()
+            await self.session.refresh(execution)
+        else:
+            execution = AgentExecution(
+                project_id=state.project_id,
+                agent_id=self.agent_id,
+                agent_name=self.agent_name,
+                status="RUNNING"
+            )
+            self.session.add(execution)
+            await self.session.commit()
+            await self.session.refresh(execution)
         self.current_execution = execution
 
         state.add_log(self.agent_id, f"Agent {self.agent_name} started execution.")
 
         try:
             updated_state = await self.execute(state)
-            execution.status = "COMPLETED"
-            execution.completed_at = datetime.now(timezone.utc)
+            if updated_state.status == "WAITING_APPROVAL":
+                execution.status = "WAITING_APPROVAL"
+            elif updated_state.status == "STOPPED":
+                execution.status = "STOPPED"
+                execution.completed_at = datetime.now(timezone.utc)
+            else:
+                execution.status = "COMPLETED"
+                execution.completed_at = datetime.now(timezone.utc)
             await self.session.commit()
-            state.add_log(self.agent_id, f"Agent {self.agent_name} completed execution successfully.")
+            state.add_log(self.agent_id, f"Agent {self.agent_name} finished with status {execution.status}.")
             return updated_state
         except Exception as e:
             execution.status = "FAILED"

@@ -57,7 +57,11 @@ async def test_reconnaissance_agent(db_session, test_project):
 
 @pytest.mark.asyncio
 async def test_wstg_assessment_agent(db_session, test_project):
-    """Verify AGT-05 dispatches WSTG probes and tracks coverage metrics."""
+    """Verify AGT-05 dispatches real WSTG runners cleanly and tracks coverage metrics."""
+    from sqlalchemy import select
+    from database.models.agent import AgentToolCall
+    from database.models.wstg import TestExecution, WSTGTestInstance
+
     # First initialize WSTG instances using planning agent
     planning_agent = ProjectPlanningAgent(db_session)
     state = PentestWorkflowState(
@@ -72,6 +76,45 @@ async def test_wstg_assessment_agent(db_session, test_project):
     updated = await agent.run(state)
     assert updated.current_phase == "ACTIVE_ASSESSMENT"
     assert len(updated.candidate_findings) >= 1
+    assert not any("Execution failed" in entry.get("message", "") for entry in updated.execution_logs)
+
+    execs = (await db_session.execute(select(TestExecution).where(TestExecution.project_id == test_project.id))).scalars().all()
+    assert len(execs) >= 1
+
+    tc_stmt = select(AgentToolCall).where(
+        AgentToolCall.tool_name == "wstg_runner"
+    )
+    tc = (await db_session.execute(tc_stmt)).scalars().first()
+    assert tc is not None and (tc.output_result or {}).get("executed_probes_count", 0) > 0
+
+    executed_instances = (await db_session.execute(
+        select(WSTGTestInstance).where(
+            WSTGTestInstance.project_id == test_project.id,
+            WSTGTestInstance.status.in_(["Passed", "Failed", "Needs Manual Review"])
+        )
+    )).scalars().all()
+    assert len(executed_instances) >= 1
+
+
+@pytest.mark.asyncio
+async def test_wstg_assessment_agent_http_target_excludes_hsts(db_session, test_project):
+    """Verify plain HTTP targets do not emit HSTS missing-header false positives."""
+    planning_agent = ProjectPlanningAgent(db_session)
+    state = PentestWorkflowState(
+        project_id=test_project.id,
+        current_phase="PLANNING",
+        approved_scope={"target_domains": test_project.target_domains},
+        target_base_url="http://target.com",
+    )
+    state = await planning_agent.run(state)
+
+    agent = WSTGAssessmentAgent(db_session)
+    state.discovered_subdomains = ["target.com"]
+    updated = await agent.run(state)
+    assert len(updated.candidate_findings) >= 1
+    header_finding = updated.candidate_findings[0]
+    assert "HSTS" not in header_finding["title"]
+    assert "Strict-Transport-Security" not in header_finding["description"]
 
 
 @pytest.mark.asyncio
@@ -131,6 +174,37 @@ async def test_validation_and_false_positive_agent(db_session, test_project):
     assert updated.current_phase == "REPORTING"
     assert len(updated.confirmed_findings) == 1
     assert updated.confirmed_findings[0]["title"] == "SQL Injection in Login Parameter"
+
+
+@pytest.mark.asyncio
+async def test_validation_agent_handles_is_false_positive_false_json(db_session, test_project):
+    """Verify JSON containing {\"is_false_positive\": false, \"is_valid\": true} is confirmed, not refuted."""
+    from agents.llm.provider import MockLLMProvider
+
+    mock_llm = MockLLMProvider()
+    mock_llm.register_response(
+        "SQL Injection Check",
+        '{"is_false_positive": false, "is_valid": true, "confidence": "Confirmed"}'
+    )
+    agent = ValidationAgent(db_session, llm_provider=mock_llm)
+    state = PentestWorkflowState(
+        project_id=test_project.id,
+        current_phase="VALIDATION",
+        approved_scope={"target_domains": test_project.target_domains},
+        candidate_findings=[
+            {
+                "title": "SQL Injection Check",
+                "severity": "Critical",
+                "cwe_id": "CWE-89",
+                "wstg_id": "WSTG-INPV-05",
+                "matched_at": "https://target.com/products?search=test"
+            }
+        ]
+    )
+
+    updated = await agent.run(state)
+    assert len(updated.confirmed_findings) == 1
+    assert len(updated.false_positives) == 0
 
 
 @pytest.mark.asyncio

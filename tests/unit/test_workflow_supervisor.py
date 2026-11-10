@@ -28,6 +28,22 @@ async def test_supervisor_full_workflow_execution(db_session, test_project, admi
     status_resp = await supervisor.get_workflow_status(test_project.id)
     assert status_resp.status == "COMPLETED"
     assert len(status_resp.active_agents) >= 7
+    phase_by_id = {a.agent_id: a.phase for a in status_resp.active_agents}
+    assert phase_by_id["AGT-01"] == "PLANNING"
+    assert phase_by_id["AGT-03"] == "RECON"
+    assert phase_by_id["AGT-05"] == "WSTG_PLANNING"
+    assert phase_by_id["AGT-09"] == "ACTIVE_ASSESSMENT"
+    assert phase_by_id["AGT-11"] == "VALIDATION"
+    assert phase_by_id["AGT-15"] == "REPORTING"
+    assert all(a.prompt_tokens > 0 and a.completion_tokens > 0 for a in status_resp.active_agents)
+
+    decisions = await supervisor.list_agent_decisions(test_project.id)
+    assert len(decisions) >= 7
+    assert all(d.agent_id and d.agent_name and d.phase and d.thought_trace for d in decisions)
+
+    tool_calls = await supervisor.list_agent_tool_calls(test_project.id)
+    assert len(tool_calls) >= 6
+    assert all(tc.agent_id and tc.agent_name and tc.tool_name for tc in tool_calls)
 
 
 @pytest.mark.asyncio
@@ -119,3 +135,40 @@ async def test_supervisor_handle_approval_decision(db_session, test_project, adm
     assert result.status == "APPROVED"
     assert result.decided_by == admin_user.id
     assert result.decided_at is not None
+
+
+@pytest.mark.asyncio
+async def test_supervisor_hitl_approval_gate_full_profile(db_session, test_project, admin_user):
+    """Verify FULL workflow with auto_approve_medium=False pauses at WAITING_APPROVAL and finishes after approval."""
+    from agents.llm.provider import MockLLMProvider
+    from sqlalchemy import select
+
+    supervisor = WorkflowSupervisor(db_session, llm_provider=MockLLMProvider())
+    wf = await supervisor.prepare_workflow(
+        project_id=test_project.id,
+        user_id=admin_user.id,
+        scan_profile="FULL",
+        auto_approve_medium=False
+    )
+    wf_after_pause = await supervisor.execute_workflow(wf.id)
+    assert wf_after_pause.status == "WAITING_APPROVAL"
+
+    req_stmt = select(ApprovalRequest).where(
+        ApprovalRequest.project_id == test_project.id,
+        ApprovalRequest.workflow_execution_id == wf.id,
+        ApprovalRequest.status == "PENDING"
+    )
+    pending_req = (await db_session.execute(req_stmt)).scalar_one_or_none()
+    assert pending_req is not None
+
+    await supervisor.handle_approval(
+        approval_id=pending_req.id,
+        project_id=test_project.id,
+        decision="APPROVE",
+        justification="Approved medium risk scan during verification test",
+        user_id=admin_user.id
+    )
+    wf_done = await supervisor.execute_workflow(wf.id)
+    assert wf_done.status == "COMPLETED"
+    assert wf_done.current_phase == "COMPLETED"
+

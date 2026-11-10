@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useProject } from "@/lib/ProjectContext";
-import { api, getAuthToken } from "@/lib/api";
+import { API_BASE_URL, api, getAuthToken } from "@/lib/api";
 import {
   FileText,
   FileCheck2,
@@ -34,6 +34,7 @@ export default function ReportsPage() {
   const [verifyHash, setVerifyHash] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [verifyResult, setVerifyResult] = useState<any | null>(null);
+  const [statusBanner, setStatusBanner] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const fetchReports = async () => {
     if (!currentProject) {
@@ -60,12 +61,19 @@ export default function ReportsPage() {
     e.preventDefault();
     if (!currentProject) return;
     setGenerating(true);
+    setStatusBanner(null);
     try {
-      await api.generateReport(currentProject.id, reportFormat, reportTitle);
+      const created = await api.generateReport(currentProject.id, reportFormat, reportTitle, includeEvidence);
       await fetchReports();
-      alert("Report generated successfully!");
+      setStatusBanner({
+        type: "success",
+        text: `${reportFormat} deliverable compiled cleanly (${created?.title || reportTitle}).`,
+      });
     } catch (err: any) {
-      alert("Failed to compile report: " + (err?.message || "Error"));
+      setStatusBanner({
+        type: "error",
+        text: "Failed to compile report: " + (err?.message || "Error"),
+      });
     } finally {
       setGenerating(false);
     }
@@ -206,6 +214,18 @@ export default function ReportsPage() {
                 )}
               </button>
             </form>
+
+            {statusBanner && (
+              <div
+                className={`p-2.5 rounded border text-xs font-mono ${
+                  statusBanner.type === "success"
+                    ? "bg-emerald-950/60 border-emerald-800 text-emerald-300"
+                    : "bg-red-950/60 border-red-800 text-red-300"
+                }`}
+              >
+                {statusBanner.text}
+              </div>
+            )}
           </div>
 
           {/* Cryptographic Seal Verification Tool */}
@@ -264,7 +284,13 @@ export default function ReportsPage() {
                   <div className="text-[10px] text-slate-400 space-y-0.5 pt-1 border-t border-slate-800">
                     <div>Title: {verifyResult.title}</div>
                     <div>Project: {verifyResult.project_name}</div>
-                    <div>Published: {verifyResult.created_at}</div>
+                    <div>Format: {verifyResult.file_format || verifyResult.format || "PDF"}</div>
+                    <div>
+                      Published:{" "}
+                      {verifyResult.generated_at || verifyResult.created_at
+                        ? new Date(verifyResult.generated_at || verifyResult.created_at).toLocaleString()
+                        : "N/A"}
+                    </div>
                   </div>
                 )}
               </div>
@@ -297,7 +323,7 @@ export default function ReportsPage() {
             reports.map((report) => {
               const isPdf = report.format?.toUpperCase() === "PDF";
               const token = getAuthToken();
-              const downloadUrl = `http://127.0.0.1:8000/api/v1/reports/${report.id}/download${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+              const downloadUrl = `${API_BASE_URL}/api/v1/reports/${report.id}/download${token ? `?token=${encodeURIComponent(token)}` : ""}`;
 
               return (
                 <div
@@ -317,7 +343,9 @@ export default function ReportsPage() {
                           {report.format || "PDF"}
                         </span>
                         <span className="text-xs font-mono text-slate-400">
-                          {formatBytes(report.file_size_bytes)}
+                          {report.file_size_bytes
+                            ? formatBytes(report.file_size_bytes)
+                            : `${report.report_metadata?.total_findings ?? 0} Findings • ${Number(report.report_metadata?.coverage_score ?? 0).toFixed(1)}% WSTG`}
                         </span>
                       </div>
                       <h4 className="text-sm font-semibold text-slate-100">{report.title}</h4>

@@ -108,51 +108,73 @@ class MockLLMProvider(BaseLLMProvider):
                 break
 
         if not matched_content:
-            # Fallback heuristic responses based on agent keywords
-            if "plan" in prompt.lower() or "planner" in (system_prompt or "").lower():
+            p_low = prompt.lower()
+            s_low = (system_prompt or "").lower()
+            combined = f"{s_low}\n{p_low}"
+
+            if "agt-01" in s_low or "project planning" in s_low or "engagement test plan" in p_low:
                 matched_content = json.dumps({
-                    "strategy": "Comprehensive OWASP WSTG v4.2 assessment with passive recon first.",
-                    "recommended_phases": ["RECON", "MAPPING", "WSTG_PLANNING", "ACTIVE_ASSESSMENT", "VALIDATION", "REPORTING"],
+                    "strategy": "Scoped OWASP WSTG v4.2 assessment beginning with passive attack surface mapping followed by targeted checks.",
+                    "recommended_phases": ["PLANNING", "RECON", "WSTG_PLANNING", "ACTIVE_ASSESSMENT", "VALIDATION", "REPORTING"],
                     "rate_limit_rps": 20,
-                    "target_subdomains_priority": ["api", "app", "auth"]
+                    "target_subdomains_priority": ["primary", "api", "auth"]
                 })
-            elif "recon" in prompt.lower() or "recon" in (system_prompt or "").lower():
+            elif "agt-03" in s_low or "reconnaissance" in s_low or "seed urls" in p_low:
                 matched_content = json.dumps({
-                    "discovered_domains": ["api.target.com", "auth.target.com", "app.target.com"],
-                    "recommended_ports": [80, 443, 8443],
-                    "technologies": ["Nginx", "Node.js", "Express"]
+                    "discovered_domains": ["target.local"],
+                    "recommended_ports": [80, 443, 8000, 9000],
+                    "seed_strategy": "Inspect discovered endpoints, robots.txt, sitemap.xml, and query schemas.",
+                    "technologies": ["FastAPI", "Uvicorn", "SQLite"]
                 })
-            elif "validation" in prompt.lower() or "validation" in (system_prompt or "").lower():
+            elif "agt-05" in s_low or "wstg assessment" in s_low or "wstg testing plan" in p_low:
                 matched_content = json.dumps({
-                    "is_valid": True,
-                    "confidence": "Confirmed",
-                    "reasoning": "Observed SQL syntax error in response body verifying injection vulnerability.",
-                    "reproduction_curl": "curl -i -s 'https://target.com/api/search?q=%27%20OR%201=1--'"
+                    "selected_categories": ["WSTG-INFO", "WSTG-CONF", "WSTG-INPV", "WSTG-ATHZ"],
+                    "priority_probes": ["Security headers audit", "Configuration exposure checks", "Input handling review"],
+                    "execution_mode": "Deterministic scope-guarded probe dispatch"
                 })
-            elif "authz" in prompt.lower() or "authorization" in (system_prompt or "").lower():
+            elif "agt-09" in s_low or "vulnerability detection" in s_low or "nuclei" in p_low:
+                matched_content = json.dumps({
+                    "nuclei_tags": ["cve", "misconfig", "exposure"],
+                    "rate_limit_rps": 20,
+                    "hypotheses": ["Unauthenticated debug config exposure", "Unsanitized search query reflection", "SQL string concatenation"]
+                })
+            elif "agt-07" in s_low or "authz" in combined or "authorization" in combined or "idor" in combined:
                 matched_content = json.dumps({
                     "has_anomaly": True,
                     "anomaly_type": "BOLA_IDOR",
-                    "affected_resource": "/api/v1/users/1002/orders",
+                    "affected_resource": "/api/v1/users/1",
                     "severity": "High",
-                    "description": "User A can access User B's order records without authorization checks."
+                    "description": "Cross-tenant object identifier accessible without caller ownership validation."
                 })
-            elif "report" in prompt.lower() or "reporting" in (system_prompt or "").lower():
+            elif "agt-11" in s_low or "validation" in combined or "false positive" in combined:
                 matched_content = json.dumps({
-                    "executive_summary": "Pentesa completed an autonomous penetration test identifying 3 high-severity issues.",
+                    "is_valid": True,
+                    "confidence": "Confirmed",
+                    "reasoning": "Observed reproducible vulnerability signal matching verified empirical response criteria.",
+                    "reproduction_curl": "curl -i -s 'http://127.0.0.1:9000/api/v1/users/1'"
+                })
+            elif "agt-15" in s_low or "reporting" in combined or "ptes" in combined:
+                matched_content = json.dumps({
+                    "executive_summary": "Pentesa completed an autonomous penetration test across all 7 DAG phases verifying confirmed security exposures.",
                     "overall_risk_score": 7.8,
                     "strategic_recommendations": [
-                        "Implement centralized object-level authorization checks.",
-                        "Enforce strict parameterized database queries across all input handlers.",
-                        "Deploy comprehensive Content-Security-Policy headers."
+                        "Enforce server-side object-level authorization checks on API endpoints.",
+                        "Use parameterized SQL queries and contextual output encoding.",
+                        "Deploy defensive HTTP security headers (CSP, HSTS, X-Content-Type-Options)."
                     ]
+                })
+            elif "plan" in p_low or "planner" in s_low:
+                matched_content = json.dumps({
+                    "strategy": "Comprehensive OWASP WSTG v4.2 assessment with passive recon first.",
+                    "recommended_phases": ["PLANNING", "RECON", "WSTG_PLANNING", "ACTIVE_ASSESSMENT", "VALIDATION", "REPORTING"],
+                    "rate_limit_rps": 20
                 })
             else:
                 matched_content = json.dumps({"status": "SUCCESS", "message": "Analysis completed successfully."}) if json_mode else "Analysis completed successfully."
 
         duration_ms = int((time.time() - start_time) * 1000)
-        p_tokens = len(prompt.split()) + len((system_prompt or "").split())
-        c_tokens = len(matched_content.split())
+        p_tokens = max(1, len(prompt.split()) + len((system_prompt or "").split()))
+        c_tokens = max(1, len(matched_content.split()))
 
         return LLMResponse(
             content=matched_content,
@@ -247,9 +269,17 @@ class OpenAICompatibleProvider(BaseLLMProvider):
     ) -> LLMResponse:
         start_time = time.time()
 
+        effective_system = system_prompt or ""
+        if json_mode:
+            combined_text = f"{effective_system}\n{prompt}".lower()
+            if "json" not in combined_text:
+                effective_system = (effective_system + "\nRespond strictly with a concise, valid JSON object.").strip()
+            elif "json schema" not in combined_text and "concise" not in combined_text:
+                effective_system = (effective_system + "\nKeep your JSON output concise (under 200 words).").strip()
+
         messages = []
-        if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
+        if effective_system:
+            messages.append({"role": "system", "content": effective_system})
         messages.append({"role": "user", "content": prompt})
 
         payload: Dict[str, Any] = {
@@ -273,18 +303,35 @@ class OpenAICompatibleProvider(BaseLLMProvider):
             resp.raise_for_status()
             data = resp.json()
 
+            choices = data.get("choices") or []
+            msg_obj = (choices[0].get("message") or {}) if choices else {}
+            msg_content = (msg_obj.get("content") or "").strip()
+
+            # Fallback: if json_mode produced an empty choice on gateway, retry without response_format
+            if not msg_content and not msg_obj.get("reasoning_content") and json_mode:
+                fallback_payload = dict(payload)
+                fallback_payload.pop("response_format", None)
+                resp_retry = await client.post(self.chat_url, json=fallback_payload, headers=headers)
+                resp_retry.raise_for_status()
+                data = resp_retry.json()
+                choices = data.get("choices") or []
+                msg_obj = (choices[0].get("message") or {}) if choices else {}
+                msg_content = (msg_obj.get("content") or "").strip()
+
+        if not msg_content:
+            msg_content = (msg_obj.get("reasoning_content") or msg_obj.get("refusal") or "").strip()
+
         duration_ms = int((time.time() - start_time) * 1000)
-        choices = data.get("choices", [{}])
-        msg_content = ""
-        if choices:
-            msg_content = choices[0].get("message", {}).get("content", "")
-        usage = data.get("usage", {})
+        usage = data.get("usage") or {}
+        p_tokens = usage.get("prompt_tokens") or max(1, len(prompt.split()) + len(effective_system.split()))
+        c_tokens = usage.get("completion_tokens") or max(1, len(msg_content.split()))
+        t_tokens = usage.get("total_tokens") or (p_tokens + c_tokens)
 
         return LLMResponse(
             content=msg_content,
-            prompt_tokens=usage.get("prompt_tokens", len(prompt.split())),
-            completion_tokens=usage.get("completion_tokens", len(msg_content.split())),
-            total_tokens=usage.get("total_tokens", 0),
+            prompt_tokens=p_tokens,
+            completion_tokens=c_tokens,
+            total_tokens=t_tokens,
             model=data.get("model", self.model),
             duration_ms=duration_ms
         )
@@ -326,9 +373,17 @@ class LiteLLMProvider(BaseLLMProvider):
     ) -> LLMResponse:
         start_time = time.time()
 
+        effective_system = system_prompt or ""
+        if json_mode:
+            combined_text = f"{effective_system}\n{prompt}".lower()
+            if "json" not in combined_text:
+                effective_system = (effective_system + "\nRespond strictly with a concise, valid JSON object.").strip()
+            elif "json schema" not in combined_text and "concise" not in combined_text:
+                effective_system = (effective_system + "\nKeep your JSON output concise (under 200 words).").strip()
+
         messages = []
-        if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
+        if effective_system:
+            messages.append({"role": "system", "content": effective_system})
         messages.append({"role": "user", "content": prompt})
 
         payload: Dict[str, Any] = {
@@ -352,6 +407,27 @@ class LiteLLMProvider(BaseLLMProvider):
                 resp = await client.post(self.chat_url, json=payload, headers=headers)
                 resp.raise_for_status()
                 data = resp.json()
+
+                if isinstance(data, dict) and data.get("error"):
+                    raise RuntimeError(f"LiteLLM gateway returned error payload: {data.get('error')}")
+
+                choices = data.get("choices") or []
+                msg_obj = (choices[0].get("message") or {}) if choices else {}
+                msg_content = (msg_obj.get("content") or "").strip()
+
+                # Retry once without response_format if gateway returned empty choice under json_mode
+                if not msg_content and not msg_obj.get("reasoning_content") and json_mode:
+                    fallback_payload = dict(payload)
+                    fallback_payload.pop("response_format", None)
+                    resp_retry = await client.post(self.chat_url, json=fallback_payload, headers=headers)
+                    resp_retry.raise_for_status()
+                    data_retry = resp_retry.json()
+                    if isinstance(data_retry, dict) and not data_retry.get("error"):
+                        data = data_retry
+                        choices = data.get("choices") or []
+                        msg_obj = (choices[0].get("message") or {}) if choices else {}
+                        msg_content = (msg_obj.get("content") or "").strip()
+
         except httpx.HTTPStatusError as e:
             raise RuntimeError(
                 f"LiteLLM proxy returned HTTP error {e.response.status_code} at {self.chat_url}: {e.response.text}"
@@ -361,18 +437,20 @@ class LiteLLMProvider(BaseLLMProvider):
                 f"Failed to connect to LiteLLM proxy at {self.chat_url}: {e}"
             ) from e
 
+        if not msg_content:
+            msg_content = (msg_obj.get("reasoning_content") or msg_obj.get("refusal") or "").strip()
+
         duration_ms = int((time.time() - start_time) * 1000)
-        choices = data.get("choices", [])
-        msg_content = ""
-        if choices:
-            msg_content = choices[0].get("message", {}).get("content", "")
-        usage = data.get("usage", {})
+        usage = data.get("usage") or {}
+        p_tokens = usage.get("prompt_tokens") or max(1, len(prompt.split()) + len(effective_system.split()))
+        c_tokens = usage.get("completion_tokens") or max(1, len(msg_content.split()))
+        t_tokens = usage.get("total_tokens") or (p_tokens + c_tokens)
 
         return LLMResponse(
             content=msg_content,
-            prompt_tokens=usage.get("prompt_tokens", len(prompt.split())),
-            completion_tokens=usage.get("completion_tokens", len(msg_content.split())),
-            total_tokens=usage.get("total_tokens", 0),
+            prompt_tokens=p_tokens,
+            completion_tokens=c_tokens,
+            total_tokens=t_tokens,
             model=data.get("model", self.model),
             duration_ms=duration_ms
         )

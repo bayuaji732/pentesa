@@ -34,15 +34,15 @@ class ProjectPlanningAgent(BaseAgent):
     async def execute(self, state: PentestWorkflowState) -> PentestWorkflowState:
         # 1. Thought Trace
         prompt = (
-            f"Analyze target scope for project {state.project_id}. "
+            f"Analyze target scope for project {state.project_id} using {state.scan_profile} scan profile. "
             f"Scope summary: {json.dumps(state.approved_scope)}. "
-            f"Formulate assessment strategy, rate limits, and WSTG test phases."
+            f"Formulate assessment strategy, rate limits, and WSTG test phases in concise JSON."
         )
-        llm_res = await self.llm.generate(prompt=prompt, system_prompt=self.system_prompt, json_mode=True)
+        llm_res = await self.generate_llm_response(prompt=prompt, system_prompt=self.system_prompt, json_mode=True)
 
         await self.log_decision(
             thought_trace=llm_res.content,
-            intent="Formulate engagement test plan and initialize WSTG matrix",
+            intent=f"Formulate {state.scan_profile} engagement test plan and initialize WSTG matrix",
             confidence="High"
         )
 

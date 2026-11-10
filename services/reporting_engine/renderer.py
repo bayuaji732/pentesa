@@ -4,6 +4,7 @@ import hashlib
 import os
 import uuid
 from typing import Optional, Tuple
+from xml.sax.saxutils import escape as xml_escape
 import jinja2
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -132,19 +133,19 @@ class ReportRenderer:
         # -------------------------------------------------------------
         # PAGE 1: COVER PAGE
         # -------------------------------------------------------------
-        story.append(Paragraph(f"<b>{context.classification}</b>", ParagraphStyle("Badge", parent=normal, textColor=colors.HexColor("#dc2626"), fontSize=9)))
+        story.append(Paragraph(f"<b>{xml_escape(context.classification)}</b>", ParagraphStyle("Badge", parent=normal, textColor=colors.HexColor("#dc2626"), fontSize=9)))
         story.append(Spacer(1, 15))
-        story.append(Paragraph(context.report_title, title_style))
-        story.append(Paragraph("Penetration Testing Execution Standard (PTES) & OWASP WSTG v4.2 Assessment", subtitle_style))
+        story.append(Paragraph(xml_escape(context.report_title), title_style))
+        story.append(Paragraph("Penetration Testing Execution Standard (PTES) &amp; OWASP WSTG v4.2 Assessment", subtitle_style))
         story.append(HRFlowable(width="100%", thickness=2, color=colors.HexColor("#3b82f6"), spaceAfter=20))
 
         meta_data = [
-            [Paragraph("<b>Client Organization:</b>", normal), Paragraph(context.client_name, normal)],
-            [Paragraph("<b>Target Scope:</b>", normal), Paragraph(context.project_name, normal)],
-            [Paragraph("<b>Assessment Period:</b>", normal), Paragraph(f"{context.start_date} to {context.end_date}", normal)],
-            [Paragraph("<b>Lead Security Auditor:</b>", normal), Paragraph(context.lead_tester, normal)],
+            [Paragraph("<b>Client Organization:</b>", normal), Paragraph(xml_escape(context.client_name), normal)],
+            [Paragraph("<b>Target Scope:</b>", normal), Paragraph(xml_escape(context.project_name), normal)],
+            [Paragraph("<b>Assessment Period:</b>", normal), Paragraph(f"{xml_escape(context.start_date)} to {xml_escape(context.end_date)}", normal)],
+            [Paragraph("<b>Lead Security Auditor:</b>", normal), Paragraph(xml_escape(context.lead_tester), normal)],
             [Paragraph("<b>Testing Methodology:</b>", normal), Paragraph("OWASP WSTG v4.2 / PTES", normal)],
-            [Paragraph("<b>Generated Timestamp:</b>", normal), Paragraph(context.generated_at, normal)]
+            [Paragraph("<b>Generated Timestamp:</b>", normal), Paragraph(xml_escape(context.generated_at), normal)]
         ]
         meta_table = Table(meta_data, colWidths=[55 * mm, 120 * mm])
         meta_table.setStyle(TableStyle([
@@ -162,8 +163,8 @@ class ReportRenderer:
         # -------------------------------------------------------------
         # PAGE 2: EXECUTIVE SUMMARY & RISK POSTURE
         # -------------------------------------------------------------
-        story.append(Paragraph("1. Executive Summary & Security Posture", h1_style))
-        story.append(Paragraph(context.executive_narrative, normal))
+        story.append(Paragraph("1. Executive Summary &amp; Security Posture", h1_style))
+        story.append(Paragraph(xml_escape(context.executive_narrative), normal))
         story.append(Spacer(1, 10))
 
         # Risk Summary Table
@@ -196,10 +197,10 @@ class ReportRenderer:
         story.append(Spacer(1, 15))
 
         # Scope Summary
-        story.append(Paragraph("2. Assessment Scope & Methodology", h1_style))
-        scope_text = f"<b>Authorized Targets:</b> {', '.join(context.target_scope)}<br/>"
+        story.append(Paragraph("2. Assessment Scope &amp; Methodology", h1_style))
+        scope_text = f"<b>Authorized Targets:</b> {xml_escape(', '.join(context.target_scope))}<br/>"
         if context.excluded_scope:
-            scope_text += f"<b>Explicit Exclusions:</b> {', '.join(context.excluded_scope)}<br/>"
+            scope_text += f"<b>Explicit Exclusions:</b> {xml_escape(', '.join(context.excluded_scope))}<br/>"
         scope_text += f"<b>Discovered Surface:</b> {context.discovered_endpoints_count} endpoints across {context.discovered_domains_count} hostnames.<br/>"
         scope_text += f"<b>WSTG v4.2 Testing Coverage:</b> {context.coverage_score:.1f}%"
         story.append(Paragraph(scope_text, normal))
@@ -219,11 +220,11 @@ class ReportRenderer:
         for f in context.findings:
             sev_color = "#dc2626" if f.severity == "Critical" else ("#ea580c" if f.severity == "High" else "#ca8a04")
             findings_table_data.append([
-                Paragraph(f"<b>{f.id}</b>", normal),
-                Paragraph(f.title, normal),
-                Paragraph(f"<font color='{sev_color}'><b>{f.severity}</b></font>", normal),
-                Paragraph(str(f.cvss_score or "N/A"), normal),
-                Paragraph(f.cwe_id or "N/A", normal)
+                Paragraph(f"<b>{xml_escape(str(f.id))}</b>", normal),
+                Paragraph(xml_escape(f.title or ""), normal),
+                Paragraph(f"<font color='{sev_color}'><b>{xml_escape(f.severity or '')}</b></font>", normal),
+                Paragraph(xml_escape(str(f.cvss_score or "N/A")), normal),
+                Paragraph(xml_escape(f.cwe_id or "N/A"), normal)
             ])
 
         if len(findings_table_data) == 1:
@@ -243,15 +244,15 @@ class ReportRenderer:
         # -------------------------------------------------------------
         # PAGE 3+: DETAILED TECHNICAL FINDINGS & EVIDENCE
         # -------------------------------------------------------------
-        story.append(Paragraph("4. Detailed Technical Findings & Evidence", h1_style))
+        story.append(Paragraph("4. Detailed Technical Findings &amp; Evidence", h1_style))
         for f in context.findings:
             finding_blocks = []
-            finding_blocks.append(Paragraph(f"<b>{f.id}: {f.title}</b>", h2_style))
+            finding_blocks.append(Paragraph(f"<b>{xml_escape(str(f.id))}: {xml_escape(f.title or '')}</b>", h2_style))
             prop_data = [
-                [Paragraph("<b>Endpoint:</b>", normal), Paragraph(f"<code>{f.http_method} {f.endpoint_url}</code>", normal)],
-                [Paragraph("<b>Severity / CVSS:</b>", normal), Paragraph(f"{f.severity} (Score: {f.cvss_score or 'N/A'}) - <code>{f.cvss_vector or 'N/A'}</code>", normal)],
-                [Paragraph("<b>CWE Taxonomy:</b>", normal), Paragraph(f"{f.cwe_id}", normal)],
-                [Paragraph("<b>Controllable Param:</b>", normal), Paragraph(f"{f.affected_parameter or 'None / Path'}", normal)]
+                [Paragraph("<b>Endpoint:</b>", normal), Paragraph(f"<code>{xml_escape(f.http_method or 'GET')} {xml_escape(f.endpoint_url or '')}</code>", normal)],
+                [Paragraph("<b>Severity / CVSS:</b>", normal), Paragraph(f"{xml_escape(f.severity or '')} (Score: {xml_escape(str(f.cvss_score or 'N/A'))}) - <code>{xml_escape(str(f.cvss_vector or 'N/A'))}</code>", normal)],
+                [Paragraph("<b>CWE Taxonomy:</b>", normal), Paragraph(f"{xml_escape(f.cwe_id or 'N/A')}", normal)],
+                [Paragraph("<b>Controllable Param:</b>", normal), Paragraph(f"{xml_escape(f.affected_parameter or 'None / Path')}", normal)]
             ]
             prop_table = Table(prop_data, colWidths=[35 * mm, 140 * mm])
             prop_table.setStyle(TableStyle([
@@ -265,24 +266,24 @@ class ReportRenderer:
             finding_blocks.append(Spacer(1, 6))
 
             finding_blocks.append(Paragraph("<b>Vulnerability Description:</b>", normal))
-            finding_blocks.append(Paragraph(f.description, normal))
+            finding_blocks.append(Paragraph(xml_escape(f.description or ""), normal))
             finding_blocks.append(Spacer(1, 4))
 
             finding_blocks.append(Paragraph("<b>Business Impact:</b>", normal))
-            finding_blocks.append(Paragraph(f.business_impact or "Operational integrity risk.", normal))
+            finding_blocks.append(Paragraph(xml_escape(f.business_impact or "Operational integrity risk."), normal))
             finding_blocks.append(Spacer(1, 4))
 
             finding_blocks.append(Paragraph("<b>Remediation Guidance:</b>", normal))
-            finding_blocks.append(Paragraph(f.remediation_guidance or "Sanitize inputs and enforce authorization.", normal))
+            finding_blocks.append(Paragraph(xml_escape(f.remediation_guidance or "Sanitize inputs and enforce authorization."), normal))
             finding_blocks.append(Spacer(1, 4))
 
             if f.reproduction_curl:
                 finding_blocks.append(Paragraph("<b>Reproduction Command:</b>", normal))
-                finding_blocks.append(Paragraph(f"<code>{f.reproduction_curl}</code>", code_style))
+                finding_blocks.append(Paragraph(f"<code>{xml_escape(f.reproduction_curl)}</code>", code_style))
                 finding_blocks.append(Spacer(1, 4))
 
             if f.request_hash_sha256:
-                finding_blocks.append(Paragraph(f"<b>Forensic Evidence SHA-256:</b> <code>{f.request_hash_sha256}</code>", normal))
+                finding_blocks.append(Paragraph(f"<b>Forensic Evidence SHA-256:</b> <code>{xml_escape(f.request_hash_sha256)}</code>", normal))
 
             finding_blocks.append(Spacer(1, 12))
             story.append(KeepTogether(finding_blocks))
@@ -294,9 +295,9 @@ class ReportRenderer:
         story.append(Paragraph("5. Prioritized Remediation Roadmap", h1_style))
         roadmap_data = [
             [Paragraph("<b>Horizon</b>", normal), Paragraph("<b>Target Actions</b>", normal)],
-            [Paragraph("<b>Immediate (1–7 Days)</b>", normal), Paragraph("<br/>".join([f"• {a}" for a in context.immediate_actions]), normal)],
-            [Paragraph("<b>Near-Term (30 Days)</b>", normal), Paragraph("<br/>".join([f"• {a}" for a in context.near_term_actions]), normal)],
-            [Paragraph("<b>Long-Term (90 Days)</b>", normal), Paragraph("<br/>".join([f"• {a}" for a in context.long_term_actions]), normal)]
+            [Paragraph("<b>Immediate (1–7 Days)</b>", normal), Paragraph("<br/>".join([f"• {xml_escape(a)}" for a in context.immediate_actions]), normal)],
+            [Paragraph("<b>Near-Term (30 Days)</b>", normal), Paragraph("<br/>".join([f"• {xml_escape(a)}" for a in context.near_term_actions]), normal)],
+            [Paragraph("<b>Long-Term (90 Days)</b>", normal), Paragraph("<br/>".join([f"• {xml_escape(a)}" for a in context.long_term_actions]), normal)]
         ]
         road_table = Table(roadmap_data, colWidths=[45 * mm, 130 * mm])
         road_table.setStyle(TableStyle([
@@ -311,7 +312,7 @@ class ReportRenderer:
 
         seal_text = (
             f"<b>CRYPTOGRAPHIC INTEGRITY SEAL</b><br/>"
-            f"Rendered by Pentesa Autonomous Security Platform | Methodology: PTES & OWASP WSTG v4.2<br/>"
+            f"Rendered by Pentesa Autonomous Security Platform | Methodology: PTES &amp; OWASP WSTG v4.2<br/>"
             f"Verification Endpoint: <code>POST /api/v1/reports/verify</code>"
         )
         story.append(Paragraph(seal_text, ParagraphStyle("Seal", parent=normal, fontSize=8, alignment=1, textColor=colors.HexColor("#64748b"))))

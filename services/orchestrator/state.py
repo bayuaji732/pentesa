@@ -11,14 +11,21 @@ class PentestWorkflowState(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     project_id: uuid.UUID
+    workflow_id: Optional[uuid.UUID] = Field(default=None)
     current_phase: str = Field(
         default="RECON",
-        description="RECON, MAPPING, WSTG_PLANNING, ACTIVE_ASSESSMENT, VALIDATION, REPORTING, COMPLETED"
+        description="PLANNING, RECON, MAPPING, WSTG_PLANNING, ACTIVE_ASSESSMENT, VALIDATION, REPORTING, COMPLETED"
     )
     status: str = Field(
         default="NOT_STARTED",
         description="NOT_STARTED, RUNNING, PAUSED, COMPLETED, STOPPED, FAILED, WAITING_APPROVAL"
     )
+    scan_profile: str = Field(
+        default="QUICK",
+        description="QUICK, FULL, or DEEP assessment scan profile"
+    )
+    auto_approve_medium: bool = Field(default=True)
+    target_base_url: Optional[str] = Field(default=None)
     approved_scope: Dict[str, Any] = Field(default_factory=dict)
     discovered_subdomains: List[str] = Field(default_factory=list)
     endpoints_inventory: List[Dict[str, Any]] = Field(default_factory=list)

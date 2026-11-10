@@ -13,16 +13,21 @@ export const TopNav: React.FC = () => {
 
   useEffect(() => {
     if (!currentProject) return;
-    api
-      .getWorkflowStatus(currentProject.id)
-      .then((res) => {
-        setWorkflowStatus(res.status || "IDLE");
-        setActiveAgentsCount(res.active_agents?.length || 0);
-      })
-      .catch(() => {
-        setWorkflowStatus("STANDBY");
-        setActiveAgentsCount(0);
-      });
+    const fetchStatus = () => {
+      api
+        .getWorkflowStatus(currentProject.id)
+        .then((res) => {
+          setWorkflowStatus(res.status || "IDLE");
+          setActiveAgentsCount(res.active_agents?.length || 0);
+        })
+        .catch(() => {
+          setWorkflowStatus("STANDBY");
+          setActiveAgentsCount(0);
+        });
+    };
+    fetchStatus();
+    const interval = setInterval(fetchStatus, 5000);
+    return () => clearInterval(interval);
   }, [currentProject]);
 
   return (

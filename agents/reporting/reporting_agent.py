@@ -34,12 +34,12 @@ class ReportingAgent(BaseAgent):
     async def execute(self, state: PentestWorkflowState) -> PentestWorkflowState:
         # 1. Thought Trace & LLM Executive Synthesis
         prompt = (
-            f"Generate PTES Executive Summary and strategic recommendations for project {state.project_id}. "
+            f"Generate PTES Executive Summary and strategic recommendations for project {state.project_id} ({state.scan_profile} scan). "
             f"Confirmed findings: {json.dumps(state.confirmed_findings)}. "
             f"Discovered endpoints: {len(state.endpoints_inventory)}. "
-            f"Formulate technical risk score and prioritized remediation roadmap."
+            f"Formulate technical risk score and prioritized remediation roadmap in concise JSON."
         )
-        llm_res = await self.llm.generate(prompt=prompt, system_prompt=self.system_prompt, json_mode=True)
+        llm_res = await self.generate_llm_response(prompt=prompt, system_prompt=self.system_prompt, json_mode=True)
 
         await self.log_decision(
             thought_trace=llm_res.content,
@@ -50,6 +50,7 @@ class ReportingAgent(BaseAgent):
         # 2. Compile report structure
         report_data = {
             "project_id": str(state.project_id),
+            "scan_profile": state.scan_profile,
             "methodology": "OWASP WSTG v4.2 & Penetration Testing Execution Standard (PTES)",
             "executive_summary": llm_res.content,
             "total_endpoints_tested": len(state.endpoints_inventory),

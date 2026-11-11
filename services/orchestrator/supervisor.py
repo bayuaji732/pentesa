@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from agents.authorization.authz_agent import AuthorizationAgent
-from agents.llm.provider import BaseLLMProvider, MockLLMProvider, get_default_llm_provider
+from agents.llm.provider import BaseLLMProvider, get_default_llm_provider
 from agents.planner.planner_agent import ProjectPlanningAgent
 from agents.recon.recon_agent import ReconnaissanceAgent
 from agents.reporting.reporting_agent import ReportingAgent
@@ -242,8 +242,7 @@ class WorkflowSupervisor:
         exec_ids: Dict[str, str] = dict(state_data.get("agent_execution_ids") or {})
         completed_agent_ids: List[str] = list(state_data.get("completed_agent_ids") or [])
 
-        effective_llm = MockLLMProvider() if scan_profile == "QUICK" else self.llm
-        agents = self._build_agents(effective_llm)
+        agents = self._build_agents(self.llm)
 
         # Load pre-seeded AgentExecution rows if present
         exec_map: Dict[str, AgentExecution] = {}

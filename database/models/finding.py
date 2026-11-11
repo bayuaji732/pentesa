@@ -39,22 +39,22 @@ class Finding(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         String(50), ForeignKey("wstg_test_catalog.id", ondelete="SET NULL"), nullable=True
     )
 
-    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    title: Mapped[str] = mapped_column(String(500), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
     severity: Mapped[str] = mapped_column(
-        String(20), nullable=False
+        String(50), nullable=False
     )  # Critical, High, Medium, Low, Informational
     cvss_score: Mapped[Optional[float]] = mapped_column(Numeric(3, 1), nullable=True)
     cvss_vector: Mapped[Optional[str]] = mapped_column(String(150), nullable=True)
-    cwe_id: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)  # e.g. "CWE-89"
-    owasp_category: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)  # e.g. "A03:2021-Injection"
-    affected_parameter: Mapped[Optional[str]] = mapped_column(String(150), nullable=True)
-    detection_source: Mapped[str] = mapped_column(String(50), nullable=False)  # nuclei, ffuf, agent_auth, manual
+    cwe_id: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)  # e.g. "CWE-89"
+    owasp_category: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)  # e.g. "A03:2021-Injection"
+    affected_parameter: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    detection_source: Mapped[str] = mapped_column(String(100), nullable=False)  # nuclei, ffuf, agent_auth, manual
     status: Mapped[str] = mapped_column(
         String(50), default="Detected", nullable=False
     )  # Detected, Triaged, Validating, Confirmed, False Positive, Needs Manual Review, Remediated, Retested, Accepted Risk
     confidence: Mapped[str] = mapped_column(
-        String(20), default="Medium", nullable=False
+        String(50), default="Medium", nullable=False
     )  # Confirmed, High, Medium, Low
     remediation_guidance: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     business_impact: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -121,7 +121,7 @@ class FindingReproduction(Base, UUIDPrimaryKeyMixin):
     finding_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("findings.id", ondelete="CASCADE"), nullable=False
     )
-    reproduced_by: Mapped[str] = mapped_column(String(50), nullable=False)  # Agent ID or User UUID
+    reproduced_by: Mapped[str] = mapped_column(String(100), nullable=False)  # Agent ID or User UUID
     success: Mapped[bool] = mapped_column(Boolean, nullable=False)
     response_status_code: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     duration_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)

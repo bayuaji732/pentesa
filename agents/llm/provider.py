@@ -469,36 +469,59 @@ class LiteLLMProvider(BaseLLMProvider):
 
 def get_default_llm_provider() -> BaseLLMProvider:
     """Return configured LLM provider according to platform Settings.
-    
+
     Supports:
-    - 'litellm': LiteLLM proxy server (configured via URL, API Key, Model)
+    - 'litellm': LiteLLM proxy / gateway server
     - 'ollama': Local Ollama instance
     - 'openai': Direct OpenAI-compatible endpoint
-    - 'mock': Deterministic mock provider (default for testing and offline development)
+    - 'mock': Deterministic mock provider (explicit offline testing only)
     """
-    try:
-        from packages.common.config import settings
-        provider_name = (settings.llm_provider or "mock").lower().strip()
+    from packages.common.config import settings
 
-        if provider_name == "litellm":
-            return LiteLLMProvider(
-                base_url=settings.litellm_base_url,
-                api_key=settings.litellm_api_key,
-                model=settings.litellm_model,
-                timeout=settings.litellm_timeout
-            )
-        elif provider_name == "ollama":
-            return OllamaProvider(
-                base_url=settings.ollama_base_url,
-                model=settings.ollama_model
-            )
-        elif provider_name == "openai":
-            return OpenAICompatibleProvider(
-                base_url=settings.openai_base_url,
-                api_key=settings.openai_api_key,
-                model=settings.openai_model
-            )
-    except Exception:
-        pass
+    provider_name = (settings.llm_provider or "").lower().strip()
+    if not provider_name:
+        raise RuntimeError("PENTESA_LLM_PROVIDER is not configured.")
 
-    return MockLLMProvider()
+    if provider_name == "litellm":
+        if (
+            not settings.litellm_base_url
+            or not settings.litellm_api_key
+            or settings.litellm_api_key == "sk-placeholder"
+        ):
+            raise ValueError(
+                "LiteLLM provider selected, but PENTESA_LITELLM_BASE_URL or "
+                "PENTESA_LITELLM_API_KEY is missing or placeholder."
+            )
+        return LiteLLMProvider(
+            base_url=settings.litellm_base_url,
+            api_key=settings.litellm_api_key,
+            model=settings.litellm_model,
+            timeout=settings.litellm_timeout,
+        )
+
+    if provider_name == "ollama":
+        return OllamaProvider(
+            base_url=settings.ollama_base_url,
+            model=settings.ollama_model,
+        )
+
+    if provider_name == "openai":
+        if not settings.openai_api_key or settings.openai_api_key == "sk-placeholder":
+            raise ValueError(
+                "OpenAI provider selected, but PENTESA_OPENAI_API_KEY is missing or placeholder."
+            )
+        return OpenAICompatibleProvider(
+            base_url=settings.openai_base_url,
+            api_key=settings.openai_api_key,
+            model=settings.openai_model,
+        )
+
+    if provider_name == "mock":
+        if (settings.env or "").lower() == "production":
+            raise RuntimeError("MockLLMProvider cannot be used when PENTESA_ENV=production.")
+        return MockLLMProvider()
+
+    raise ValueError(
+        f"Unsupported PENTESA_LLM_PROVIDER='{provider_name}'. "
+        "Supported providers: litellm, ollama, openai, mock."
+    )

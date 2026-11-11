@@ -27,7 +27,7 @@ export default function ReportsPage() {
 
   // Form state
   const [reportFormat, setReportFormat] = useState<"PDF" | "HTML">("PDF");
-  const [reportTitle, setReportTitle] = useState("PTES Penetration Testing Executive & Technical Report");
+  const [reportTitle, setReportTitle] = useState("");
   const [includeEvidence, setIncludeEvidence] = useState(true);
 
   // Verification state
@@ -176,6 +176,7 @@ export default function ReportsPage() {
                   required
                   value={reportTitle}
                   onChange={(e) => setReportTitle(e.target.value)}
+                  placeholder="e.g. Q4 Web Application Security Assessment Report"
                   className="w-full bg-surface-elevated px-3 py-1.5 rounded text-xs text-slate-200 border border-slate-700 focus:outline-none focus:border-red-500 font-mono"
                 />
               </div>

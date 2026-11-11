@@ -2,7 +2,7 @@
 
 import uuid
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,6 +19,7 @@ router = APIRouter(prefix="/api/v1/audit-logs", tags=["Audit Logs"])
 
 @router.get("", response_model=List[AuditLogResponse])
 async def list_audit_logs(
+    response: Response,
     project_id: Optional[uuid.UUID] = Query(None, description="Filter by project UUID"),
     action: Optional[str] = Query(None, description="Filter by action code"),
     limit: int = Query(100, ge=1, le=1000),
@@ -27,6 +28,7 @@ async def list_audit_logs(
     current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.LEAD))
 ):
     """Query audit logs with optional filters (Admin or Lead)."""
+    response.headers["Cache-Control"] = "no-store"
     stmt = select(AuditLog).order_by(AuditLog.created_at.desc())
     if project_id:
         stmt = stmt.where(AuditLog.project_id == project_id)
@@ -40,6 +42,7 @@ async def list_audit_logs(
 
 @router.get("/verify", response_model=AuditVerificationResponse)
 async def verify_audit_integrity(
+    response: Response,
     session: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(UserRole.ADMIN))
 ):
@@ -47,6 +50,7 @@ async def verify_audit_integrity(
     Cryptographically verify the entire audit log hash chain from genesis to head.
     Detects any tampering, deletion, or modification of historical records.
     """
+    response.headers["Cache-Control"] = "no-store"
     stmt = select(AuditLog).order_by(AuditLog.created_at.asc())
     result = await session.execute(stmt)
     records = result.scalars().all()

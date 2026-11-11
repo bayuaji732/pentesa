@@ -2,10 +2,28 @@
 
 import uuid
 from datetime import datetime, timedelta, timezone
+import httpx
 import pytest
 from httpx import AsyncClient
 
+from agents.base import BaseAgent
 from database.models.user import User
+from services.execution_engine.runners import BaseTestRunner
+
+
+@pytest.fixture(autouse=True)
+def offline_agent_http_transport():
+    """Avoid external DNS waits when integration tests start workflows against example domains."""
+    transport = httpx.MockTransport(
+        lambda req: httpx.Response(200, headers={"Content-Type": "text/html"}, text="<html><body>ok</body></html>")
+    )
+    BaseAgent.default_http_transport = transport
+    BaseTestRunner.default_http_transport = transport
+    try:
+        yield
+    finally:
+        BaseAgent.default_http_transport = None
+        BaseTestRunner.default_http_transport = None
 
 
 @pytest.mark.asyncio
@@ -87,4 +105,71 @@ async def test_add_project_member(
     data = resp.json()
     assert data["user_id"] == str(tester_user.id)
     assert data["role"] == "TESTER"
+
+
+@pytest.mark.asyncio
+async def test_delete_project_cascades_and_preserves_audit_chain(
+    client: AsyncClient,
+    admin_token: str,
+):
+    """Verify DELETE /api/v1/projects/{id} cleans dependent artifacts while preserving audit hash chain."""
+    now = datetime.now(timezone.utc)
+    headers = {"Authorization": f"Bearer {admin_token}"}
+
+    # 1. Create throwaway project
+    create_resp = await client.post(
+        "/api/v1/projects",
+        json={
+            "name": "Disposable Assessment",
+            "target_domains": ["dispose.example.org"],
+            "authorization_start": now.isoformat(),
+            "authorization_end": (now + timedelta(days=7)).isoformat(),
+        },
+        headers=headers,
+    )
+    assert create_resp.status_code == 201
+    pid = create_resp.json()["id"]
+
+    # 2. Seed endpoint, finding, and workflow
+    ep_resp = await client.post(
+        f"/api/v1/projects/{pid}/endpoints",
+        json={"fqdn": "dispose.example.org", "url_path": "/login", "http_method": "GET"},
+        headers=headers,
+    )
+    assert ep_resp.status_code == 201
+
+    f_resp = await client.post(
+        f"/api/v1/projects/{pid}/findings",
+        json={
+            "title": "Disposable Test Finding",
+            "description": "Finding attached prior to project deletion verification.",
+            "severity": "Low",
+            "cwe_id": "CWE-200",
+        },
+        headers=headers,
+    )
+    assert f_resp.status_code == 201
+
+    wf_resp = await client.post(
+        f"/api/v1/projects/{pid}/agents/workflow/start",
+        json={"scan_profile": "QUICK", "auto_approve_medium": True},
+        headers=headers,
+    )
+    assert wf_resp.status_code == 201
+
+    # 3. Delete project cleanly
+    del_resp = await client.delete(f"/api/v1/projects/{pid}", headers=headers)
+    assert del_resp.status_code == 204
+
+    get_resp = await client.get(f"/api/v1/projects/{pid}", headers=headers)
+    assert get_resp.status_code == 404
+
+    # 4. Audit hash chain remains tamper-evident and logs PROJECT_DELETED
+    verify_resp = await client.get("/api/v1/audit-logs/verify", headers=headers)
+    assert verify_resp.status_code == 200
+    assert verify_resp.json()["is_valid"] is True
+
+    logs_resp = await client.get("/api/v1/audit-logs?action=PROJECT_DELETED", headers=headers)
+    assert logs_resp.status_code == 200
+    assert any(l["resource_id"] == pid for l in logs_resp.json())
 

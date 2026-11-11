@@ -2,14 +2,17 @@
 
 import datetime
 import uuid
+import httpx
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from database.models.discovery import Endpoint
 from database.models.finding import Finding
 from database.models.project import Project, ProjectMember
 from database.models.scope import ScopeRule
 from database.models.user import User
+from services.evidence_engine.finding_service import FindingService
 
 
 @pytest.fixture
@@ -20,6 +23,7 @@ async def report_test_project(db_session: AsyncSession, admin_user: User) -> Pro
         id=uuid.uuid4(),
         name="Apollo Banking Web App",
         status="ACTIVE",
+        target_domains=["apollo-bank.local"],
         authorization_start=now - datetime.timedelta(days=2),
         authorization_end=now + datetime.timedelta(days=20),
         created_by=admin_user.id
@@ -29,11 +33,27 @@ async def report_test_project(db_session: AsyncSession, admin_user: User) -> Pro
     member = ProjectMember(project_id=project.id, user_id=admin_user.id, role="Lead_Tester")
     db_session.add(member)
 
-    scope = ScopeRule(project_id=project.id, rule_type="INCLUDE", target_type="IN_SCOPE", pattern="apollo-bank.local")
+    scope = ScopeRule(
+        project_id=project.id,
+        rule_type="EXACT_DOMAIN",
+        target_type="IN_SCOPE",
+        pattern="apollo-bank.local",
+        protocol="https,http",
+    )
     db_session.add(scope)
+
+    ep = Endpoint(
+        project_id=project.id,
+        fqdn="apollo-bank.local",
+        url_path="/api/v1/transfers/9001",
+        http_method="POST",
+    )
+    db_session.add(ep)
+    await db_session.flush()
 
     finding = Finding(
         project_id=project.id,
+        endpoint_id=ep.id,
         title="BOLA in Fund Transfer API",
         description="Object level authorization flaw allows transferring funds from arbitrary accounts.",
         severity="Critical",
@@ -162,11 +182,17 @@ async def test_finding_retest_and_triage_api(
     finding_id = findings[0]["id"]
 
     # 2. Retest Finding (Vulnerability Fixed -> 400 Bad Request expected)
-    retest_resp = await client.post(
-        f"/api/v1/projects/{project_id}/findings/{finding_id}/retest",
-        json={"expected_status_code": 400},
-        headers=headers
+    FindingService.default_http_transport = httpx.MockTransport(
+        lambda req: httpx.Response(400, json={"error": "Cross-account access blocked"})
     )
+    try:
+        retest_resp = await client.post(
+            f"/api/v1/projects/{project_id}/findings/{finding_id}/retest",
+            json={"expected_status_code": 400},
+            headers=headers
+        )
+    finally:
+        FindingService.default_http_transport = None
     assert retest_resp.status_code == 200
     retest_data = retest_resp.json()
     assert retest_data["is_remediated"] is True

@@ -34,7 +34,7 @@ class AgentExecution(Base, UUIDPrimaryKeyMixin):
     agent_id: Mapped[str] = mapped_column(String(50), nullable=False)  # e.g. AGT-01, AGT-08
     agent_name: Mapped[str] = mapped_column(String(100), nullable=False)
     status: Mapped[str] = mapped_column(
-        String(30), default="QUEUED", nullable=False
+        String(50), default="QUEUED", nullable=False
     )  # QUEUED, RUNNING, COMPLETED, FAILED, PAUSED, WAITING_APPROVAL
     prompt_tokens: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     completion_tokens: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
@@ -68,9 +68,9 @@ class AgentDecision(Base, UUIDPrimaryKeyMixin):
         Uuid, ForeignKey("agent_executions.id", ondelete="CASCADE"), nullable=False
     )
     thought_trace: Mapped[str] = mapped_column(Text, nullable=False)
-    intent: Mapped[str] = mapped_column(String(255), nullable=False)
+    intent: Mapped[str] = mapped_column(String(500), nullable=False)
     context_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    confidence: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    confidence: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -91,7 +91,7 @@ class AgentToolCall(Base, UUIDPrimaryKeyMixin):
     agent_execution_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("agent_executions.id", ondelete="CASCADE"), nullable=False
     )
-    tool_name: Mapped[str] = mapped_column(String(50), nullable=False)
+    tool_name: Mapped[str] = mapped_column(String(100), nullable=False)
     input_arguments: Mapped[Dict[str, Any]] = mapped_column(JSONType, nullable=False)
     output_result: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSONType, nullable=True)
     status: Mapped[str] = mapped_column(
@@ -123,7 +123,7 @@ class WorkflowExecution(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         String(50), default="RECON", nullable=False
     )  # RECON, MAPPING, WSTG_PLANNING, ACTIVE_ASSESSMENT, VALIDATION, REPORTING, COMPLETED
     status: Mapped[str] = mapped_column(
-        String(30), default="NOT_STARTED", nullable=False
+        String(50), default="NOT_STARTED", nullable=False
     )  # NOT_STARTED, RUNNING, PAUSED, COMPLETED, STOPPED, FAILED, WAITING_APPROVAL
     state_data: Mapped[Dict[str, Any]] = mapped_column(JSONType, default=dict, nullable=False)
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -150,12 +150,12 @@ class ApprovalRequest(Base, UUIDPrimaryKeyMixin):
         Uuid, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
     )
     agent_id: Mapped[str] = mapped_column(String(50), nullable=False)
-    action: Mapped[str] = mapped_column(String(255), nullable=False)
+    action: Mapped[str] = mapped_column(String(500), nullable=False)
     target: Mapped[str] = mapped_column(String(500), nullable=False)
-    risk_level: Mapped[str] = mapped_column(String(20), default="MEDIUM", nullable=False)  # LOW, MEDIUM, HIGH, CRITICAL
+    risk_level: Mapped[str] = mapped_column(String(50), default="MEDIUM", nullable=False)  # LOW, MEDIUM, HIGH, CRITICAL
     parameters: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSONType, nullable=True)
     status: Mapped[str] = mapped_column(
-        String(20), default="PENDING", nullable=False
+        String(50), default="PENDING", nullable=False
     )  # PENDING, APPROVED, REJECTED
     justification: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     decided_by: Mapped[Optional[uuid.UUID]] = mapped_column(

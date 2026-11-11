@@ -69,7 +69,7 @@ export default function AgentsPage() {
   const [selectedAgentFilter, setSelectedAgentFilter] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"decisions" | "tools">("decisions");
   const [banner, setBanner] = useState<{ type: "info" | "success" | "error"; text: string } | null>(null);
-  const [justificationText, setJustificationText] = useState("Authorized operator verification within assessment change window");
+  const [justificationText, setJustificationText] = useState("");
   const prevStatusRef = useRef<string | null>(null);
 
   const loadData = useCallback(async (isPoll = false) => {
@@ -234,14 +234,23 @@ export default function AgentsPage() {
 
   const handleApprovalDecision = async (approvalId: string, decision: "APPROVE" | "REJECT") => {
     if (!currentProject) return;
+    const trimmed = justificationText.trim();
+    if (trimmed.length < 5) {
+      setBanner({
+        type: "error",
+        text: "Please enter an operator audit justification (minimum 5 characters) before approving or rejecting.",
+      });
+      return;
+    }
     setActionLoading(true);
     try {
       await api.decideApproval(
         currentProject.id,
         approvalId,
         decision,
-        justificationText.trim() || "Operator decision submitted via SOC Orchestrator"
+        trimmed
       );
+      setJustificationText("");
       setBanner({
         type: decision === "APPROVE" ? "success" : "info",
         text: decision === "APPROVE"
@@ -326,7 +335,7 @@ export default function AgentsPage() {
                   ? "bg-cyan-600 text-white font-bold"
                   : "text-slate-400 hover:text-slate-200"
               }`}
-              title="Quick Scan: Mock LLM offline reasoning + smoke check (~2s)"
+              title="Quick Scan: Live LiteLLM reasoning + lightweight WSTG smoke checks (~10-20s)"
             >
               ⚡ Quick Scan
             </button>
@@ -491,7 +500,7 @@ export default function AgentsPage() {
             </span>
           </div>
           <div className="text-[10px] font-mono text-slate-500 mt-1">
-            {activeScanProfile === "QUICK" ? "Engine: MockLLM (Fast Smoke)" : "Engine: Live Gateway LLM"}
+            Engine: Live LiteLLM Gateway
           </div>
         </div>
 

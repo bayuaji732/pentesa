@@ -24,14 +24,14 @@ class WSTGTestCatalog(Base):
     __tablename__ = "wstg_test_catalog"
 
     id: Mapped[str] = mapped_column(String(50), primary_key=True)  # e.g. "WSTG-INPV-05"
-    category: Mapped[str] = mapped_column(String(50), nullable=False)  # e.g. "Input Validation"
-    category_code: Mapped[str] = mapped_column(String(20), nullable=False, index=True)  # e.g. "WSTG-INPV"
+    category: Mapped[str] = mapped_column(String(120), nullable=False)  # e.g. "Input Validation"
+    category_code: Mapped[str] = mapped_column(String(50), nullable=False, index=True)  # e.g. "WSTG-INPV"
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
-    automation_capability: Mapped[str] = mapped_column(String(20), nullable=False)  # "Full", "Partial", "Manual"
-    default_risk: Mapped[str] = mapped_column(String(20), nullable=False)  # "Critical", "High", "Medium", "Low", "Info"
-    cwe_id: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)  # e.g. "CWE-89"
-    owasp_category: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)  # e.g. "A03:2021-Injection"
+    automation_capability: Mapped[str] = mapped_column(String(50), nullable=False)  # "Full", "Partial", "Manual"
+    default_risk: Mapped[str] = mapped_column(String(50), nullable=False)  # "Critical", "High", "Medium", "Low", "Info"
+    cwe_id: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)  # e.g. "CWE-89"
+    owasp_category: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)  # e.g. "A03:2021-Injection"
     required_tools: Mapped[List[str]] = mapped_column(JSONType, default=list, nullable=False)
     requires_human_review: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     endpoint_types: Mapped[List[str]] = mapped_column(JSONType, default=list, nullable=False)

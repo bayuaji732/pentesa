@@ -9,8 +9,8 @@ import { useProject } from "@/lib/ProjectContext";
 export default function LoginPage() {
   const router = useRouter();
   const { refreshProjects } = useProject();
-  const [email, setEmail] = useState("admin@example.com");
-  const [password, setPassword] = useState("Admin123!Secure");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -70,7 +70,7 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@example.com"
+                placeholder="operator@organization.com"
                 className="w-full h-9 pl-9 pr-3 bg-slate-900 border border-slate-700 rounded-md text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-red-500 font-mono"
               />
             </div>
@@ -112,7 +112,7 @@ export default function LoginPage() {
 
         <div className="pt-2 border-t border-slate-800 text-center">
           <p className="text-[11px] text-slate-500 font-mono">
-            Default credentials: <code className="text-slate-400">admin@example.com</code> / <code className="text-slate-400">Admin123!Secure</code>
+            Authorized security operators only &mdash; all sessions are cryptographically audited
           </p>
         </div>
       </div>

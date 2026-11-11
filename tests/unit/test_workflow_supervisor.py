@@ -1,11 +1,29 @@
 """Unit tests for WorkflowSupervisor DAG orchestration, state checkpoints, and approval gates."""
 
 from datetime import datetime, timedelta, timezone
+import httpx
 import pytest
 
+from agents.base import BaseAgent
 from database.models.agent import ApprovalRequest, WorkflowExecution
 from packages.common.exceptions import BadRequestError, ProjectAuthorizationExpiredError
+from services.execution_engine.runners import BaseTestRunner
 from services.orchestrator.supervisor import WorkflowSupervisor
+
+
+@pytest.fixture(autouse=True)
+def offline_agent_http_transport():
+    """Avoid external DNS waits in supervisor unit tests targeting mock domains."""
+    transport = httpx.MockTransport(
+        lambda req: httpx.Response(200, headers={"Content-Type": "text/html"}, text="<html><body>ok</body></html>")
+    )
+    BaseAgent.default_http_transport = transport
+    BaseTestRunner.default_http_transport = transport
+    try:
+        yield
+    finally:
+        BaseAgent.default_http_transport = None
+        BaseTestRunner.default_http_transport = None
 
 
 @pytest.mark.asyncio

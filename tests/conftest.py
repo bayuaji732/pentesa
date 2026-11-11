@@ -3,6 +3,9 @@
 import asyncio
 import os
 import uuid
+
+os.environ.setdefault("PENTESA_ENV", "test")
+os.environ.setdefault("PENTESA_LLM_PROVIDER", "mock")
 from datetime import datetime, timedelta, timezone
 from typing import AsyncGenerator
 import pytest

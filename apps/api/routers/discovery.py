@@ -311,6 +311,7 @@ async def trigger_crawl(
         details={"max_depth": payload.max_depth, "max_pages": payload.max_pages},
         ip_address=client_ip
     )
+    await session.refresh(project, attribute_names=["scope_rules"])
 
     summary = await discovery_service.execute_crawl(session, project, payload)
 

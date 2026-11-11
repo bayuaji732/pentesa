@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useProject } from "@/lib/ProjectContext";
 import { api } from "@/lib/api";
 import {
@@ -30,44 +30,82 @@ export default function AuditLogsPage() {
   // Verification state
   const [verifying, setVerifying] = useState(false);
   const [chainStatus, setChainStatus] = useState<any | null>(null);
+  const [lastVerified, setLastVerified] = useState<{
+    at: string;
+    durationMs: number;
+    runCount: number;
+  } | null>(null);
+  const [justVerified, setJustVerified] = useState(false);
+  const verifyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Filters
   const [filterAction, setFilterAction] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLog, setSelectedLog] = useState<any | null>(null);
 
-  const fetchLogs = async () => {
-    setLoading(true);
+  useEffect(() => {
+    return () => {
+      if (verifyTimerRef.current) clearTimeout(verifyTimerRef.current);
+    };
+  }, []);
+
+  const fetchLogs = async (silent = false) => {
+    if (!silent) setLoading(true);
     setError(null);
     try {
       const data: any = await api.listAuditLogs(currentProject?.id, 100);
       setLogs(Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : []);
     } catch (err: any) {
       console.error(err);
-      setError(err?.message || "Failed to retrieve audit log trail.");
+      if (!silent) {
+        setError(err?.message || "Failed to retrieve audit log trail.");
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
-  const handleVerifyChain = async () => {
+  const handleVerifyChain = async (manual = false, refreshLogs = manual) => {
     setVerifying(true);
+    const t0 = typeof performance !== "undefined" ? performance.now() : Date.now();
     try {
-      const res = await api.verifyAuditChain();
+      const [res] = await Promise.all([
+        api.verifyAuditChain(),
+        refreshLogs ? fetchLogs(true) : Promise.resolve(),
+      ]);
+      const nowMs = typeof performance !== "undefined" ? performance.now() : Date.now();
+      const durationMs = Math.max(1, Math.round(nowMs - t0));
       setChainStatus(res);
+      setLastVerified((prev) => ({
+        at: new Date().toLocaleTimeString([], { hour12: false }),
+        durationMs,
+        runCount: (prev?.runCount ?? 0) + 1,
+      }));
+      if (manual) {
+        setJustVerified(true);
+        if (verifyTimerRef.current) clearTimeout(verifyTimerRef.current);
+        verifyTimerRef.current = setTimeout(() => setJustVerified(false), 2500);
+      }
     } catch (err: any) {
+      const nowMs = typeof performance !== "undefined" ? performance.now() : Date.now();
+      const durationMs = Math.max(1, Math.round(nowMs - t0));
       setChainStatus({
         is_valid: false,
         reason: err?.message || "Chain verification failed.",
       });
+      setLastVerified((prev) => ({
+        at: new Date().toLocaleTimeString([], { hour12: false }),
+        durationMs,
+        runCount: (prev?.runCount ?? 0) + 1,
+      }));
     } finally {
       setVerifying(false);
     }
   };
 
   useEffect(() => {
-    fetchLogs();
-    handleVerifyChain();
+    fetchLogs(false);
+    handleVerifyChain(false);
   }, [currentProject?.id]);
 
   const handleExportJson = () => {
@@ -150,9 +188,10 @@ export default function AuditLogsPage() {
             Export Signed Ledger
           </button>
           <button
+            type="button"
             onClick={() => {
-              fetchLogs();
-              handleVerifyChain();
+              fetchLogs(false);
+              handleVerifyChain(true, false);
             }}
             disabled={loading || verifying}
             className="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 border border-slate-700"
@@ -191,17 +230,42 @@ export default function AuditLogsPage() {
                   ? "Every block is linked to previous block via SHA-256(prev_hash || payload). Zero ledger corruption or modification detected."
                   : chainStatus.reason || "Ledger inconsistency identified."}
               </p>
+              {lastVerified && (
+                <div className="text-[10px] font-mono text-slate-400/90 mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                  <span>
+                    Last verified: <span className="text-slate-200">{lastVerified.at}</span>
+                  </span>
+                  <span>
+                    Duration: <span className="text-slate-200">{lastVerified.durationMs} ms</span>
+                  </span>
+                  <span>Check #{lastVerified.runCount}</span>
+                  {chainStatus.last_hash && (
+                    <span title={chainStatus.last_hash}>
+                      Head: <span className="text-cyan-400">{chainStatus.last_hash.slice(0, 14)}...</span>
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
-          <button
-            onClick={handleVerifyChain}
-            disabled={verifying}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-slate-900 hover:bg-black text-xs font-mono border border-slate-700 text-slate-200 shrink-0 self-start sm:self-auto"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${verifying ? "animate-spin text-cyan-400" : ""}`} />
-            Re-verify Chain
-          </button>
+          <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+            {justVerified && chainStatus.is_valid && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-mono bg-emerald-900/60 text-emerald-300 border border-emerald-700/70">
+                <CheckCircle2 className="h-3 w-3" />
+                Verified
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => handleVerifyChain(true)}
+              disabled={verifying}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-slate-900 hover:bg-black disabled:opacity-60 text-xs font-mono border border-slate-700 text-slate-200 transition-colors"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${verifying ? "animate-spin text-cyan-400" : ""}`} />
+              {verifying ? "Verifying..." : "Re-verify Chain"}
+            </button>
+          </div>
         </div>
       )}
 
@@ -228,11 +292,25 @@ export default function AuditLogsPage() {
             className="bg-surface-elevated text-xs text-slate-200 border border-slate-700 rounded px-2.5 py-1.5 focus:outline-none focus:border-red-500 font-mono"
           >
             <option value="ALL">All Actions</option>
+            <option value="LOGIN_SUCCESS">LOGIN_SUCCESS</option>
+            <option value="LOGIN_FAILED">LOGIN_FAILED</option>
             <option value="PROJECT_CREATED">PROJECT_CREATED</option>
-            <option value="SCOPE_RULE_CREATED">SCOPE_RULE_CREATED</option>
-            <option value="CRAWL_STARTED">CRAWL_STARTED</option>
-            <option value="AGENT_WORKFLOW_STARTED">AGENT_WORKFLOW_STARTED</option>
+            <option value="PROJECT_DELETED">PROJECT_DELETED</option>
+            <option value="SCOPE_RULE_ADDED">SCOPE_RULE_ADDED</option>
+            <option value="SCOPE_RULE_REMOVED">SCOPE_RULE_REMOVED</option>
+            <option value="ATTACK_SURFACE_CRAWL_STARTED">ATTACK_SURFACE_CRAWL_STARTED</option>
+            <option value="ATTACK_SURFACE_CRAWL_COMPLETED">ATTACK_SURFACE_CRAWL_COMPLETED</option>
+            <option value="WSTG_PLAN_RECALCULATED">WSTG_PLAN_RECALCULATED</option>
+            <option value="WORKFLOW_STARTED">WORKFLOW_STARTED</option>
+            <option value="WORKFLOW_PAUSED">WORKFLOW_PAUSED</option>
+            <option value="WORKFLOW_RESUMED">WORKFLOW_RESUMED</option>
+            <option value="WORKFLOW_STOPPED">WORKFLOW_STOPPED</option>
+            <option value="APPROVAL_APPROVED">APPROVAL_APPROVED</option>
+            <option value="APPROVAL_REJECTED">APPROVAL_REJECTED</option>
             <option value="FINDING_CREATED">FINDING_CREATED</option>
+            <option value="FINDING_STATUS_UPDATED">FINDING_STATUS_UPDATED</option>
+            <option value="FINDING_FALSE_POSITIVE_REFUTED">FINDING_FALSE_POSITIVE_REFUTED</option>
+            <option value="FINDING_RETEST_EXECUTED">FINDING_RETEST_EXECUTED</option>
             <option value="REPORT_GENERATED">REPORT_GENERATED</option>
           </select>
         </div>
@@ -292,7 +370,7 @@ export default function AuditLogsPage() {
                     </td>
 
                     <td className="py-3 px-4 whitespace-nowrap text-slate-400">
-                      {log.ip_address || "127.0.0.1"}
+                      {log.ip_address || "N/A"}
                     </td>
 
                     <td className="py-3 px-4 whitespace-nowrap">
@@ -355,7 +433,7 @@ export default function AuditLogsPage() {
                   <span className="text-slate-500">Timestamp:</span> {selectedLog.created_at}
                 </div>
                 <div>
-                  <span className="text-slate-500">IP Address:</span> {selectedLog.ip_address || "127.0.0.1"}
+                  <span className="text-slate-500">IP Address:</span> {selectedLog.ip_address || "N/A"}
                 </div>
               </div>
 

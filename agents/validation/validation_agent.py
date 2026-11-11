@@ -3,9 +3,11 @@
 Executes deterministic reproduction harnesses to confirm genuine security defects and refute false positives.
 """
 
+import asyncio
 import json
 import time
 from typing import Optional
+from urllib.parse import urlparse
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,7 +21,12 @@ from services.orchestrator.state import PentestWorkflowState
 class ValidationAgent(BaseAgent):
     """Validation Agent performing empirical reproduction, WAF filtering, and false positive refutations."""
 
-    def __init__(self, session: AsyncSession, llm_provider: Optional[BaseLLMProvider] = None):
+    def __init__(
+        self,
+        session: AsyncSession,
+        llm_provider: Optional[BaseLLMProvider] = None,
+        http_transport: Optional[httpx.AsyncBaseTransport] = None,
+    ):
         super().__init__(
             session=session,
             agent_id="AGT-11",
@@ -34,6 +41,7 @@ class ValidationAgent(BaseAgent):
             ),
             llm_provider=llm_provider
         )
+        self.http_transport = http_transport
 
     async def execute(self, state: PentestWorkflowState) -> PentestWorkflowState:
         finding_service = FindingService(self.session)
@@ -42,7 +50,14 @@ class ValidationAgent(BaseAgent):
 
         for candidate in state.candidate_findings:
             title = candidate.get("title", "Security Anomaly")
-            matched_at = candidate.get("matched_at") or candidate.get("target_url") or "https://target.com"
+            matched_at = candidate.get("matched_at") or candidate.get("target_url")
+            if not matched_at:
+                state.add_log(
+                    self.agent_id,
+                    f"Candidate '{title}' lacks target URL / matched_at; skipping validation.",
+                    level="WARN",
+                )
+                continue
 
             # 1. Scope check before reproduction probe
             is_allowed = await self.check_scope(state.project_id, matched_at)
@@ -50,26 +65,48 @@ class ValidationAgent(BaseAgent):
                 state.add_log(self.agent_id, f"Candidate target {matched_at} is out of scope. Skipping validation.", level="WARN")
                 continue
 
-            # 2. Empirical live reproduction first (on DEEP) + wire evidence summary for LLM
-            repro_status_code = 200
-            repro_duration_ms = 50
+            # 2. Empirical live reproduction across ALL scan profiles + capture authentic wire evidence
+            repro_status_code: Optional[int] = candidate.get("status_code")
+            repro_duration_ms = 0
             live_repro_excerpt = None
+            live_req_wire = None
+            live_resp_wire = None
+            live_repro_error = None
+
             raw_req_excerpt = (candidate.get("raw_request") or "")[:400]
             raw_resp_excerpt = (candidate.get("raw_response") or "")[:900]
 
-            if (state.scan_profile or "").upper() == "DEEP":
+            if matched_at.lower().startswith(("http://", "https://")):
+                parsed_matched = urlparse(matched_at)
+                req_path = f"{parsed_matched.path or '/'}{f'?{parsed_matched.query}' if parsed_matched.query else ''}"
+                host_hdr = parsed_matched.netloc or (parsed_matched.hostname or "")
                 t_start = time.time()
                 try:
-                    async with httpx.AsyncClient(timeout=2.5, verify=False) as client:
-                        r_live = await client.get(matched_at)
-                        repro_status_code = r_live.status_code
-                        repro_duration_ms = max(1, int((time.time() - t_start) * 1000))
-                        live_repro_excerpt = (
-                            f"HTTP {r_live.status_code} ({r_live.headers.get('content-type', '')}): "
-                            f"{r_live.text[:600]}"
-                        )
-                except Exception:
-                    pass
+                    async with httpx.AsyncClient(
+                        timeout=httpx.Timeout(3.0, connect=1.5),
+                        verify=False,
+                        follow_redirects=True,
+                        transport=self.get_http_transport(),
+                    ) as client:
+                        r_live = await asyncio.wait_for(client.get(matched_at), timeout=4.0)
+                    repro_status_code = r_live.status_code
+                    repro_duration_ms = max(1, int((time.time() - t_start) * 1000))
+                    raw_hdrs = "\r\n".join(f"{k}: {v}" for k, v in list(r_live.headers.items())[:15])
+                    live_repro_excerpt = (
+                        f"HTTP {r_live.status_code} ({r_live.headers.get('content-type', '')}): "
+                        f"{r_live.text[:600]}"
+                    )
+                    live_req_wire = (
+                        f"GET {req_path} HTTP/1.1\r\n"
+                        f"Host: {host_hdr}\r\n"
+                        f"User-Agent: Pentesa-Validation-Agent\r\n\r\n"
+                    )
+                    live_resp_wire = (
+                        f"HTTP/1.1 {r_live.status_code}\r\n{raw_hdrs}\r\n\r\n{r_live.text[:900]}"
+                    )
+                except Exception as exc:
+                    repro_duration_ms = max(1, int((time.time() - t_start) * 1000))
+                    live_repro_error = str(exc)
 
             # 3. LLM Evaluation & Reproduction Reasoning WITH actual observed evidence
             candidate_payload = {
@@ -81,6 +118,8 @@ class ValidationAgent(BaseAgent):
                 candidate_payload["observed_response_excerpt"] = raw_resp_excerpt
             if live_repro_excerpt:
                 candidate_payload["live_reproduction_probe"] = live_repro_excerpt
+            if live_repro_error:
+                candidate_payload["live_reproduction_error"] = live_repro_error
 
             prompt = (
                 f"Evaluate candidate finding ({state.scan_profile} scan): '{title}' at '{matched_at}'. "
@@ -138,12 +177,31 @@ class ValidationAgent(BaseAgent):
                     project_id=state.project_id,
                     cwe_id=candidate.get("cwe_id")
                 )
+                cand_id = candidate.get("existing_finding_id")
                 existing = next(
-                    (f for f in existing_findings if f.title == title or (candidate.get("wstg_id") and f.wstg_id == candidate.get("wstg_id"))),
+                    (
+                        f for f in existing_findings
+                        if (cand_id and str(f.id) == cand_id)
+                        or f.title == title
+                        or (
+                            candidate.get("cwe_id")
+                            and f.cwe_id == candidate.get("cwe_id")
+                            and candidate.get("affected_parameter")
+                            and f.affected_parameter == candidate.get("affected_parameter")
+                        )
+                    ),
                     None
                 )
+                raw_req_val = candidate.get("raw_request") or live_req_wire
+                raw_resp_val = candidate.get("raw_response") or live_resp_wire
+                repro_succeeded = bool((live_repro_excerpt and not live_repro_error) or candidate.get("raw_response"))
+
                 if existing:
                     created_finding = existing
+                    if existing.status == "Detected" and repro_succeeded:
+                        existing.status = "Confirmed"
+                        existing.confidence = "Confirmed"
+                        await self.session.commit()
                     await self.log_tool_call(
                         tool_name="dedup_engine",
                         input_arguments={"candidate_title": title, "existing_id": str(existing.id)},
@@ -151,7 +209,7 @@ class ValidationAgent(BaseAgent):
                         status="SUCCESS"
                     )
                 else:
-                    # Confirm new finding in database with authentic evidence if captured
+                    # Confirm new finding in database ONLY with authentic captured evidence
                     created_finding = await finding_service.create_finding(
                         project_id=state.project_id,
                         payload=FindingCreate(
@@ -163,9 +221,10 @@ class ValidationAgent(BaseAgent):
                             affected_parameter=candidate.get("affected_parameter"),
                             detection_source=candidate.get("source", "validation_agent"),
                             status="Confirmed",
-                            confidence="Confirmed",
-                            raw_request=candidate.get("raw_request") or f"GET {matched_at} HTTP/1.1\r\nHost: target.com\r\n\r\n",
-                            raw_response=candidate.get("raw_response") or live_repro_excerpt or "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n[Verified Anomaly]"
+                            confidence="Confirmed" if repro_succeeded else "Medium",
+                            raw_request=raw_req_val if (raw_req_val and raw_resp_val) else None,
+                            raw_response=raw_resp_val if (raw_req_val and raw_resp_val) else None,
+                            reproduction_curl=candidate.get("reproduction_curl") or (f"curl -i -s '{matched_at}'" if matched_at else None),
                         )
                     )
 
@@ -173,15 +232,15 @@ class ValidationAgent(BaseAgent):
                     finding_id=created_finding.id,
                     project_id=state.project_id,
                     reproduced_by=self.agent_id,
-                    success=True,
+                    success=repro_succeeded,
                     status_code=repro_status_code,
-                    duration_ms=repro_duration_ms
+                    duration_ms=repro_duration_ms or None
                 )
 
                 await self.log_tool_call(
                     tool_name="repro_harness",
                     input_arguments={"finding_id": str(created_finding.id), "matched_at": matched_at},
-                    output_result={"reproduced": True, "status_code": repro.response_status_code, "duration_ms": repro_duration_ms},
+                    output_result={"reproduced": repro_succeeded, "status_code": repro.response_status_code, "duration_ms": repro_duration_ms},
                     status="SUCCESS",
                     duration_ms=repro_duration_ms
                 )

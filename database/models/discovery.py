@@ -52,9 +52,9 @@ class Endpoint(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     )
     fqdn: Mapped[str] = mapped_column(String(255), nullable=False)
     url_path: Mapped[str] = mapped_column(Text, nullable=False)
-    http_method: Mapped[str] = mapped_column(String(10), default="GET", nullable=False)
+    http_method: Mapped[str] = mapped_column(String(20), default="GET", nullable=False)
     parameter_schema: Mapped[Dict[str, Any]] = mapped_column(JSONType, default=dict, nullable=False)
-    content_type: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    content_type: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     auth_required: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     discovery_source: Mapped[str] = mapped_column(String(50), default="CRAWLER", nullable=False)
     testing_status: Mapped[str] = mapped_column(String(50), default="Discovered", nullable=False)
@@ -78,9 +78,9 @@ class Technology(Base, UUIDPrimaryKeyMixin):
     )
 
     project_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
-    name: Mapped[str] = mapped_column(String(100), nullable=False)
-    version: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
-    category: Mapped[str] = mapped_column(String(50), default="UNKNOWN", nullable=False)
+    name: Mapped[str] = mapped_column(String(150), nullable=False)
+    version: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    category: Mapped[str] = mapped_column(String(100), default="UNKNOWN", nullable=False)
     confidence: Mapped[int] = mapped_column(Integer, default=100, nullable=False)
     detected_on_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -106,7 +106,7 @@ class Cookie(Base, UUIDPrimaryKeyMixin):
     path: Mapped[str] = mapped_column(String(255), default="/", nullable=False)
     is_secure: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_httponly: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    samesite: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    samesite: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -129,7 +129,7 @@ class SecurityHeader(Base, UUIDPrimaryKeyMixin):
     endpoint_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         Uuid, ForeignKey("endpoints.id", ondelete="CASCADE"), nullable=True
     )
-    header_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    header_name: Mapped[str] = mapped_column(String(255), nullable=False)
     header_value: Mapped[str] = mapped_column(Text, nullable=False)
     is_secure_standard: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
     created_at: Mapped[datetime] = mapped_column(

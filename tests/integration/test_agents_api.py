@@ -1,9 +1,27 @@
 """Integration tests for AI Agents & Workflow REST API endpoints."""
 
+import httpx
 import pytest
 from sqlalchemy import select
+from agents.base import BaseAgent
 from database.models.agent import ApprovalRequest
 from database.models.audit import AuditLog
+from services.execution_engine.runners import BaseTestRunner
+
+
+@pytest.fixture(autouse=True)
+def offline_agent_http_transport():
+    """Keep offline test runs deterministic without external DNS/network waits."""
+    transport = httpx.MockTransport(
+        lambda req: httpx.Response(200, headers={"Content-Type": "text/html"}, text="<html><body>ok</body></html>")
+    )
+    BaseAgent.default_http_transport = transport
+    BaseTestRunner.default_http_transport = transport
+    try:
+        yield
+    finally:
+        BaseAgent.default_http_transport = None
+        BaseTestRunner.default_http_transport = None
 
 
 @pytest.mark.asyncio

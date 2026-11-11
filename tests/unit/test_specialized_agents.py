@@ -1,5 +1,6 @@
 """Unit tests for the specialized penetration testing agents."""
 
+import httpx
 import pytest
 from agents.authorization.authz_agent import AuthorizationAgent
 from agents.planner.planner_agent import ProjectPlanningAgent
@@ -71,7 +72,10 @@ async def test_wstg_assessment_agent(db_session, test_project):
     )
     state = await planning_agent.run(state)
 
-    agent = WSTGAssessmentAgent(db_session)
+    transport = httpx.MockTransport(
+        lambda req: httpx.Response(200, headers={"Content-Type": "text/html"}, text="<html>ok</html>")
+    )
+    agent = WSTGAssessmentAgent(db_session, http_transport=transport)
     state.discovered_subdomains = ["target.com"]
     updated = await agent.run(state)
     assert updated.current_phase == "ACTIVE_ASSESSMENT"
@@ -108,7 +112,10 @@ async def test_wstg_assessment_agent_http_target_excludes_hsts(db_session, test_
     )
     state = await planning_agent.run(state)
 
-    agent = WSTGAssessmentAgent(db_session)
+    transport = httpx.MockTransport(
+        lambda req: httpx.Response(200, headers={"Content-Type": "text/html"}, text="<html>ok</html>")
+    )
+    agent = WSTGAssessmentAgent(db_session, http_transport=transport)
     state.discovered_subdomains = ["target.com"]
     updated = await agent.run(state)
     assert len(updated.candidate_findings) >= 1
@@ -119,8 +126,13 @@ async def test_wstg_assessment_agent_http_target_excludes_hsts(db_session, test_
 
 @pytest.mark.asyncio
 async def test_vulnerability_agent(db_session, test_project):
-    """Verify AGT-09 dispatches scoped tool scans and captures candidate detections."""
-    agent = VulnerabilityAgent(db_session)
+    """Verify AGT-09 dispatches scoped tool scans and captures genuine candidate detections."""
+    def _handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/debug/config":
+            return httpx.Response(200, json={"jwt_secret": "exposed_test_secret_123"})
+        return httpx.Response(404, text="Not Found")
+
+    agent = VulnerabilityAgent(db_session, http_transport=httpx.MockTransport(_handler))
     state = PentestWorkflowState(
         project_id=test_project.id,
         current_phase="ACTIVE_ASSESSMENT",
@@ -130,12 +142,19 @@ async def test_vulnerability_agent(db_session, test_project):
 
     updated = await agent.run(state)
     assert updated.current_phase == "VALIDATION"
+    assert any(c.get("cwe_id") == "CWE-200" for c in updated.candidate_findings)
 
 
 @pytest.mark.asyncio
 async def test_authorization_agent(db_session, test_project):
-    """Verify AGT-07 evaluates multi-tenant authorization boundaries and detects IDOR."""
-    agent = AuthorizationAgent(db_session)
+    """Verify AGT-07 evaluates multi-tenant authorization boundaries and detects IDOR empirically."""
+    def _authz_handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={"id": 1002, "email": "alice@target.com", "api_key": "ak_live_test_secret"},
+        )
+
+    agent = AuthorizationAgent(db_session, http_transport=httpx.MockTransport(_authz_handler))
     state = PentestWorkflowState(
         project_id=test_project.id,
         current_phase="ACTIVE_ASSESSMENT",
@@ -153,8 +172,13 @@ async def test_authorization_agent(db_session, test_project):
 
 @pytest.mark.asyncio
 async def test_validation_and_false_positive_agent(db_session, test_project):
-    """Verify AGT-11/12 confirms genuine vulnerabilities and refutes false positives."""
-    agent = ValidationAgent(db_session)
+    """Verify AGT-11/12 confirms genuine vulnerabilities with authentic HTTP evidence and refutes false positives."""
+    from services.evidence_engine.finding_service import FindingService
+
+    transport = httpx.MockTransport(
+        lambda req: httpx.Response(500, text="SQLite3 OperationalError: near syntax error")
+    )
+    agent = ValidationAgent(db_session, http_transport=transport)
     state = PentestWorkflowState(
         project_id=test_project.id,
         current_phase="VALIDATION",
@@ -175,6 +199,11 @@ async def test_validation_and_false_positive_agent(db_session, test_project):
     assert len(updated.confirmed_findings) == 1
     assert updated.confirmed_findings[0]["title"] == "SQL Injection in Login Parameter"
 
+    finding = await FindingService(db_session).get_finding(updated.confirmed_findings[0]["id"], test_project.id)
+    assert len(finding.evidence) == 1
+    assert "[Verified Anomaly]" not in finding.evidence[0].raw_response
+    assert finding.reproductions[0].response_status_code == 500
+
 
 @pytest.mark.asyncio
 async def test_validation_agent_handles_is_false_positive_false_json(db_session, test_project):
@@ -186,7 +215,10 @@ async def test_validation_agent_handles_is_false_positive_false_json(db_session,
         "SQL Injection Check",
         '{"is_false_positive": false, "is_valid": true, "confidence": "Confirmed"}'
     )
-    agent = ValidationAgent(db_session, llm_provider=mock_llm)
+    transport = httpx.MockTransport(
+        lambda req: httpx.Response(500, text="SQLite3 OperationalError")
+    )
+    agent = ValidationAgent(db_session, llm_provider=mock_llm, http_transport=transport)
     state = PentestWorkflowState(
         project_id=test_project.id,
         current_phase="VALIDATION",

@@ -3,7 +3,7 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Next.js 14](https://img.shields.io/badge/next.js-14.2-black.svg)](https://nextjs.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688.svg)](https://fastapi.tiangolo.com/)
-[![Tests](https://img.shields.io/badge/tests-134%2F134%20passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-143%2F143%20passed-brightgreen.svg)]()
 [![License: Proprietary](https://img.shields.io/badge/license-Proprietary-red.svg)]()
 
 Pentesa is an enterprise-grade, multi-agent autonomous penetration testing platform designed for Security Operations Center (SOC) engineers, red teams, and AppSec auditors. It features dual-layer scope enforcement with DNS anti-rebinding protection, OWASP WSTG 106-item testing coverage, automated exploit reproduction recipes, cryptographic evidence hashing (SHA-256 Merkle chain), and formal PTES report generation.
@@ -38,7 +38,7 @@ pentesa/
 │   ├── schemas/                  # Domain Pydantic V2 models
 │   └── tool_sdk/                 # CLI subprocess execution SDK
 ├── infrastructure/               # Docker Compose & production deployment configs
-└── tests/                        # 134 automated unit, integration, and security tests
+└── tests/                        # 143 automated unit, integration, and security tests
 ```
 
 ---
@@ -100,23 +100,23 @@ The frontend console is built with Next.js 14 App Router, React 18, Tailwind CSS
 
 ## Production Deployment (Docker Compose)
 
-For production environments, Pentesa is deployed via multi-container Docker Compose with PostgreSQL 16, Redis 7, Celery workers, FastAPI, and Next.js:
+For production environments, Pentesa is deployed via a 5-container Docker Compose stack (`pentesa-api`, `pentesa-worker`, `pentesa-web`, PostgreSQL 16 `pentesa-db`, and Redis 7 `pentesa-redis`):
 
 ```bash
-# 1. Verify deployment readiness
-python scripts/verify_deployment.py
+# 1. Build and launch all production containers
+docker compose --env-file .env.production -f infrastructure/docker-compose.prod.yml up -d --build
 
-# 2. Build and launch all production containers
-docker-compose -f infrastructure/docker-compose.prod.yml up -d --build
+# 2. Initialize PostgreSQL schema/seed data and run pre-flight verification (including LiteLLM check)
+docker compose --env-file .env.production -f infrastructure/docker-compose.prod.yml exec -T api python scripts/verify_deployment.py --init-db
 ```
-See [`docs/22-production-deployment-guide.md`](docs/22-production-deployment-guide.md) for full operational hardening and SSL termination guidelines.
+See [`docs/22-production-deployment-guide.md`](docs/22-production-deployment-guide.md) for full operational hardening and [`docs/23-end-to-end-testing-tutorial.md`](docs/23-end-to-end-testing-tutorial.md) for step-by-step local dev, Docker Option B (`http://testphp.vulnweb.com`), and Docker Option C (`juice-shop` / `dvwa`) walkthroughs.
 
 ---
 
 ## Test Suite Execution
 
-Run the complete 134-test automated test suite:
+Run the complete 143-test automated test suite:
 ```bash
 pytest -v
 ```
-All 134 tests (Unit, Scope Engine, Subprocess Isolation, LangGraph Multi-Agent Workflows, WeasyPrint PDF Reporting, and Cryptographic Merkle Chains) execute in ~115s.
+All 143 tests (Unit, Scope Engine, Crawler Discovery, Subprocess Isolation, LangGraph Multi-Agent Workflows, ReportLab PDF Reporting, and Cryptographic Merkle Chains) execute in ~91s.

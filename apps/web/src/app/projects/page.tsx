@@ -31,23 +31,38 @@ export default function ProjectsPage() {
   const [submitting, setSubmitting] = useState(false);
 
   // New Project Form State
-  const nowIso = new Date().toISOString().slice(0, 16);
-  const oneMonthLaterIso = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16);
+  const getInitialForm = () => {
+    const startIso = new Date().toISOString().slice(0, 16);
+    const endIso = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16);
+    return {
+      name: "",
+      description: "",
+      target_domains: "",
+      allowed_cidrs: "",
+      excluded_paths: "",
+      allow_internal_networks: false,
+      authorization_document_ref: "",
+      authorization_start: startIso,
+      authorization_end: endIso,
+    };
+  };
 
-  const [form, setForm] = useState({
-    name: "",
-    description: "",
-    target_domains: "testphp.vulnweb.com",
-    allowed_cidrs: "",
-    excluded_paths: "/logout, /admin/reset",
-    allow_internal_networks: false,
-    authorization_document_ref: "ROE-2026-SEC-001",
-    authorization_start: nowIso,
-    authorization_end: oneMonthLaterIso,
-  });
+  const [form, setForm] = useState(getInitialForm);
 
   const handleSelectProject = (proj: Project) => {
     setCurrentProject(proj);
+  };
+
+  const handleDeleteProject = async (proj: Project) => {
+    if (!confirm(`Delete engagement "${proj.name}"? This removes all project targets, scans, and findings.`)) {
+      return;
+    }
+    try {
+      await api.deleteProject(proj.id);
+      await refreshProjects();
+    } catch (err: any) {
+      alert("Project deletion failed: " + (err?.message || "Error"));
+    }
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -81,6 +96,7 @@ export default function ProjectsPage() {
 
       await refreshProjects();
       setCurrentProject(created);
+      setForm(getInitialForm());
       setCreateModalOpen(false);
       alert("Engagement project created successfully!");
     } catch (err: any) {
@@ -153,11 +169,14 @@ export default function ProjectsPage() {
 
         <div className="flex items-center gap-2.5">
           <button
-            onClick={() => setCreateModalOpen(true)}
+            onClick={() => {
+              setForm(getInitialForm());
+              setCreateModalOpen(true);
+            }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-red-600 hover:bg-red-500 text-xs font-semibold text-white transition-colors shadow-lg shadow-red-950/40"
           >
             <Plus className="h-3.5 w-3.5" />
-            + New Engagement
+            New Engagement
           </button>
           <button
             onClick={refreshProjects}
@@ -278,26 +297,35 @@ export default function ProjectsPage() {
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between">
+                <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2">
                   <span className="text-[10px] font-mono text-slate-500">
                     Created {new Date(proj.created_at).toLocaleDateString()}
                   </span>
 
-                  {isSelected ? (
+                  <div className="flex items-center gap-2">
                     <button
-                      onClick={() => router.push("/")}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-200 border border-slate-700 transition-colors"
+                      onClick={() => handleDeleteProject(proj)}
+                      title="Delete engagement project"
+                      className="p-1.5 rounded bg-slate-900 hover:bg-red-950 text-slate-500 hover:text-red-400 border border-slate-800 hover:border-red-800 transition-colors"
                     >
-                      Open Dashboard <ArrowRight className="h-3 w-3" />
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
-                  ) : (
-                    <button
-                      onClick={() => handleSelectProject(proj)}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-xs font-mono text-cyan-400 border border-cyan-900 transition-colors"
-                    >
-                      Switch to Project
-                    </button>
-                  )}
+                    {isSelected ? (
+                      <button
+                        onClick={() => router.push("/")}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-200 border border-slate-700 transition-colors"
+                      >
+                        Open Dashboard <ArrowRight className="h-3 w-3" />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleSelectProject(proj)}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-xs font-mono text-cyan-400 border border-cyan-900 transition-colors"
+                      >
+                        Switch to Project
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -334,7 +362,7 @@ export default function ProjectsPage() {
                   required
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="e.g. Acme Corp Q4 Web Security Assessment"
+                  placeholder="e.g. Q4 Web Application Security Assessment"
                   className="w-full bg-surface-elevated px-3 py-1.5 rounded text-xs text-slate-200 border border-slate-700 focus:outline-none focus:border-red-500 font-mono"
                 />
               </div>
@@ -359,7 +387,7 @@ export default function ProjectsPage() {
                   required
                   value={form.target_domains}
                   onChange={(e) => setForm({ ...form, target_domains: e.target.value })}
-                  placeholder="testphp.vulnweb.com, api.testphp.vulnweb.com"
+                  placeholder="app.organization.com, api.organization.com"
                   className="w-full bg-surface-elevated px-3 py-1.5 rounded text-xs text-slate-200 border border-slate-700 focus:outline-none focus:border-red-500 font-mono"
                 />
               </div>
@@ -371,7 +399,7 @@ export default function ProjectsPage() {
                     type="text"
                     value={form.allowed_cidrs}
                     onChange={(e) => setForm({ ...form, allowed_cidrs: e.target.value })}
-                    placeholder="192.168.1.0/24"
+                    placeholder="10.0.0.0/24"
                     className="w-full bg-surface-elevated px-3 py-1.5 rounded text-xs text-slate-200 border border-slate-700 focus:outline-none focus:border-red-500 font-mono"
                   />
                 </div>
@@ -381,7 +409,7 @@ export default function ProjectsPage() {
                     type="text"
                     value={form.excluded_paths}
                     onChange={(e) => setForm({ ...form, excluded_paths: e.target.value })}
-                    placeholder="/logout, /admin/reset"
+                    placeholder="/logout, /internal/reset"
                     className="w-full bg-surface-elevated px-3 py-1.5 rounded text-xs text-slate-200 border border-slate-700 focus:outline-none focus:border-red-500 font-mono"
                   />
                 </div>
@@ -394,7 +422,7 @@ export default function ProjectsPage() {
                   required
                   value={form.authorization_document_ref}
                   onChange={(e) => setForm({ ...form, authorization_document_ref: e.target.value })}
-                  placeholder="ROE-2026-ACME-001"
+                  placeholder="ROE-YYYY-ORG-001"
                   className="w-full bg-surface-elevated px-3 py-1.5 rounded text-xs text-slate-200 border border-slate-700 focus:outline-none focus:border-red-500 font-mono"
                 />
               </div>

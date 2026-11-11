@@ -124,4 +124,4 @@ class DnsPinningValidator:
             pinned_ip = sorted_ips[0]
             self._pinned_hosts[clean_host] = pinned_ip
 
-        return True, "All resolved DNS records verified secure", sorted_ips, pinned_ip, rebinding_detected
+        return True, "All resolved DNS records verified secure", sorted_ips, pinned_ip, False

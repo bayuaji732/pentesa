@@ -113,3 +113,47 @@ async def test_crawler_scope_enforcement_and_discovery():
     tech_names = [t["name"] for t in result["technologies"]]
     assert "Nginx" in tech_names
     assert "Express" in tech_names
+
+
+@pytest.mark.asyncio
+async def test_crawler_detects_session_cookies_across_shared_client():
+    """Verify cookies captured on /robots.txt remain visible to technology fingerprinting on /."""
+    project = MockProject()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        url_str = str(request.url)
+        if url_str == "https://target.com/robots.txt":
+            return httpx.Response(
+                200,
+                headers={"Set-Cookie": "JSESSIONID=TEST12345; Path=/; HttpOnly"},
+                text="User-agent: *\n"
+            )
+        elif url_str == "https://target.com/":
+            return httpx.Response(
+                200,
+                headers={"Content-Type": "text/html", "Server": "Apache-Coyote/1.1"},
+                text="<html><body><h1>Home</h1></body></html>"
+            )
+        return httpx.Response(404)
+
+    mock_transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=mock_transport) as test_client:
+        crawler = ScopeEnforcedCrawler(
+            project=project,
+            rules=project.scope_rules,
+            custom_client=test_client
+        )
+        config = CrawlRequest(
+            seed_urls=["https://target.com/"],
+            max_depth=1,
+            max_pages=5,
+            respect_robots_txt=True,
+            parse_sitemap=False,
+            extract_js_routes=False
+        )
+        result = await crawler.crawl(config)
+
+    tech_names = [t["name"] for t in result["technologies"]]
+    assert "Apache HTTP Server" in tech_names
+    assert "Java (Servlet/Spring)" in tech_names
+

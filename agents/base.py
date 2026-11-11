@@ -5,6 +5,7 @@ import time
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
+import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -24,6 +25,12 @@ from services.scope_engine.service import scope_service
 
 class BaseAgent(abc.ABC):
     """Abstract base agent providing safety boundaries, scope enforcement, and decision auditing."""
+
+    default_http_transport: Optional[httpx.AsyncBaseTransport] = None
+
+    def get_http_transport(self) -> Optional[httpx.AsyncBaseTransport]:
+        """Return instance HTTP transport override or class-level default transport (for offline tests)."""
+        return getattr(self, "http_transport", None) or BaseAgent.default_http_transport
 
     def __init__(
         self,

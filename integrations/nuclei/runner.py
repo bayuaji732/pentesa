@@ -2,6 +2,7 @@
 
 import json
 from typing import Any, Dict, List, Optional
+from urllib.parse import urlparse
 from services.execution_engine.tools.base import BaseToolWrapper, ToolExecutionResult
 
 
@@ -87,16 +88,18 @@ class NucleiRunner(BaseToolWrapper):
         stdout = "Nuclei v3.0.0 engine simulation complete."
 
         if mock_finding:
+            clean_base = target_url.rstrip("/")
+            host_hdr = urlparse(target_url).netloc or clean_base
             findings.append({
                 "title": "Exposed Git Repository Configuration",
                 "description": "Git repository configuration directory (.git/config) is accessible.",
                 "severity": "High",
                 "cwe_id": "CWE-538",
                 "wstg_id": "WSTG-CONF-04",
-                "matched_at": f"{target_url}/.git/config",
+                "matched_at": f"{clean_base}/.git/config",
                 "template_id": "git-config-exposure",
-                "reproduction_curl": f"curl -i -s '{target_url}/.git/config'",
-                "raw_request": f"GET /.git/config HTTP/1.1\r\nHost: target.com\r\n\r\n",
+                "reproduction_curl": f"curl -i -s '{clean_base}/.git/config'",
+                "raw_request": f"GET /.git/config HTTP/1.1\r\nHost: {host_hdr}\r\n\r\n",
                 "raw_response": "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n[core]\r\nrepositoryformatversion = 0",
                 "detection_source": "nuclei",
                 "confidence": "Confirmed"

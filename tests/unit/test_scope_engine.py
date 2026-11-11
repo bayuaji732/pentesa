@@ -230,6 +230,18 @@ def test_dns_rebinding_detection():
     assert rebinding is True
     assert "DNS Rebinding anomaly detected" in reason
 
+    def mock_clean_resolver(host, port):
+        return [(None, None, None, None, ("93.184.216.34", port))]
+
+    ok, ok_reason, ok_ips, ok_pinned, ok_rebinding = validator.resolve_and_verify(
+        "example.com",
+        port=443,
+        custom_resolver=mock_clean_resolver,
+    )
+    assert ok is True
+    assert ok_rebinding is False
+    assert ok_pinned == "93.184.216.34"
+
 
 def test_scope_service_project_authorization_window():
     """Verify high-level scope service blocks tests on expired or inactive projects."""
@@ -259,3 +271,51 @@ def test_scope_service_project_authorization_window():
     res_archived = service.check_target(ArchivedProject(), "https://example.com")
     assert res_archived.is_in_scope is False
     assert "ARCHIVED" in res_archived.reason
+
+
+def test_scope_validator_multiple_rules_port_aggregation():
+    """Verify additional IN_SCOPE port rules are not shadowed by earlier default 80/443 rules."""
+    rules = [
+        {
+            "id": uuid.uuid4(),
+            "rule_type": ScopeRuleType.EXACT_DOMAIN,
+            "target_type": ScopeTargetType.IN_SCOPE,
+            "pattern": "127.0.0.1",
+            "port_range": None,  # defaults to {80, 443}
+        },
+        {
+            "id": uuid.uuid4(),
+            "rule_type": ScopeRuleType.EXACT_DOMAIN,
+            "target_type": ScopeTargetType.IN_SCOPE,
+            "pattern": "127.0.0.1",
+            "port_range": "9000",
+        },
+        {
+            "id": uuid.uuid4(),
+            "rule_type": ScopeRuleType.IP_CIDR,
+            "target_type": ScopeTargetType.IN_SCOPE,
+            "pattern": "10.0.0.0/8",
+            "port_range": None,
+        },
+        {
+            "id": uuid.uuid4(),
+            "rule_type": ScopeRuleType.IP_CIDR,
+            "target_type": ScopeTargetType.IN_SCOPE,
+            "pattern": "10.0.0.0/8",
+            "port_range": "3000",
+        },
+    ]
+    validator = ScopeValidator(rules, allow_internal=True)
+
+    r_9000 = validator.validate_url("http://127.0.0.1:9000/products")
+    assert r_9000.is_in_scope is True
+    assert r_9000.status == "ALLOWED"
+
+    r_3000 = validator.validate_url("http://10.0.0.5:3000/")
+    assert r_3000.is_in_scope is True
+    assert r_3000.status == "ALLOWED"
+
+    r_bad = validator.validate_url("http://127.0.0.1:9999/")
+    assert r_bad.is_in_scope is False
+    assert r_bad.status == "BLOCKED"
+    assert "9000" in r_bad.reason

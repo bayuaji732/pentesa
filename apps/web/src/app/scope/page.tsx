@@ -10,6 +10,7 @@ import {
   XCircle,
   AlertTriangle,
   RefreshCw,
+  Trash2,
 } from "lucide-react";
 import { useProject } from "@/lib/ProjectContext";
 import { api } from "@/lib/api";
@@ -23,12 +24,13 @@ export default function ScopePage() {
   const [pattern, setPattern] = useState("");
   const [ruleType, setRuleType] = useState("EXACT_DOMAIN");
   const [targetType, setTargetType] = useState("IN_SCOPE");
+  const [portRange, setPortRange] = useState("");
   const [isCritical, setIsCritical] = useState(false);
   const [notes, setNotes] = useState("");
   const [addingRule, setAddingRule] = useState(false);
 
   // Scope Checker State
-  const [testUrl, setTestUrl] = useState("https://api.globalfin.local/api/v1/payments");
+  const [testUrl, setTestUrl] = useState("");
   const [checkResult, setCheckResult] = useState<any>(null);
   const [evaluating, setEvaluating] = useState(false);
 
@@ -58,16 +60,29 @@ export default function ScopePage() {
         pattern: pattern.trim(),
         rule_type: ruleType,
         target_type: targetType,
+        port_range: portRange.trim() || undefined,
         is_critical: isCritical,
         notes: notes.trim() || undefined,
       });
       setPattern("");
+      setPortRange("");
       setNotes("");
       await loadRules();
     } catch (err: any) {
       alert(`Failed to add scope rule: ${err.message}`);
     } finally {
       setAddingRule(false);
+    }
+  };
+
+  const handleDeleteRule = async (ruleId: string, rulePattern: string) => {
+    if (!currentProject) return;
+    if (!confirm(`Remove scope rule "${rulePattern}"?`)) return;
+    try {
+      await api.deleteScopeRule(currentProject.id, ruleId);
+      await loadRules();
+    } catch (err: any) {
+      alert(`Failed to delete scope rule: ${err.message}`);
     }
   };
 
@@ -132,7 +147,7 @@ export default function ScopePage() {
             required
             value={testUrl}
             onChange={(e) => setTestUrl(e.target.value)}
-            placeholder="https://target.com/path or http://169.254.169.254"
+            placeholder="https://app.organization.com/path or http://169.254.169.254"
             className="flex-1 h-9 px-3 bg-slate-900 border border-slate-700 rounded text-xs font-mono text-slate-100 placeholder-slate-500 focus:outline-none focus:border-red-500"
           />
           <button
@@ -175,7 +190,7 @@ export default function ScopePage() {
           Add Authorized Boundary Rule
         </h3>
 
-        <form onSubmit={handleAddRule} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+        <form onSubmit={handleAddRule} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3">
           <div className="space-y-1 md:col-span-2">
             <label className="text-[11px] font-mono text-slate-400">Target Pattern</label>
             <input
@@ -183,7 +198,7 @@ export default function ScopePage() {
               required
               value={pattern}
               onChange={(e) => setPattern(e.target.value)}
-              placeholder="api.target.com, *.target.com, /logout"
+              placeholder="app.organization.com, *.organization.com, /logout"
               className="w-full h-8 px-2.5 bg-slate-900 border border-slate-700 rounded text-xs font-mono text-slate-100 focus:outline-none focus:border-red-500"
             />
           </div>
@@ -214,6 +229,17 @@ export default function ScopePage() {
               <option value="IN_SCOPE">IN_SCOPE (Allow)</option>
               <option value="OUT_OF_SCOPE">OUT_OF_SCOPE (Block)</option>
             </select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[11px] font-mono text-slate-400">Port Range (Optional)</label>
+            <input
+              type="text"
+              value={portRange}
+              onChange={(e) => setPortRange(e.target.value)}
+              placeholder="80,443 or 9000"
+              className="w-full h-8 px-2.5 bg-slate-900 border border-slate-700 rounded text-xs font-mono text-slate-100 focus:outline-none focus:border-red-500"
+            />
           </div>
 
           <div className="flex items-end">
@@ -252,6 +278,7 @@ export default function ScopePage() {
                 <th className="py-2.5 px-3">Protocols / Ports</th>
                 <th className="py-2.5 px-3">Critical Target</th>
                 <th className="py-2.5 px-3">Notes</th>
+                <th className="py-2.5 px-3 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
@@ -284,6 +311,15 @@ export default function ScopePage() {
                   </td>
                   <td className="py-2.5 px-3 text-slate-400 text-[11px] truncate max-w-xs">
                     {r.notes || "—"}
+                  </td>
+                  <td className="py-2.5 px-3 text-right">
+                    <button
+                      onClick={() => handleDeleteRule(r.id, r.pattern)}
+                      title="Delete scope rule"
+                      className="p-1 rounded text-slate-500 hover:text-red-400 hover:bg-red-950/60 transition-colors"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   </td>
                 </tr>
               ))}

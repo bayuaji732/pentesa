@@ -77,32 +77,34 @@ sudo sysctl --system
 
 ## 3. Container Topology & Service Orchestration
 
-Pentesa uses a 4-tier microservice architecture defined in [`docker-compose.yml`](file:///c:/Users/User2/Documents/work/pentesa/docker-compose.yml):
+Pentesa uses a 5-container production architecture defined in [`infrastructure/docker-compose.prod.yml`](file:///c:/Users/User2/Documents/work/pentesa/infrastructure/docker-compose.prod.yml) (mirrored at repository root in [`docker-compose.yml`](file:///c:/Users/User2/Documents/work/pentesa/docker-compose.yml)):
 
 ```mermaid
 flowchart TB
     subgraph External Operator Access
-        SecEng[Security Engineer / CI Pipeline]
+        SecEng["Security Engineer / Browser"]
     end
 
     subgraph "Docker Host: pentesa-internal Network"
-        API["pentesa-api\n(FastAPI / Python 3.12: Port 8000)\nHealth: /healthz & /readyz"]
-        Worker["pentesa-worker\n(Asynchronous Execution Worker)\n15 Specialized AI Agents"]
-        Postgres[("pentesa-db\n(PostgreSQL 16 Alpine: Port 5432)\npentesa-pgdata volume")]
-        RedisQueue[("pentesa-redis\n(Redis 7 Alpine: Port 6379)\npentesa-redisdata volume")]
+        Web["pentesa-web (Next.js 14 Console: Port 3000)"]
+        API["pentesa-api (FastAPI / Python 3.12: Port 8000)"]
+        Worker["pentesa-worker (Async Worker / Security Agents)"]
+        Postgres[("pentesa-db (PostgreSQL 16 Alpine: Port 5432)")]
+        RedisQueue[("pentesa-redis (Redis 7 Alpine: Port 6379)")]
     end
 
     subgraph "Persistent Storage Volumes"
-        VolReports[("pentesa-reports\n(/app/data/reports)")]
-        VolEvidence[("pentesa-evidence\n(/app/data/evidence)")]
+        VolReports[("pentesa-reports (/app/data/reports)")]
+        VolEvidence[("pentesa-evidence (/app/data/evidence)")]
     end
 
-    subgraph "Target Egress Boundary"
-        EgressProxy["pentesa-egress-proxy\n(Scope Guard Proxy: Port 8080)"]
+    subgraph "Authorized Target Boundary"
         TargetApp["Authorized In-Scope Target Application"]
     end
 
-    SecEng -->|HTTPS:8000| API
+    SecEng -->|"HTTP/HTTPS:3000"| Web
+    SecEng -->|"HTTP/HTTPS:8000"| API
+    Web -->|"Internal Proxy"| API
     API -->|Async Engine| Postgres
     API -->|Task Broker| RedisQueue
     Worker -->|State Query| Postgres
@@ -111,16 +113,17 @@ flowchart TB
     API -.-> VolEvidence
     Worker -.-> VolReports
     Worker -.-> VolEvidence
-    Worker -->|HTTP Scans| EgressProxy
-    EgressProxy -->|Strict Scope Allowed Only| TargetApp
+    API -->|"Layer 1 & 2 Scope Guard"| TargetApp
+    Worker -->|"Layer 1 & 2 Scope Guard"| TargetApp
 ```
 
 ### Service Directory
 
-1. **`pentesa-api`**: FastAPI async application server providing REST endpoints for Authentication, Scope, Attack Surface Discovery, WSTG Matrix, Findings Triage, Evidence Viewing, and Report Generation. Runs unprivileged under UID `10001:10001`.
-2. **`pentesa-worker`**: Autonomous background task processor running specialized AI agents (Planner, Recon, WSTG, Vulnerability, Authorization, Validation, Reporting), executing authorized fuzzers and tool plugins.
-3. **`pentesa-db`**: Relational store on PostgreSQL 16 Alpine handling strict foreign keys, cascading deletions, UUIDs, and indexed query patterns.
-4. **`pentesa-redis`**: In-memory task broker and distributed lock manager with AOF persistence enabled.
+1. **`pentesa-api`**: FastAPI async application server providing REST endpoints for Authentication, Scope, Attack Surface Discovery, WSTG Matrix, Multi-Agent DAG Execution, Findings Triage, Evidence Viewing, and Report Generation. Runs unprivileged under UID `10001:10001`.
+2. **`pentesa-worker`**: Autonomous background execution worker container connected to `pentesa-internal` alongside `pentesa-db` and `pentesa-redis`. Runs unprivileged under UID `10001:10001`.
+3. **`pentesa-web`**: Production Next.js 14 SOC Operations Console served on port `3000` with internal API routing (`API_INTERNAL_URL=http://api:8000`). Runs unprivileged under UID `10001:10001`.
+4. **`pentesa-db`**: Relational store on PostgreSQL 16 Alpine (`pentesa-pgdata` volume) handling strict foreign keys, cascading deletions, UUIDs, and indexed query patterns.
+5. **`pentesa-redis`**: In-memory task broker and cache (`pentesa-redisdata` volume) with AOF persistence enabled.
 
 ---
 
@@ -209,52 +212,60 @@ sudo chmod -R 750 /var/lib/pentesa/data
 
 ### Step 2: Build & Start Containers
 ```bash
-docker compose --env-file .env.production up -d --build
+docker compose --env-file .env.production -f infrastructure/docker-compose.prod.yml up -d --build
 ```
 
 ### Step 3: Execute Production Pre-Flight Diagnostic Check
 Run the standalone diagnostic suite [`scripts/verify_deployment.py`](file:///c:/Users/User2/Documents/work/pentesa/scripts/verify_deployment.py) within the running API container:
 
 ```bash
-docker compose exec api python scripts/verify_deployment.py --init-db
+docker compose --env-file .env.production -f infrastructure/docker-compose.prod.yml exec -T api python scripts/verify_deployment.py --init-db
 ```
 
 Expected diagnostic output:
 ```text
 ================================================================
-   PENTESA PLATFORM — PRODUCTION PRE-FLIGHT VERIFICATION        
+   PENTESA PLATFORM — PRODUCTION PRE-FLIGHT VERIFICATION
 ================================================================
 
-[1/3] Environment & Security Configuration
+[1/4] Environment, Security & LLM Configuration
  [PASS] Environment Mode                 Running in 'production' mode
  [PASS] JWT Secret Key                   Cryptographically strong (64 chars)
  [PASS] LLM Provider                     Configured as 'litellm' (Model: azure/gpt-5.6-terra-dev-gtw)
+ [PASS] LiteLLM Gateway                  Authenticated & reachable (<PENTESA_LITELLM_BASE_URL>)
 
-[2/3] Persistent Volume Storage Access
+[2/4] Persistent Volume Storage Access
  [PASS] Report Storage                   R/W verified: /app/data/reports
  [PASS] Evidence Storage                 R/W verified: /app/data/evidence
 
-[3/3] Database Schema & Cryptographic State
+[3/4] Redis Task Broker Connectivity
+ [PASS] Redis Broker                     PONG from redis:6379 (Latency: 1.4ms)
+
+[4/4] Database Schema & Cryptographic State
  [PASS] Database Bootstrap               Initialized schema & seeded master data
- [PASS] Database Connection              Connected (Latency: 12.4ms)
+ [PASS] Database Connection              Connected (Latency: 25.0ms)
  [PASS] OWASP WSTG Catalog               Complete: 106/106 standard test definitions
- [PASS] User Accounts                    2 user(s) provisioned
- [PASS] Audit Log Hash Chain             Verified intact across 5 entries
+ [PASS] User Accounts                    1 user(s) provisioned
+ [PASS] Audit Log Hash Chain             Empty chain (genesis state valid)
 
 ----------------------------------------------------------------
 [SUCCESS] All pre-flight deployment checks PASSED!
 Platform is ready for production autonomous security testing operations.
 ```
 
-### Step 4: Verify Liveness & Readiness Endpoints
+### Step 4: Verify Liveness, Readiness & Web Console
 ```bash
-# Check liveness
+# Check API liveness
 curl -fsS http://localhost:8000/healthz
 # Response: {"status":"ok","service":"pentesa-api"}
 
 # Check database readiness
 curl -fsS http://localhost:8000/readyz
 # Response: {"status":"ready","database":"connected"}
+
+# Check Next.js SOC Console login page
+curl -fsS -o /dev/null -w "%{http_code}\n" http://localhost:3000/login
+# Response: 200
 ```
 
 ---
@@ -279,7 +290,7 @@ Schedule regular database snapshots via cron on the Docker host:
 
 ```bash
 # /etc/cron.d/pentesa-backup
-0 2 * * * root docker compose -f /opt/pentesa/docker-compose.yml exec -T db pg_dump -U pentesa_user pentesa | gzip > /var/backups/pentesa/pentesa_backup_$(date +\%F).sql.gz
+0 2 * * * root docker compose --env-file /opt/pentesa/.env.production -f /opt/pentesa/infrastructure/docker-compose.prod.yml exec -T db pg_dump -U pentesa_user pentesa | gzip > /var/backups/pentesa/pentesa_backup_$(date +\%F).sql.gz
 ```
 
 ### Audit Log Tamper Verification
@@ -287,7 +298,7 @@ Schedule regular database snapshots via cron on the Docker host:
 Execute daily cryptographic audit chain verification to assert chain integrity:
 
 ```bash
-0 4 * * * root docker compose -f /opt/pentesa/docker-compose.yml exec -T api curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" http://localhost:8000/api/v1/audit-logs/verify
+0 4 * * * root docker compose --env-file /opt/pentesa/.env.production -f /opt/pentesa/infrastructure/docker-compose.prod.yml exec -T api curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" http://localhost:8000/api/v1/audit-logs/verify
 ```
 
 ### Report Storage Retention Policy
@@ -311,7 +322,7 @@ All platform operations have been empirically benchmarked and verified:
 | **Deduplication Signature Hasher** | $\ge 10,000$ hashes/sec | **438,381 signatures/sec** | **PASS** (43.8x headroom) |
 | **Forensic Stream Redactor** | $\ge 500$ payloads/sec | **19,586 payloads/sec** | **PASS** (39.1x headroom) |
 | **ReportLab Vector PDF Generation** | $< 2.0$ seconds | **0.069 seconds** (10 technical sheets) | **PASS** (29.0x headroom) |
-| **Full Regression Test Suite** | 100% Pass Rate | **134/134 Passed** (115.54s) | **PASS** (Zero failures) |
+| **Full Regression Test Suite** | 100% Pass Rate | **143/143 Passed** (91.47s) | **PASS** (Zero failures) |
 
 ---
 
@@ -321,8 +332,8 @@ All platform operations have been empirically benchmarked and verified:
 - **Symptom:** `readyz` returns `"database": "disconnected"`.
 - **Diagnosis:** Check `pentesa-db` container health:
   ```bash
-  docker compose ps db
-  docker compose logs db --tail 50
+  docker compose --env-file .env.production -f infrastructure/docker-compose.prod.yml ps db
+  docker compose --env-file .env.production -f infrastructure/docker-compose.prod.yml logs db --tail 50
   ```
 - **Remediation:** Verify network attachment `pentesa-internal` and ensure PostgreSQL port 5432 is responding.
 

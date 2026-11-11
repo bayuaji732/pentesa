@@ -7,12 +7,28 @@ import { useProject } from "@/lib/ProjectContext";
 import { api } from "@/lib/api";
 
 export const TopNav: React.FC = () => {
-  const { currentProject, projects, setCurrentProjectId, logout } = useProject();
+  const { currentProject, projects, setCurrentProjectId, token, logout } = useProject();
   const [workflowStatus, setWorkflowStatus] = useState<string>("IDLE");
   const [activeAgentsCount, setActiveAgentsCount] = useState<number>(0);
+  const [currentUser, setCurrentUser] = useState<{ email?: string; full_name?: string; role?: string } | null>(null);
 
   useEffect(() => {
-    if (!currentProject) return;
+    if (!token) {
+      setCurrentUser(null);
+      return;
+    }
+    api
+      .getCurrentUser()
+      .then((user) => setCurrentUser(user))
+      .catch(() => setCurrentUser(null));
+  }, [token]);
+
+  useEffect(() => {
+    if (!currentProject) {
+      setWorkflowStatus("IDLE");
+      setActiveAgentsCount(0);
+      return;
+    }
     const fetchStatus = () => {
       api
         .getWorkflowStatus(currentProject.id)
@@ -101,7 +117,7 @@ export const TopNav: React.FC = () => {
         <div className="flex items-center gap-2 pl-3 border-l border-slate-800">
           <div className="flex items-center gap-1.5 text-xs text-slate-300 font-medium">
             <User className="h-3.5 w-3.5 text-slate-400" />
-            <span>Admin</span>
+            <span>{currentUser?.full_name || currentUser?.email || "Operator"}</span>
           </div>
           <button
             onClick={logout}

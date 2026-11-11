@@ -98,6 +98,7 @@ class FindingCreate(BaseModel):
     business_impact: Optional[str] = None
     raw_request: Optional[str] = None
     raw_response: Optional[str] = None
+    reproduction_curl: Optional[str] = None
 
 
 class FindingBatchUpdate(BaseModel):

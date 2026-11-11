@@ -4,6 +4,7 @@ import datetime
 import hashlib
 import os
 import uuid
+import httpx
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -279,41 +280,71 @@ async def test_finding_retest_and_triage(db_session: AsyncSession, admin_user: U
         id=uuid.uuid4(),
         name="Fintech Platform",
         status="ACTIVE",
+        target_domains=["fintech.local"],
         authorization_start=now - datetime.timedelta(days=2),
         authorization_end=now + datetime.timedelta(days=20),
         created_by=admin_user.id
     )
     db_session.add(project)
-    await db_session.commit()
+    await db_session.flush()
 
-    finding = Finding(
+    db_session.add(ScopeRule(
         project_id=project.id,
-        title="Cross-Site Scripting (Reflected)",
-        description="Reflected XSS in query string parameter.",
-        severity="Medium",
-        status="Confirmed",
-        confidence="Confirmed",
-        detection_source="manual"
+        rule_type="EXACT_DOMAIN",
+        target_type="IN_SCOPE",
+        pattern="fintech.local",
+        protocol="https,http",
+    ))
+    ep = Endpoint(
+        project_id=project.id,
+        fqdn="fintech.local",
+        url_path="/search",
+        http_method="GET",
     )
-    db_session.add(finding)
+    db_session.add(ep)
     await db_session.commit()
 
     service = FindingService(db_session)
+    finding = await service.create_finding(
+        project_id=project.id,
+        payload=FindingCreate(
+            endpoint_id=ep.id,
+            title="Cross-Site Scripting (Reflected)",
+            description="Reflected XSS in query string parameter.",
+            severity="Medium",
+            cwe_id="CWE-79",
+            affected_parameter="q",
+            status="Confirmed",
+            confidence="Confirmed",
+            detection_source="manual",
+            raw_request="GET /search?q=%3Cscript%3Ealert(1)%3C/script%3E HTTP/1.1\r\nHost: fintech.local\r\n\r\n",
+            raw_response="HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<script>alert(1)</script>",
+        ),
+        user_id=admin_user.id,
+    )
 
     # 1. Retest: Vulnerability Still Present
+    unpatched_transport = httpx.MockTransport(
+        lambda req: httpx.Response(200, headers={"Content-Type": "text/html"}, text="<p><script>alert(1)</script></p>")
+    )
     retest_unfixed = await service.retest_finding(
         finding_id=finding.id,
         project_id=project.id,
-        payload=FindingRetestRequest()
+        payload=FindingRetestRequest(),
+        http_transport=unpatched_transport,
     )
     assert retest_unfixed.is_remediated is False
     assert retest_unfixed.new_status == "Confirmed"
 
-    # 2. Retest: Developer Patched (Expected 400 Bad Request on sanitized input)
+    # 2. Retest: Developer Patched (400 Bad Request on sanitized input)
+    patched_transport = httpx.MockTransport(
+        lambda req: httpx.Response(400, json={"detail": "Invalid characters blocked"})
+    )
     retest_fixed = await service.retest_finding(
         finding_id=finding.id,
         project_id=project.id,
-        payload=FindingRetestRequest(expected_status_code=400)
+        payload=FindingRetestRequest(expected_status_code=400),
+        http_transport=patched_transport,
     )
     assert retest_fixed.is_remediated is True
     assert retest_fixed.new_status == "Remediated"

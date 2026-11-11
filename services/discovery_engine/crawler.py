@@ -5,7 +5,7 @@ boundaries, excluded path rules, and rate limits.
 """
 
 import asyncio
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
 from urllib.parse import urlparse
 
 import httpx
@@ -163,7 +163,7 @@ class ScopeEnforcedCrawler:
 
         client = self.custom_client or httpx.AsyncClient(
             headers={"User-Agent": USER_AGENT},
-            timeout=httpx.Timeout(5.0, connect=2.0),
+            timeout=httpx.Timeout(8.0, connect=4.0),
             verify=False,
             follow_redirects=True
         )
@@ -185,9 +185,10 @@ class ScopeEnforcedCrawler:
                 # Fetch URL
                 async with self.semaphore:
                     try:
-                        resp = await client.get(clean_url)
+                        resp = await asyncio.wait_for(client.get(clean_url), timeout=10.0)
                     except Exception as e:
-                        self.errors.append(f"Request failed for '{clean_url}': {str(e)}")
+                        err_detail = f"{type(e).__name__}: {e}" if str(e) else type(e).__name__
+                        self.errors.append(f"Request failed for '{clean_url}': {err_detail}")
                         continue
 
                 # Record endpoint
@@ -200,11 +201,16 @@ class ScopeEnforcedCrawler:
                     source="CRAWLER"
                 )
 
-                # Run Technology Detection
+                # Run Technology Detection (include both response Set-Cookie and shared jar cookies)
                 if config.detect_technologies:
+                    merged_cookies: Dict[str, str] = {}
+                    for k, v in client.cookies.items():
+                        merged_cookies[k] = v
+                    for k, v in resp.cookies.items():
+                        merged_cookies[k] = v
                     techs = detect_technologies(
                         headers=dict(resp.headers),
-                        cookies=[{"name": k, "value": v} for k, v in resp.cookies.items()],
+                        cookies=[{"name": k, "value": v} for k, v in merged_cookies.items()],
                         html_body=resp.text if "text/html" in content_type else None,
                         url=clean_url
                     )
@@ -261,7 +267,7 @@ class ScopeEnforcedCrawler:
                         for script_url in artifacts["scripts"]:
                             if self._is_url_in_scope(script_url):
                                 try:
-                                    js_resp = await client.get(script_url)
+                                    js_resp = await asyncio.wait_for(client.get(script_url), timeout=6.0)
                                     if js_resp.status_code == 200:
                                         routes = extract_js_endpoints(js_resp.text)
                                         parsed_base = urlparse(clean_url)
@@ -311,7 +317,7 @@ class ScopeEnforcedCrawler:
                 robots_url = f"{host_key}/robots.txt"
                 if self._is_url_in_scope(robots_url):
                     try:
-                        r = await client.get(robots_url)
+                        r = await asyncio.wait_for(client.get(robots_url), timeout=6.0)
                         if r.status_code == 200:
                             paths = parse_robots_txt(r.text)
                             for p in paths:
@@ -326,7 +332,7 @@ class ScopeEnforcedCrawler:
                 sitemap_url = f"{host_key}/sitemap.xml"
                 if self._is_url_in_scope(sitemap_url):
                     try:
-                        r = await client.get(sitemap_url)
+                        r = await asyncio.wait_for(client.get(sitemap_url), timeout=6.0)
                         if r.status_code == 200:
                             sitemap_urls = parse_sitemap_xml(r.text)
                             for u in sitemap_urls:

@@ -50,19 +50,20 @@ export default function FindingsPage() {
   const [dedupLoading, setDedupLoading] = useState(false);
 
   // New Finding Modal
-  const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [newFinding, setNewFinding] = useState({
+  const emptyFindingForm = {
     title: "",
     description: "",
     severity: "High",
-    cwe_id: "CWE-89",
-    wstg_id: "WSTG-INPV-05",
-    affected_parameter: "id",
-    cvss_score: 8.5,
-    remediation_guidance: "Use parameterized queries and prepared statements.",
-    raw_request: "POST /api/v1/query HTTP/1.1\nHost: target.corp\nContent-Type: application/json\n\n{\"id\": \"' OR 1=1--\"}",
-    raw_response: "HTTP/1.1 200 OK\nContent-Type: application/json\n\n[{\"user\":\"admin\",\"hash\":\"...\"}]",
-  });
+    cwe_id: "",
+    wstg_id: "",
+    affected_parameter: "",
+    cvss_score: "",
+    remediation_guidance: "",
+    raw_request: "",
+    raw_response: "",
+  };
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [newFinding, setNewFinding] = useState(emptyFindingForm);
   const [submittingFinding, setSubmittingFinding] = useState(false);
 
   const fetchFindings = async () => {
@@ -78,8 +79,8 @@ export default function FindingsPage() {
       setFindings(list);
       // If a finding is already selected, update it
       if (selectedFinding) {
-        const updated = data.find((f: any) => f.id === selectedFinding.id);
-        if (updated) setSelectedFinding(updated);
+        const updated = list.find((f: any) => f.id === selectedFinding.id);
+        setSelectedFinding(updated || null);
       }
     } catch (err: any) {
       console.error(err);
@@ -116,7 +117,7 @@ export default function FindingsPage() {
     setRetesting(true);
     setRetestResult(null);
     try {
-      const res = await api.retestFinding(currentProject.id, selectedFinding.id, 403);
+      const res = await api.retestFinding(currentProject.id, selectedFinding.id);
       setRetestResult(res);
       await fetchFindings();
     } catch (err: any) {
@@ -160,32 +161,29 @@ export default function FindingsPage() {
     if (!currentProject) return;
     setSubmittingFinding(true);
     try {
+      const parsedCvss =
+        newFinding.cvss_score.trim() !== "" && !Number.isNaN(Number(newFinding.cvss_score))
+          ? Number(newFinding.cvss_score)
+          : undefined;
       await api.createFinding(currentProject.id, {
-        title: newFinding.title,
-        description: newFinding.description,
+        title: newFinding.title.trim(),
+        description: newFinding.description.trim(),
         severity: newFinding.severity,
-        cwe_id: newFinding.cwe_id,
-        wstg_id: newFinding.wstg_id,
-        affected_parameter: newFinding.affected_parameter,
-        cvss_score: Number(newFinding.cvss_score),
-        remediation_guidance: newFinding.remediation_guidance,
-        raw_request: newFinding.raw_request,
-        raw_response: newFinding.raw_response,
+        ...(newFinding.cwe_id.trim() ? { cwe_id: newFinding.cwe_id.trim() } : {}),
+        ...(newFinding.wstg_id.trim() ? { wstg_id: newFinding.wstg_id.trim() } : {}),
+        ...(newFinding.affected_parameter.trim()
+          ? { affected_parameter: newFinding.affected_parameter.trim() }
+          : {}),
+        ...(parsedCvss !== undefined ? { cvss_score: parsedCvss } : {}),
+        ...(newFinding.remediation_guidance.trim()
+          ? { remediation_guidance: newFinding.remediation_guidance.trim() }
+          : {}),
+        ...(newFinding.raw_request.trim() ? { raw_request: newFinding.raw_request } : {}),
+        ...(newFinding.raw_response.trim() ? { raw_response: newFinding.raw_response } : {}),
         detection_source: "manual",
       });
       setCreateModalOpen(false);
-      setNewFinding({
-        title: "",
-        description: "",
-        severity: "High",
-        cwe_id: "CWE-89",
-        wstg_id: "WSTG-INPV-05",
-        affected_parameter: "id",
-        cvss_score: 8.5,
-        remediation_guidance: "Use parameterized queries and prepared statements.",
-        raw_request: "POST /api/v1/query HTTP/1.1\nHost: target.corp\nContent-Type: application/json\n\n{\"id\": \"' OR 1=1--\"}",
-        raw_response: "HTTP/1.1 200 OK\nContent-Type: application/json\n\n[{\"user\":\"admin\",\"hash\":\"...\"}]",
-      });
+      setNewFinding(emptyFindingForm);
       await fetchFindings();
     } catch (err: any) {
       alert("Creation failed: " + (err?.message || "Error"));
@@ -573,7 +571,11 @@ export default function FindingsPage() {
                     <span>
                       {retestResult.is_remediated ? "✔ Remediated (Vulnerability Closed)" : "✘ Vulnerable (Exploit Succeeded)"}
                     </span>
-                    <span>HTTP {retestResult.http_status_code}</span>
+                    <span>
+                      {retestResult.http_status_code != null
+                        ? `HTTP ${retestResult.http_status_code}`
+                        : "Unreachable"}
+                    </span>
                   </div>
                   <p className="text-[11px] text-slate-300">{retestResult.verification_notes}</p>
                 </div>
@@ -756,8 +758,14 @@ export default function FindingsPage() {
                     dedupData.clusters?.map((cluster: any, idx: number) => (
                       <div key={idx} className="p-3 bg-slate-900 rounded border border-slate-800 space-y-1">
                         <div className="flex items-center justify-between text-xs font-mono">
-                          <span className="text-cyan-400 font-semibold">{cluster.title || `Cluster #${idx + 1}`}</span>
-                          <span className="text-slate-400">{cluster.count} findings in cluster</span>
+                          <span className="text-cyan-400 font-semibold">
+                            {cluster.primary_title || cluster.title || `Cluster #${idx + 1}`}
+                          </span>
+                          <span className="text-slate-400">
+                            {cluster.duplicate_count != null
+                              ? `${cluster.duplicate_count + 1} findings in cluster`
+                              : `${cluster.count || 0} findings in cluster`}
+                          </span>
                         </div>
                         <div className="text-[10px] font-mono text-slate-500 truncate">
                           Sig: {cluster.signature_hash || cluster.signature}
@@ -810,7 +818,7 @@ export default function FindingsPage() {
                   required
                   value={newFinding.title}
                   onChange={(e) => setNewFinding({ ...newFinding, title: e.target.value })}
-                  placeholder="e.g. Unauthenticated Blind SQL Injection in /api/v1/search"
+                  placeholder="e.g. SQL Injection in product search parameter"
                   className="w-full bg-surface-elevated px-3 py-1.5 rounded text-xs text-slate-200 border border-slate-700 focus:outline-none focus:border-red-500 font-mono"
                 />
               </div>
@@ -838,13 +846,14 @@ export default function FindingsPage() {
                     min="0"
                     max="10"
                     value={newFinding.cvss_score}
-                    onChange={(e) => setNewFinding({ ...newFinding, cvss_score: parseFloat(e.target.value) })}
+                    onChange={(e) => setNewFinding({ ...newFinding, cvss_score: e.target.value })}
+                    placeholder="e.g. 8.5"
                     className="w-full bg-surface-elevated px-3 py-1.5 rounded text-xs text-slate-200 border border-slate-700 focus:outline-none focus:border-red-500 font-mono"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-mono text-slate-300 mb-1">CWE ID</label>
                   <input
@@ -856,12 +865,22 @@ export default function FindingsPage() {
                   />
                 </div>
                 <div>
+                  <label className="block text-xs font-mono text-slate-300 mb-1">WSTG ID</label>
+                  <input
+                    type="text"
+                    value={newFinding.wstg_id}
+                    onChange={(e) => setNewFinding({ ...newFinding, wstg_id: e.target.value })}
+                    placeholder="WSTG-INPV-05"
+                    className="w-full bg-surface-elevated px-3 py-1.5 rounded text-xs text-slate-200 border border-slate-700 focus:outline-none focus:border-red-500 font-mono"
+                  />
+                </div>
+                <div>
                   <label className="block text-xs font-mono text-slate-300 mb-1">Affected Parameter</label>
                   <input
                     type="text"
                     value={newFinding.affected_parameter}
                     onChange={(e) => setNewFinding({ ...newFinding, affected_parameter: e.target.value })}
-                    placeholder="id"
+                    placeholder="search"
                     className="w-full bg-surface-elevated px-3 py-1.5 rounded text-xs text-slate-200 border border-slate-700 focus:outline-none focus:border-red-500 font-mono"
                   />
                 </div>
@@ -886,6 +905,28 @@ export default function FindingsPage() {
                   value={newFinding.remediation_guidance}
                   onChange={(e) => setNewFinding({ ...newFinding, remediation_guidance: e.target.value })}
                   placeholder="Fix recommendation for engineering team..."
+                  className="w-full bg-surface-elevated p-2.5 rounded text-xs text-slate-200 border border-slate-700 focus:outline-none focus:border-red-500 font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-mono text-slate-300 mb-1">Raw HTTP Request (Optional)</label>
+                <textarea
+                  rows={2}
+                  value={newFinding.raw_request}
+                  onChange={(e) => setNewFinding({ ...newFinding, raw_request: e.target.value })}
+                  placeholder="GET /search?q=test HTTP/1.1&#10;Host: app.organization.com"
+                  className="w-full bg-surface-elevated p-2.5 rounded text-xs text-slate-200 border border-slate-700 focus:outline-none focus:border-red-500 font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-mono text-slate-300 mb-1">Raw HTTP Response (Optional)</label>
+                <textarea
+                  rows={2}
+                  value={newFinding.raw_response}
+                  onChange={(e) => setNewFinding({ ...newFinding, raw_response: e.target.value })}
+                  placeholder="HTTP/1.1 200 OK&#10;Content-Type: text/html"
                   className="w-full bg-surface-elevated p-2.5 rounded text-xs text-slate-200 border border-slate-700 focus:outline-none focus:border-red-500 font-mono"
                 />
               </div>

@@ -14,12 +14,31 @@ Tests the unbroken chain from project initialization to final sealed report deli
 
 import datetime
 import uuid
+import httpx
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from agents.base import BaseAgent
 from database.models.discovery import Technology
 from database.models.user import User
+from services.evidence_engine.finding_service import FindingService
+from services.execution_engine.runners import BaseTestRunner
+
+
+@pytest.fixture(autouse=True)
+def offline_agent_http_transport():
+    """Keep E2E workflow tests deterministic without external DNS lookups."""
+    transport = httpx.MockTransport(
+        lambda req: httpx.Response(200, headers={"Content-Type": "text/html"}, text="<html><body>ok</body></html>")
+    )
+    BaseAgent.default_http_transport = transport
+    BaseTestRunner.default_http_transport = transport
+    try:
+        yield
+    finally:
+        BaseAgent.default_http_transport = None
+        BaseTestRunner.default_http_transport = None
 
 
 @pytest.mark.asyncio
@@ -179,11 +198,17 @@ async def test_full_autonomous_pentest_lifecycle_e2e(
     assert dedup_resp.json()["total_findings"] >= 1
 
     # Simulate Developer Patch Verification (Expecting 403 Forbidden after patch)
-    retest_resp = await client.post(
-        f"/api/v1/projects/{project_id}/findings/{finding_id}/retest",
-        json={"expected_status_code": 403},
-        headers=headers
+    FindingService.default_http_transport = httpx.MockTransport(
+        lambda req: httpx.Response(403, json={"detail": "Forbidden"})
     )
+    try:
+        retest_resp = await client.post(
+            f"/api/v1/projects/{project_id}/findings/{finding_id}/retest",
+            json={"expected_status_code": 403},
+            headers=headers
+        )
+    finally:
+        FindingService.default_http_transport = None
     assert retest_resp.status_code == 200
     retest_result = retest_resp.json()
     assert retest_result["is_remediated"] is True

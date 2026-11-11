@@ -8,6 +8,7 @@ http://127.0.0.1:9000 specifically designed for end-to-end testing of Pentesa:
 - Patch Simulation Switch: Toggle patches ON/OFF to test Pentesa's Empirical Retest Engine!
 """
 
+import argparse
 import sqlite3
 from typing import Optional
 from fastapi import FastAPI, Header, HTTPException, Query, Request, Response
@@ -113,11 +114,18 @@ async def home_page():
         <div class="card">
             <h3>Simulated Remediation Controls</h3>
             <p>Use these buttons to toggle patches and test Pentesa's <strong>Empirical Patch Retest Button</strong>:</p>
-            <p>
-                <a href="/patch/toggle-sqli"><strong>Toggle SQL Injection Patch</strong></a> |
-                <a href="/patch/toggle-xss"><strong>Toggle XSS Patch</strong></a> |
+            <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+                <form method="post" action="/patch/toggle-sqli" style="margin:0;">
+                    <button type="submit" style="background:#0284c7; color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold;">Toggle SQL Injection Patch</button>
+                </form>
+                <form method="post" action="/patch/toggle-xss" style="margin:0;">
+                    <button type="submit" style="background:#0284c7; color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold;">Toggle XSS Patch</button>
+                </form>
+                <form method="post" action="/patch/toggle-idor" style="margin:0;">
+                    <button type="submit" style="background:#0284c7; color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold;">Toggle IDOR Patch</button>
+                </form>
                 <a href="/patch/status">View Patch Status</a>
-            </p>
+            </div>
         </div>
     </body>
     </html>
@@ -125,25 +133,27 @@ async def home_page():
 
 
 @app.get("/robots.txt", response_class=Response)
-async def robots_txt():
-    content = """User-agent: *
+async def robots_txt(request: Request):
+    origin = str(request.base_url).rstrip("/")
+    content = f"""User-agent: *
 Disallow: /debug/
 Disallow: /admin/
 Disallow: /api/v1/internal/
-Sitemap: http://127.0.0.1:9000/sitemap.xml
+Sitemap: {origin}/sitemap.xml
 """
     return Response(content=content, media_type="text/plain")
 
 
 @app.get("/sitemap.xml", response_class=Response)
-async def sitemap_xml():
-    content = """<?xml version="1.0" encoding="UTF-8"?>
+async def sitemap_xml(request: Request):
+    origin = str(request.base_url).rstrip("/")
+    content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-    <url><loc>http://127.0.0.1:9000/</loc></url>
-    <url><loc>http://127.0.0.1:9000/products</loc></url>
-    <url><loc>http://127.0.0.1:9000/search</loc></url>
-    <url><loc>http://127.0.0.1:9000/api/v1/users/1</loc></url>
-    <url><loc>http://127.0.0.1:9000/debug/config</loc></url>
+    <url><loc>{origin}/</loc></url>
+    <url><loc>{origin}/products</loc></url>
+    <url><loc>{origin}/search</loc></url>
+    <url><loc>{origin}/api/v1/users/1</loc></url>
+    <url><loc>{origin}/debug/config</loc></url>
 </urlset>"""
     return Response(content=content, media_type="application/xml")
 
@@ -268,19 +278,37 @@ async def debug_config():
 # 6. Simulated Patch Management (For Pentesa Retest Verification)
 # ============================================================================
 
-@app.get("/patch/toggle-sqli")
-async def toggle_sqli():
+def _is_automated_scanner(request: Request) -> bool:
+    ua = (request.headers.get("user-agent") or "").lower()
+    return ua.startswith("pentesa-")
+
+@app.api_route("/patch/toggle-sqli", methods=["GET", "POST"], include_in_schema=False)
+async def toggle_sqli(request: Request):
+    if _is_automated_scanner(request):
+        return {"message": "Ignored automated scanner probe on remediation endpoint", "state": PATCH_STATE}
     PATCH_STATE["sqli_patched"] = not PATCH_STATE["sqli_patched"]
     return {
         "message": f"SQL Injection is now {'PATCHED (Prepared Statement)' if PATCH_STATE['sqli_patched'] else 'VULNERABLE (Unsanitized Raw SQL)'}",
         "state": PATCH_STATE
     }
 
-@app.get("/patch/toggle-xss")
-async def toggle_xss():
+@app.api_route("/patch/toggle-xss", methods=["GET", "POST"], include_in_schema=False)
+async def toggle_xss(request: Request):
+    if _is_automated_scanner(request):
+        return {"message": "Ignored automated scanner probe on remediation endpoint", "state": PATCH_STATE}
     PATCH_STATE["xss_patched"] = not PATCH_STATE["xss_patched"]
     return {
         "message": f"Reflected XSS is now {'PATCHED (HTML Encoded)' if PATCH_STATE['xss_patched'] else 'VULNERABLE (Raw Reflection)'}",
+        "state": PATCH_STATE
+    }
+
+@app.api_route("/patch/toggle-idor", methods=["GET", "POST"], include_in_schema=False)
+async def toggle_idor(request: Request):
+    if _is_automated_scanner(request):
+        return {"message": "Ignored automated scanner probe on remediation endpoint", "state": PATCH_STATE}
+    PATCH_STATE["idor_patched"] = not PATCH_STATE["idor_patched"]
+    return {
+        "message": f"IDOR is now {'PATCHED (Secrets Redacted)' if PATCH_STATE['idor_patched'] else 'VULNERABLE (API Key Exposed)'}",
         "state": PATCH_STATE
     }
 
@@ -290,16 +318,22 @@ async def patch_status():
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Pentesa Vulnerable Mock Target Application")
+    parser.add_argument("--host", default="127.0.0.1", help="Bind host address (use 0.0.0.0 for Docker bridge access)")
+    parser.add_argument("--port", type=int, default=9000, help="Bind port (default: 9000)")
+    args = parser.parse_args()
+
+    display_host = "127.0.0.1" if args.host == "0.0.0.0" else args.host
     print("=" * 70)
     print(" [PENTESA DUMMY VULNERABLE TARGET APPLICATION]")
-    print(" Listening on http://127.0.0.1:9000")
+    print(f" Listening on http://{args.host}:{args.port} (local URL: http://{display_host}:{args.port})")
     print(" Target Endpoints:")
-    print("   - Homepage:          http://127.0.0.1:9000/")
-    print("   - SQLi Endpoint:     http://127.0.0.1:9000/products?search=' OR 1=1--")
-    print("   - Reflected XSS:     http://127.0.0.1:9000/search?q=<script>alert(1)</script>")
-    print("   - IDOR / BOLA:       http://127.0.0.1:9000/api/v1/users/1")
-    print("   - Debug Secrets:     http://127.0.0.1:9000/debug/config")
-    print("   - Swagger OpenAPI:   http://127.0.0.1:9000/docs")
+    print(f"   - Homepage:          http://{display_host}:{args.port}/")
+    print(f"   - SQLi Endpoint:     http://{display_host}:{args.port}/products?search=' OR 1=1--")
+    print(f"   - Reflected XSS:     http://{display_host}:{args.port}/search?q=<script>alert(1)</script>")
+    print(f"   - IDOR / BOLA:       http://{display_host}:{args.port}/api/v1/users/1")
+    print(f"   - Debug Secrets:     http://{display_host}:{args.port}/debug/config")
+    print(f"   - Swagger OpenAPI:   http://{display_host}:{args.port}/docs")
     print("=" * 70)
-    uvicorn.run(app, host="127.0.0.1", port=9000, log_level="warning")
+    uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
 

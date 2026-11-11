@@ -313,29 +313,28 @@ class ScopeValidator:
                         matched_rule_id=rule_id
                     )
 
-            # Check in scope CIDRs
+            # Check in scope CIDRs (aggregate across all matching rules so extra port rules aren't shadowed)
+            matched_cidr_ports: Set[int] = set()
+            matched_cidr_nets: List[str] = []
             for net, allowed_ports, rule in self._cidr_in_scope:
                 if ip_obj in net:
-                    if port not in allowed_ports:
+                    if port in allowed_ports:
+                        rule_id = getattr(rule, "id", None) or (rule.get("id") if isinstance(rule, dict) else None)
                         return ScopeCheckResult(
-                            is_in_scope=False,
-                            status="BLOCKED",
-                            reason=f"Target port {port} is not in allowed port list {sorted(list(allowed_ports))} for CIDR {net}",
+                            is_in_scope=True,
+                            status="ALLOWED",
+                            reason=f"Target IP {ip_obj} matches authorized in-scope CIDR {net}",
                             target_url=original_url,
                             evaluated_host=clean_host,
-                            evaluated_port=port
+                            evaluated_port=port,
+                            matched_rule_id=rule_id,
+                            resolved_ips=[str(ip_obj)]
                         )
-                    rule_id = getattr(rule, "id", None) or (rule.get("id") if isinstance(rule, dict) else None)
-                    return ScopeCheckResult(
-                        is_in_scope=True,
-                        status="ALLOWED",
-                        reason=f"Target IP {ip_obj} matches authorized in-scope CIDR {net}",
-                        target_url=original_url,
-                        evaluated_host=clean_host,
-                        evaluated_port=port,
-                        matched_rule_id=rule_id,
-                        resolved_ips=[str(ip_obj)]
-                    )
+                    matched_cidr_ports.update(allowed_ports)
+                    matched_cidr_nets.append(str(net))
+        else:
+            matched_cidr_ports = set()
+            matched_cidr_nets = []
 
         # 5. Check Domain Rules
         # Check explicit out-of-scope domain matches first
@@ -352,28 +351,42 @@ class ScopeValidator:
                     matched_rule_id=rule_id
                 )
 
-        # Check in-scope domain matches
+        # Check in-scope domain matches (aggregate across all matching rules)
+        matched_domain_ports: Set[int] = set()
         for rgx, allowed_ports, rule in self._compiled_domain_in_scope:
             if rgx.match(clean_host):
-                if port not in allowed_ports:
+                if port in allowed_ports:
+                    rule_id = getattr(rule, "id", None) or (rule.get("id") if isinstance(rule, dict) else None)
                     return ScopeCheckResult(
-                        is_in_scope=False,
-                        status="BLOCKED",
-                        reason=f"Target port {port} is not in authorized ports {sorted(list(allowed_ports))} for target {clean_host}",
+                        is_in_scope=True,
+                        status="ALLOWED",
+                        reason=f"Target host '{clean_host}' matches authorized in-scope domain rule",
                         target_url=original_url,
                         evaluated_host=clean_host,
-                        evaluated_port=port
+                        evaluated_port=port,
+                        matched_rule_id=rule_id
                     )
-                rule_id = getattr(rule, "id", None) or (rule.get("id") if isinstance(rule, dict) else None)
+                matched_domain_ports.update(allowed_ports)
+
+        if matched_domain_ports or matched_cidr_ports:
+            combined_ports = matched_domain_ports | matched_cidr_ports
+            if matched_domain_ports:
                 return ScopeCheckResult(
-                    is_in_scope=True,
-                    status="ALLOWED",
-                    reason=f"Target host '{clean_host}' matches authorized in-scope domain rule",
+                    is_in_scope=False,
+                    status="BLOCKED",
+                    reason=f"Target port {port} is not in authorized ports {sorted(list(combined_ports))} for target {clean_host}",
                     target_url=original_url,
                     evaluated_host=clean_host,
-                    evaluated_port=port,
-                    matched_rule_id=rule_id
+                    evaluated_port=port
                 )
+            return ScopeCheckResult(
+                is_in_scope=False,
+                status="BLOCKED",
+                reason=f"Target port {port} is not in allowed port list {sorted(list(combined_ports))} for CIDR {matched_cidr_nets[0]}",
+                target_url=original_url,
+                evaluated_host=clean_host,
+                evaluated_port=port
+            )
 
         return ScopeCheckResult(
             is_in_scope=False,

@@ -3,14 +3,39 @@
 import uuid
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy import select
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from apps.api.dependencies import get_current_user, record_audit_log, verify_project_access
+from database.models.agent import (
+    AgentDecision,
+    AgentExecution,
+    AgentToolCall,
+    ApprovalRequest,
+    WorkflowExecution,
+)
+from database.models.audit import AuditLog
+from database.models.discovery import (
+    Cookie,
+    DiscoveredDomain,
+    Endpoint,
+    SecurityHeader,
+    Technology,
+)
+from database.models.finding import (
+    FalsePositive,
+    Finding,
+    FindingEvidence,
+    FindingReproduction,
+    FindingStatusHistory,
+)
 from database.models.project import Project, ProjectMember
+from database.models.report import Report
 from database.models.scope import ScopeRule
+from database.models.tool import ToolConfiguration, ToolExecution
 from database.models.user import User
+from database.models.wstg import TestExecution, TestExecutionLog, WSTGTestInstance
 from database.session import get_db
 from packages.schemas.project import (
     ProjectCreate,
@@ -199,7 +224,100 @@ async def update_project(
         ip_address=client_ip
     )
 
-    return project
+    stmt = (
+        select(Project)
+        .options(
+            selectinload(Project.members).selectinload(ProjectMember.user),
+            selectinload(Project.scope_rules),
+        )
+        .where(Project.id == project_id)
+    )
+    return (await session.execute(stmt)).scalar_one()
+
+
+@router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_project(
+    project_id: uuid.UUID,
+    request: Request,
+    session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a project and all dependent assessment artifacts (requires LEAD or Admin)."""
+    project, _ = await verify_project_access(project_id, current_user, session, min_role="LEAD")
+    project_name = project.name
+
+    # Cancel any in-memory running workflow task tied to this project
+    from apps.api.routers import agents as agents_router
+
+    wf_ids = (
+        await session.execute(
+            select(WorkflowExecution.id).where(WorkflowExecution.project_id == project_id)
+        )
+    ).scalars().all()
+    for wf_id in wf_ids:
+        task = agents_router._ACTIVE_WORKFLOW_TASKS.pop(wf_id, None)
+        if task and not task.done():
+            task.cancel()
+
+    # Delete child entities in deterministic child-to-parent order
+    finding_ids = (
+        await session.execute(select(Finding.id).where(Finding.project_id == project_id))
+    ).scalars().all()
+    if finding_ids:
+        await session.execute(delete(FindingEvidence).where(FindingEvidence.finding_id.in_(finding_ids)))
+        await session.execute(delete(FindingReproduction).where(FindingReproduction.finding_id.in_(finding_ids)))
+        await session.execute(delete(FindingStatusHistory).where(FindingStatusHistory.finding_id.in_(finding_ids)))
+        await session.execute(delete(FalsePositive).where(FalsePositive.finding_id.in_(finding_ids)))
+        await session.execute(delete(Finding).where(Finding.project_id == project_id))
+
+    test_exec_ids = (
+        await session.execute(select(TestExecution.id).where(TestExecution.project_id == project_id))
+    ).scalars().all()
+    if test_exec_ids:
+        await session.execute(delete(TestExecutionLog).where(TestExecutionLog.execution_id.in_(test_exec_ids)))
+        await session.execute(delete(TestExecution).where(TestExecution.project_id == project_id))
+    await session.execute(delete(WSTGTestInstance).where(WSTGTestInstance.project_id == project_id))
+
+    agent_exec_ids = (
+        await session.execute(select(AgentExecution.id).where(AgentExecution.project_id == project_id))
+    ).scalars().all()
+    if agent_exec_ids:
+        await session.execute(delete(AgentDecision).where(AgentDecision.agent_execution_id.in_(agent_exec_ids)))
+        await session.execute(delete(AgentToolCall).where(AgentToolCall.agent_execution_id.in_(agent_exec_ids)))
+    await session.execute(delete(ApprovalRequest).where(ApprovalRequest.project_id == project_id))
+    await session.execute(delete(AgentExecution).where(AgentExecution.project_id == project_id))
+    await session.execute(delete(WorkflowExecution).where(WorkflowExecution.project_id == project_id))
+
+    await session.execute(delete(ToolExecution).where(ToolExecution.project_id == project_id))
+    await session.execute(delete(ToolConfiguration).where(ToolConfiguration.project_id == project_id))
+    await session.execute(delete(SecurityHeader).where(SecurityHeader.project_id == project_id))
+    await session.execute(delete(Cookie).where(Cookie.project_id == project_id))
+    await session.execute(delete(Technology).where(Technology.project_id == project_id))
+    await session.execute(delete(Endpoint).where(Endpoint.project_id == project_id))
+    await session.execute(delete(DiscoveredDomain).where(DiscoveredDomain.project_id == project_id))
+    await session.execute(delete(Report).where(Report.project_id == project_id))
+    await session.execute(delete(ScopeRule).where(ScopeRule.project_id == project_id))
+    await session.execute(delete(ProjectMember).where(ProjectMember.project_id == project_id))
+
+    # Detach historical audit logs from deleted project while preserving cryptographic hash chain
+    await session.execute(update(AuditLog).where(AuditLog.project_id == project_id).values(project_id=None))
+
+    await session.execute(delete(Project).where(Project.id == project_id))
+    await session.flush()
+
+    client_ip = request.client.host if request.client else None
+    await record_audit_log(
+        session=session,
+        action="PROJECT_DELETED",
+        resource_type="project",
+        resource_id=str(project_id),
+        project_id=None,
+        user_id=current_user.id,
+        details={"name": project_name},
+        ip_address=client_ip
+    )
+    await session.commit()
+    return None
 
 
 @router.post("/{project_id}/members", response_model=ProjectMemberResponse, status_code=status.HTTP_201_CREATED)
@@ -252,7 +370,12 @@ async def add_project_member(
         ip_address=client_ip
     )
 
-    return member
+    stmt = (
+        select(ProjectMember)
+        .options(selectinload(ProjectMember.user))
+        .where(ProjectMember.id == member.id)
+    )
+    return (await session.execute(stmt)).scalar_one()
 
 
 @router.delete("/{project_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -8,20 +8,93 @@ Enforces:
 """
 
 import abc
+import asyncio
 import datetime
 import traceback
 import uuid
 from typing import Any, Dict, List, Optional
+from urllib.parse import urlparse
 import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.models.discovery import Endpoint
+from database.models.discovery import Endpoint, Technology
 from database.models.project import Project
 from database.models.scope import ScopeRule
 from database.models.wstg import TestExecution, TestExecutionLog, WSTGTestInstance
 from packages.common.exceptions import ScopeViolationException
 from services.scope_engine.service import scope_service
+from services.scope_engine.validator import parse_port_range
+
+
+async def resolve_project_origin(
+    session: AsyncSession,
+    project_id: uuid.UUID,
+    fqdn: Optional[str] = None
+) -> Optional[str]:
+    """Infer scheme + host[:port] from discovered technologies or project scope rules."""
+    tech_stmt = select(Technology).where(
+        Technology.project_id == project_id,
+        Technology.detected_on_url.is_not(None)
+    )
+    tech_rows = (await session.execute(tech_stmt)).scalars().all()
+    for t in tech_rows:
+        parsed = urlparse(t.detected_on_url or "")
+        if parsed.scheme and parsed.netloc:
+            if fqdn is None or parsed.hostname == fqdn:
+                return f"{parsed.scheme}://{parsed.netloc}"
+
+    host = fqdn
+    rules = (
+        await session.execute(
+            select(ScopeRule).where(
+                ScopeRule.project_id == project_id,
+                ScopeRule.target_type == "IN_SCOPE"
+            )
+        )
+    ).scalars().all()
+
+    if not host:
+        proj = (await session.execute(select(Project).where(Project.id == project_id))).scalar_one_or_none()
+        if proj:
+            domains = getattr(proj, "target_domains", None) or []
+            if domains:
+                host = domains[0].lstrip("*.")
+            elif getattr(proj, "allowed_cidrs", None):
+                host = proj.allowed_cidrs[0].split("/")[0]
+        if not host:
+            for r in rules:
+                if r.pattern and not r.pattern.startswith("/"):
+                    host = r.pattern.split("/")[0].lstrip("*.")
+                    break
+    if not host:
+        return None
+
+    custom_ports: List[int] = []
+    explicit_standard_ports: set[int] = set()
+    protocols: List[str] = []
+    for r in rules:
+        if r.protocol:
+            protocols.append(r.protocol.lower())
+        if r.port_range:
+            ports = parse_port_range(r.port_range)
+            explicit_standard_ports.update(ports)
+            # Exclude 8443 when paired alongside standard 443 in the same rule
+            extra = {p for p in ports if p not in (80, 443) and not (p == 8443 and 443 in ports)}
+            custom_ports.extend(sorted(extra))
+
+    if custom_ports:
+        port = sorted(set(custom_ports), reverse=True)[0]
+        proto = "https" if port in (443, 8443, 4433) else "http"
+        return f"{proto}://{host}:{port}"
+
+    if explicit_standard_ports == {80}:
+        return f"http://{host}"
+
+    if protocols and all("http" in p and "https" not in p for p in protocols):
+        return f"http://{host}"
+
+    return f"https://{host}"
 
 
 class ExecutionContext:
@@ -89,6 +162,8 @@ class ExecutionResult:
 class BaseTestRunner(abc.ABC):
     """Abstract base class for all WSTG test runners."""
 
+    default_http_transport: Optional[httpx.AsyncBaseTransport] = None
+
     @abc.abstractmethod
     async def execute(self, ctx: ExecutionContext) -> ExecutionResult:
         """Execute test probe and return result."""
@@ -99,11 +174,12 @@ class SecurityHeadersRunner(BaseTestRunner):
     """Audits HTTP security headers (e.g. HSTS for WSTG-CONF-07, Clickjacking for WSTG-CLNT-09)."""
 
     async def execute(self, ctx: ExecutionContext) -> ExecutionResult:
-        target_url = ""
         if ctx.endpoint:
-            target_url = f"https://{ctx.endpoint.fqdn}{ctx.endpoint.url_path}"
+            origin = await resolve_project_origin(ctx.session, ctx.project_id, ctx.endpoint.fqdn)
+            base_origin = origin or f"https://{ctx.endpoint.fqdn}"
+            target_url = f"{base_origin}{ctx.endpoint.url_path}"
         else:
-            await ctx.log("WARNING", "No endpoint specified for security header test; using default base URL.")
+            await ctx.log("WARNING", "No endpoint specified for security header test; skipping HTTP probe.")
             return ExecutionResult(
                 status="NEEDS_REVIEW",
                 exit_code=0,
@@ -116,13 +192,23 @@ class SecurityHeadersRunner(BaseTestRunner):
         await ctx.log("INFO", f"Scope check passed. Probing headers at {target_url}")
 
         try:
-            async with httpx.AsyncClient(timeout=10.0, verify=False) as client:
-                resp = await client.get(target_url)
+            client_kwargs: Dict[str, Any] = {"timeout": 10.0, "verify": False}
+            if self.default_http_transport is not None:
+                client_kwargs["transport"] = self.default_http_transport
+            async with httpx.AsyncClient(**client_kwargs) as client:
+                resp = await asyncio.wait_for(client.get(target_url), timeout=10.0)
 
             headers = {k.lower(): v for k, v in resp.headers.items()}
             await ctx.log("INFO", f"Response received: HTTP {resp.status_code}")
 
             if ctx.wstg_id == "WSTG-CONF-07":  # HSTS check
+                if not target_url.lower().startswith("https://"):
+                    await ctx.log("WARNING", "Target uses plain HTTP; HSTS only applies over HTTPS.")
+                    return ExecutionResult(
+                        status="NEEDS_REVIEW",
+                        exit_code=0,
+                        summary="Target served over plaintext HTTP; HSTS requires HTTPS deployment."
+                    )
                 hsts = headers.get("strict-transport-security")
                 if not hsts:
                     await ctx.log("WARNING", "Missing Strict-Transport-Security header.")
@@ -183,7 +269,8 @@ class HttpMethodsRunner(BaseTestRunner):
                 summary="No endpoint specified for HTTP methods test."
             )
 
-        target_url = f"https://{ctx.endpoint.fqdn}{ctx.endpoint.url_path}"
+        origin = await resolve_project_origin(ctx.session, ctx.project_id, ctx.endpoint.fqdn)
+        target_url = f"{origin or f'https://{ctx.endpoint.fqdn}'}{ctx.endpoint.url_path}"
 
         # 1. Pre-flight Scope Check
         await ctx.check_scope(target_url)
@@ -194,10 +281,13 @@ class HttpMethodsRunner(BaseTestRunner):
         insecure_found = []
 
         try:
-            async with httpx.AsyncClient(timeout=10.0, verify=False) as client:
+            client_kwargs: Dict[str, Any] = {"timeout": 10.0, "verify": False}
+            if self.default_http_transport is not None:
+                client_kwargs["transport"] = self.default_http_transport
+            async with httpx.AsyncClient(**client_kwargs) as client:
                 for method in dangerous_methods:
                     await ctx.log("DEBUG", f"Testing method: {method}")
-                    resp = await client.request(method, target_url)
+                    resp = await asyncio.wait_for(client.request(method, target_url), timeout=10.0)
                     if resp.status_code == 200:
                         insecure_found.append(method)
                         await ctx.log("WARNING", f"Insecure HTTP method {method} returned HTTP 200 OK!")
@@ -229,16 +319,26 @@ class MetafilesRunner(BaseTestRunner):
     """Reviews robots.txt and sitemap.xml for information leakage (WSTG-INFO-03)."""
 
     async def execute(self, ctx: ExecutionContext) -> ExecutionResult:
-        fqdn = ctx.endpoint.fqdn if ctx.endpoint else "localhost"
-        target_url = f"https://{fqdn}/robots.txt"
+        fqdn = ctx.endpoint.fqdn if ctx.endpoint else None
+        origin = await resolve_project_origin(ctx.session, ctx.project_id, fqdn)
+        if not origin:
+            return ExecutionResult(
+                status="NEEDS_REVIEW",
+                exit_code=0,
+                summary="No endpoint or in-scope target domain available for metafile inspection."
+            )
+        target_url = f"{origin}/robots.txt"
 
         await ctx.check_scope(target_url)
 
         await ctx.log("INFO", f"Inspecting metafiles at {target_url}")
 
         try:
-            async with httpx.AsyncClient(timeout=10.0, verify=False) as client:
-                resp = await client.get(target_url)
+            client_kwargs: Dict[str, Any] = {"timeout": 10.0, "verify": False}
+            if self.default_http_transport is not None:
+                client_kwargs["transport"] = self.default_http_transport
+            async with httpx.AsyncClient(**client_kwargs) as client:
+                resp = await asyncio.wait_for(client.get(target_url), timeout=10.0)
 
             if resp.status_code == 200:
                 await ctx.log("INFO", f"robots.txt found ({len(resp.text)} bytes).")
@@ -280,7 +380,8 @@ class GenericProbeRunner(BaseTestRunner):
         await ctx.log("INFO", f"Starting automated execution for {ctx.wstg_id}")
 
         if ctx.endpoint:
-            target_url = f"https://{ctx.endpoint.fqdn}{ctx.endpoint.url_path}"
+            origin = await resolve_project_origin(ctx.session, ctx.project_id, ctx.endpoint.fqdn)
+            target_url = f"{origin or f'https://{ctx.endpoint.fqdn}'}{ctx.endpoint.url_path}"
             # Pre-flight scope check
             await ctx.check_scope(target_url)
             await ctx.log("INFO", f"Target endpoint {ctx.endpoint.http_method} {target_url} confirmed in-scope.")

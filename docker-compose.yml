@@ -8,17 +8,19 @@ services:
       dockerfile: infrastructure/docker/Dockerfile.api
     container_name: pentesa-api
     restart: unless-stopped
+    env_file:
+      - .env.production
     ports:
       - "8000:8000"
     environment:
       - PENTESA_ENV=production
       - PENTESA_DEBUG=false
-      - DATABASE_URL=postgresql+asyncpg://pentesa_user:pentesa_password@db:5432/pentesa
-      - REDIS_URL=redis://redis:6379/0
-      - REPORT_STORAGE_DIR=/app/data/reports
-      - EVIDENCE_STORAGE_DIR=/app/data/evidence
-      - EGRESS_PROXY_HOST=egress-proxy
-      - EGRESS_PROXY_PORT=8080
+      - PENTESA_DATABASE_URL=postgresql+asyncpg://pentesa_user:pentesa_password@db:5432/pentesa
+      - PENTESA_REDIS_URL=redis://redis:6379/0
+      - PENTESA_REPORT_STORAGE_DIR=/app/data/reports
+      - PENTESA_EVIDENCE_STORAGE_DIR=/app/data/evidence
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - pentesa-reports:/app/data/reports
       - pentesa-evidence:/app/data/evidence
@@ -26,8 +28,8 @@ services:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/healthz || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 3
-      start_period: 10s
+      retries: 5
+      start_period: 15s
     depends_on:
       db:
         condition: service_healthy
@@ -45,19 +47,23 @@ services:
       dockerfile: infrastructure/docker/Dockerfile.worker
     container_name: pentesa-worker
     restart: unless-stopped
+    env_file:
+      - .env.production
     environment:
       - PENTESA_ENV=production
       - PENTESA_DEBUG=false
-      - DATABASE_URL=postgresql+asyncpg://pentesa_user:pentesa_password@db:5432/pentesa
-      - REDIS_URL=redis://redis:6379/0
-      - REPORT_STORAGE_DIR=/app/data/reports
-      - EVIDENCE_STORAGE_DIR=/app/data/evidence
+      - PENTESA_DATABASE_URL=postgresql+asyncpg://pentesa_user:pentesa_password@db:5432/pentesa
+      - PENTESA_REDIS_URL=redis://redis:6379/0
+      - PENTESA_REPORT_STORAGE_DIR=/app/data/reports
+      - PENTESA_EVIDENCE_STORAGE_DIR=/app/data/evidence
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - pentesa-reports:/app/data/reports
       - pentesa-evidence:/app/data/evidence
     depends_on:
       api:
-        condition: service_started
+        condition: service_healthy
       db:
         condition: service_healthy
       redis:
@@ -66,20 +72,49 @@ services:
       - pentesa-internal
 
   # ---------------------------------------------------------------------------
-  # 3. PostgreSQL 16 Relational Store
+  # 3. Pentesa SOC Web Console (Next.js 14)
+  # ---------------------------------------------------------------------------
+  web:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.web
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+        API_INTERNAL_URL: http://api:8000
+    container_name: pentesa-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - API_INTERNAL_URL=http://api:8000
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - pentesa-internal
+
+  # ---------------------------------------------------------------------------
+  # 4. PostgreSQL 16 Relational Store
   # ---------------------------------------------------------------------------
   db:
     image: postgres:16-alpine
     container_name: pentesa-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: pentesa_user
-      POSTGRES_PASSWORD: pentesa_password
-      POSTGRES_DB: pentesa
+      POSTGRES_USER: ${POSTGRES_USER:-pentesa_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pentesa_password}
+      POSTGRES_DB: ${POSTGRES_DB:-pentesa}
     volumes:
       - pentesa-pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pentesa_user -d pentesa"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pentesa_user} -d ${POSTGRES_DB:-pentesa}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -87,7 +122,7 @@ services:
       - pentesa-internal
 
   # ---------------------------------------------------------------------------
-  # 4. Redis Task Broker & State Cache
+  # 5. Redis Task Broker & State Cache
   # ---------------------------------------------------------------------------
   redis:
     image: redis:7-alpine
@@ -112,4 +147,5 @@ volumes:
 
 networks:
   pentesa-internal:
+    name: pentesa-internal
     driver: bridge

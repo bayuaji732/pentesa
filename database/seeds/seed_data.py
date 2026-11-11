@@ -1,5 +1,6 @@
-"""Initial database seeding for administrative user and standard project."""
+"""Initial database seeding for administrative user and optional demo project."""
 
+import os
 import uuid
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
@@ -13,8 +14,7 @@ from services.execution_engine.planner import seed_wstg_catalog
 
 
 async def seed_initial_data(session: AsyncSession) -> None:
-    """Seed initial administrator account and initial demonstration project if empty."""
-    # Check if admin already exists
+    """Seed initial administrator account and OWASP WSTG catalog."""
     stmt = select(User).where(User.email == "admin@example.com")
     result = await session.execute(stmt)
     admin_user = result.scalar_one_or_none()
@@ -31,51 +31,50 @@ async def seed_initial_data(session: AsyncSession) -> None:
         session.add(admin_user)
         await session.flush()
 
-        # Create demo authorized project
-        now = datetime.now(timezone.utc)
-        demo_project = Project(
-            id=uuid.uuid4(),
-            name="Authorized Demo Pentest",
-            description="Initial demonstration project for authorized penetration testing.",
-            status="ACTIVE",
-            target_domains=["example.com", "*.example.com"],
-            allowed_cidrs=["93.184.216.34/32"],
-            excluded_paths=["/logout", "/admin/destroy"],
-            allow_internal_networks=False,
-            authorization_document_ref="ROE-DEMO-2026-001",
-            authorization_start=now - timedelta(days=1),
-            authorization_end=now + timedelta(days=30),
-            created_by=admin_user.id
-        )
-        session.add(demo_project)
-        await session.flush()
+        if os.getenv("PENTESA_SEED_DEMO_PROJECT", "").lower() == "true":
+            now = datetime.now(timezone.utc)
+            demo_project = Project(
+                id=uuid.uuid4(),
+                name="Authorized Demo Pentest",
+                description="Initial demonstration project for authorized penetration testing.",
+                status="ACTIVE",
+                target_domains=["example.com", "*.example.com"],
+                allowed_cidrs=["93.184.216.34/32"],
+                excluded_paths=["/logout", "/admin/destroy"],
+                allow_internal_networks=False,
+                authorization_document_ref="ROE-DEMO-2026-001",
+                authorization_start=now - timedelta(days=1),
+                authorization_end=now + timedelta(days=30),
+                created_by=admin_user.id
+            )
+            session.add(demo_project)
+            await session.flush()
 
-        # Add admin as Lead on demo project
-        membership = ProjectMember(
-            id=uuid.uuid4(),
-            project_id=demo_project.id,
-            user_id=admin_user.id,
-            role="LEAD"
-        )
-        session.add(membership)
+            membership = ProjectMember(
+                id=uuid.uuid4(),
+                project_id=demo_project.id,
+                user_id=admin_user.id,
+                role="LEAD"
+            )
+            session.add(membership)
 
-        # Add scope rules
-        rule1 = ScopeRule(
-            id=uuid.uuid4(),
-            project_id=demo_project.id,
-            rule_type="DOMAIN_WILDCARD",
-            target_type="IN_SCOPE",
-            pattern="*.example.com",
-            protocol="https,http"
-        )
-        rule2 = ScopeRule(
-            id=uuid.uuid4(),
-            project_id=demo_project.id,
-            rule_type="EXCLUDED_PATH",
-            target_type="OUT_OF_SCOPE",
-            pattern="/logout"
-        )
-        session.add_all([rule1, rule2])
+            rule1 = ScopeRule(
+                id=uuid.uuid4(),
+                project_id=demo_project.id,
+                rule_type="DOMAIN_WILDCARD",
+                target_type="IN_SCOPE",
+                pattern="*.example.com",
+                protocol="https,http"
+            )
+            rule2 = ScopeRule(
+                id=uuid.uuid4(),
+                project_id=demo_project.id,
+                rule_type="EXCLUDED_PATH",
+                target_type="OUT_OF_SCOPE",
+                pattern="/logout"
+            )
+            session.add_all([rule1, rule2])
+
         await session.commit()
 
     # Always ensure WSTG catalog is seeded and current

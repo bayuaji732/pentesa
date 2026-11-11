@@ -284,6 +284,8 @@ async def retest_finding(
             ip_address=ip_address,
             user_agent=user_agent
         )
+    except BadRequestError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except ResourceNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 

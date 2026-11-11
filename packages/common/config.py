@@ -16,17 +16,31 @@ class Settings(BaseSettings):
     )
 
     # Environment & Debug
-    env: str = Field(default="development", description="Environment mode: development, staging, production")
-    debug: bool = Field(default=False, description="Enable debug mode and detailed error traces")
-    log_level: str = Field(default="INFO", description="Logging level")
+    env: str = Field(
+        default="development",
+        validation_alias=AliasChoices("pentesa_env", "env"),
+        description="Environment mode: development, staging, production"
+    )
+    debug: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("pentesa_debug", "debug"),
+        description="Enable debug mode and detailed error traces"
+    )
+    log_level: str = Field(
+        default="INFO",
+        validation_alias=AliasChoices("pentesa_log_level", "log_level"),
+        description="Logging level"
+    )
 
     # Security & Cryptography
     secret_key: str = Field(
         default="pentesa-super-secret-default-key-change-in-production-1234567890",
+        validation_alias=AliasChoices("pentesa_secret_key", "secret_key"),
         description="JWT signature HMAC secret key"
     )
     master_key: str = Field(
         default="pentesa-master-key-32-bytes-long-change-in-prod!",
+        validation_alias=AliasChoices("pentesa_master_key", "master_key"),
         description="Master encryption key for credential vault"
     )
     jwt_algorithm: str = "HS256"
@@ -36,23 +50,40 @@ class Settings(BaseSettings):
     # Database
     database_url: str = Field(
         default="sqlite+aiosqlite:///./pentesa.db",
+        validation_alias=AliasChoices("pentesa_database_url", "database_url"),
         description="Async SQLAlchemy database connection string"
     )
 
     # Redis
     redis_url: str = Field(
         default="redis://localhost:6379/0",
+        validation_alias=AliasChoices("pentesa_redis_url", "redis_url"),
         description="Redis connection URL for task queue and cache"
     )
 
     # Outbound Egress Proxy (Layer 2 Scope Enforcement)
-    egress_proxy_host: str = "127.0.0.1"
-    egress_proxy_port: int = 8080
+    egress_proxy_host: str = Field(
+        default="127.0.0.1",
+        validation_alias=AliasChoices("pentesa_egress_proxy_host", "egress_proxy_host")
+    )
+    egress_proxy_port: int = Field(
+        default=8080,
+        validation_alias=AliasChoices("pentesa_egress_proxy_port", "egress_proxy_port")
+    )
 
     # Local Out-of-Band Callback Sink (OAST)
-    callback_sink_host: str = "127.0.0.1"
-    callback_sink_http_port: int = 8888
-    callback_sink_dns_port: int = 8053
+    callback_sink_host: str = Field(
+        default="127.0.0.1",
+        validation_alias=AliasChoices("pentesa_callback_sink_host", "callback_sink_host")
+    )
+    callback_sink_http_port: int = Field(
+        default=8888,
+        validation_alias=AliasChoices("pentesa_callback_sink_http_port", "callback_sink_http_port")
+    )
+    callback_sink_dns_port: int = Field(
+        default=8053,
+        validation_alias=AliasChoices("pentesa_callback_sink_dns_port", "callback_sink_dns_port")
+    )
 
     # Storage Mounts
     report_storage_dir: str = Field(
@@ -67,9 +98,24 @@ class Settings(BaseSettings):
     )
 
     # Safety Guardrails
-    default_max_rps: int = 50
-    max_fuzz_requests_without_approval: int = 5000
-    max_auth_attempts_without_approval: int = 15
+    default_max_rps: int = Field(
+        default=50,
+        validation_alias=AliasChoices("pentesa_default_max_rps", "default_max_rps")
+    )
+    max_fuzz_requests_without_approval: int = Field(
+        default=5000,
+        validation_alias=AliasChoices(
+            "pentesa_max_fuzz_requests_without_approval",
+            "max_fuzz_requests_without_approval"
+        )
+    )
+    max_auth_attempts_without_approval: int = Field(
+        default=15,
+        validation_alias=AliasChoices(
+            "pentesa_max_auth_attempts_without_approval",
+            "max_auth_attempts_without_approval"
+        )
+    )
 
     # LLM Provider Configuration
     llm_provider: str = Field(

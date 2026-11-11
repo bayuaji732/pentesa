@@ -24,7 +24,7 @@ export default function DiscoveryPage() {
   const [loading, setLoading] = useState(true);
 
   // Crawler State
-  const [seedUrl, setSeedUrl] = useState("http://127.0.0.1:9000/");
+  const [seedUrl, setSeedUrl] = useState("");
   const [maxDepth, setMaxDepth] = useState(2);
   const [maxPages, setMaxPages] = useState(25);
   const [crawling, setCrawling] = useState(false);
@@ -62,6 +62,7 @@ export default function DiscoveryPage() {
   };
 
   useEffect(() => {
+    setCrawlSummary(null);
     loadData();
   }, [currentProject]);
 
@@ -140,7 +141,13 @@ export default function DiscoveryPage() {
               Automated Scope-Enforced Web Crawler
             </h3>
             {crawlSummary && (
-              <span className="text-[11px] font-mono text-emerald-400">
+              <span
+                className={`text-[11px] font-mono ${
+                  crawlSummary.endpoints_discovered === 0 && crawlSummary.errors?.length > 0
+                    ? "text-amber-400"
+                    : "text-emerald-400"
+                }`}
+              >
                 Discovered: {crawlSummary.endpoints_discovered} endpoints, {crawlSummary.technologies_detected} technologies
               </span>
             )}
@@ -153,7 +160,7 @@ export default function DiscoveryPage() {
                 type="text"
                 value={seedUrl}
                 onChange={(e) => setSeedUrl(e.target.value)}
-                placeholder="http://127.0.0.1:9000/ (auto-detect if blank)"
+                placeholder="https://app.organization.com/ (auto-detect if blank)"
                 className="w-full h-8 px-2.5 bg-slate-900 border border-slate-700 rounded text-slate-100 font-mono text-xs focus:outline-none focus:border-red-500"
               />
             </div>
@@ -200,6 +207,19 @@ export default function DiscoveryPage() {
               )}
             </button>
           </form>
+
+          {crawlSummary?.errors && crawlSummary.errors.length > 0 && (
+            <div className="p-2.5 rounded border border-amber-800/80 bg-amber-950/30 text-[11px] font-mono text-amber-300 space-y-1">
+              <div className="font-semibold">
+                Crawler Warnings / Connection Errors ({crawlSummary.errors.length}):
+              </div>
+              {crawlSummary.errors.slice(0, 5).map((errMsg: string, idx: number) => (
+                <div key={idx} className="truncate" title={errMsg}>
+                  &bull; {errMsg}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

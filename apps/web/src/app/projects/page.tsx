@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useProject, Project } from "@/lib/ProjectContext";
+import { useToast } from "@/lib/ToastContext";
 import { api } from "@/lib/api";
 import {
   Layers,
@@ -19,6 +21,7 @@ import {
 export default function ProjectsPage() {
   const router = useRouter();
   const { currentProject, projects, setCurrentProject, refreshProjects, loading } = useProject();
+  const { toast, confirmDialog } = useToast();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -44,19 +47,33 @@ export default function ProjectsPage() {
 
   const [form, setForm] = useState(getInitialForm);
 
-  const handleSelectProject = (proj: Project) => {
+  const handleOpenEngagement = (proj: Project) => {
     setCurrentProject(proj);
+    const status = proj.status?.toUpperCase();
+    if (status === "COMPLETED") {
+      router.push("/reports");
+    } else if (status === "ACTIVE" || status === "IN_PROGRESS") {
+      router.push("/agents");
+    } else {
+      router.push("/scope");
+    }
   };
 
   const handleDeleteProject = async (proj: Project) => {
-    if (!confirm(`Delete engagement "${proj.name}"? This removes all project targets, scans, and findings.`)) {
-      return;
-    }
+    const ok = await confirmDialog({
+      title: "Delete Authorized Engagement",
+      message: `Permanently delete "${proj.name}"? This removes all associated target perimeters, scan execution histories, and discovered findings.`,
+      confirmText: "Delete Engagement",
+      isDestructive: true,
+    });
+    if (!ok) return;
+
     try {
       await api.deleteProject(proj.id);
       await refreshProjects();
+      toast.success(`Engagement "${proj.name}" deleted.`);
     } catch (err: any) {
-      alert("Project deletion failed: " + (err?.message || "Error"));
+      toast.error("Engagement deletion failed: " + (err?.message || "Error"));
     }
   };
 
@@ -93,9 +110,10 @@ export default function ProjectsPage() {
       setCurrentProject(created);
       setForm(getInitialForm());
       setCreateModalOpen(false);
-      alert("Engagement project created successfully!");
+      toast.success("Engagement authorized successfully! Entering Step 1: Scope & Boundaries.");
+      router.push("/scope");
     } catch (err: any) {
-      alert("Project creation failed: " + (err?.message || "Error"));
+      toast.error("Engagement authorization failed: " + (err?.message || "Error"));
     } finally {
       setSubmitting(false);
     }
@@ -179,7 +197,7 @@ export default function ProjectsPage() {
             onClick={refreshProjects}
             disabled={loading}
             className="p-2 rounded-md bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200 shadow-xs transition-colors"
-            title="Refresh projects"
+            title="Refresh engagements"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin text-blue-700" : ""}`} />
           </button>
@@ -216,7 +234,7 @@ export default function ProjectsPage() {
         </div>
       </div>
 
-      {/* Projects Grid */}
+      {/* Engagements Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {loading ? (
           [1, 2, 3].map((i) => (
@@ -225,7 +243,7 @@ export default function ProjectsPage() {
         ) : filteredProjects.length === 0 ? (
           <div className="col-span-full p-12 text-center bg-white border border-slate-200 rounded-xl shadow-xs">
             <Layers className="h-10 w-10 text-slate-400 mx-auto mb-3" />
-            <p className="text-sm font-bold text-slate-900">No engagement projects found</p>
+            <p className="text-sm font-bold text-slate-900">No engagements found</p>
             <p className="text-xs text-slate-500 mt-1">
               Click &quot;+ New Engagement&quot; to authorize and register your first target perimeter.
             </p>
@@ -237,10 +255,11 @@ export default function ProjectsPage() {
             return (
               <div
                 key={proj.id}
-                className={`p-5 rounded-xl border transition-all flex flex-col justify-between space-y-4 shadow-xs ${
+                onClick={() => handleOpenEngagement(proj)}
+                className={`p-5 rounded-xl border transition-all flex flex-col justify-between space-y-4 shadow-xs cursor-pointer group ${
                   isSelected
-                    ? "bg-white border-blue-600 ring-2 ring-blue-600/20"
-                    : "bg-white border-slate-200 hover:border-slate-300 hover:shadow-sm"
+                    ? "bg-blue-50/20 border-blue-600 ring-2 ring-blue-600/20 hover:border-blue-700"
+                    : "bg-white border-slate-200 hover:border-blue-400 hover:shadow-md"
                 }`}
               >
                 <div className="space-y-3">
@@ -254,7 +273,9 @@ export default function ProjectsPage() {
                   </div>
 
                   <div>
-                    <h3 className="text-base font-bold text-slate-900">{proj.name}</h3>
+                    <h3 className="text-base font-bold text-slate-900 group-hover:text-blue-900 transition-colors">
+                      {proj.name}
+                    </h3>
                     <p className="text-xs text-slate-600 line-clamp-2 mt-1 leading-normal">{proj.description}</p>
                   </div>
 
@@ -301,27 +322,36 @@ export default function ProjectsPage() {
 
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => handleDeleteProject(proj)}
-                      title="Delete engagement project"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteProject(proj);
+                      }}
+                      title="Delete engagement"
                       className="p-1.5 rounded-md bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-slate-200 hover:border-rose-200 transition-colors"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
-                    {isSelected ? (
-                      <button
-                        onClick={() => router.push("/")}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-900 border border-slate-200 transition-colors"
-                      >
-                        Open Dashboard <ArrowRight className="h-3 w-3" />
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleSelectProject(proj)}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-blue-900 hover:bg-blue-800 text-xs font-semibold text-white shadow-xs transition-colors"
-                      >
-                        Switch to Project
-                      </button>
-                    )}
+                    <Link
+                      href="/"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCurrentProject(proj);
+                      }}
+                      className="text-xs font-semibold text-slate-600 hover:text-blue-900 px-2 py-1.5 rounded hover:bg-slate-100 transition-colors"
+                      title="View Executive Overview & Metrics"
+                    >
+                      Overview
+                    </Link>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenEngagement(proj);
+                      }}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-blue-900 hover:bg-blue-800 text-xs font-semibold text-white shadow-xs transition-colors"
+                    >
+                      <span>Open</span>
+                      <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
+                    </button>
                   </div>
                 </div>
               </div>

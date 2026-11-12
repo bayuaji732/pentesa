@@ -16,6 +16,7 @@ import {
 import { useProject } from "@/lib/ProjectContext";
 import { api } from "@/lib/api";
 import { EngagementStepper } from "@/components/EngagementStepper";
+import { StepFooterNav } from "@/components/StepFooterNav";
 
 const WSTG_CATEGORIES = [
   { code: "ALL", name: "All Categories (106)" },
@@ -168,7 +169,7 @@ export default function WSTGPage() {
       <div className="space-y-6">
         <EngagementStepper />
         <div className="p-12 text-center text-xs font-mono text-slate-500 bg-white border border-slate-200 rounded-xl shadow-xs">
-          Please select an active engagement project to view WSTG v4.2 test matrix.
+          Please select an active engagement to view WSTG v4.2 test matrix.
         </div>
       </div>
     );
@@ -450,6 +451,17 @@ export default function WSTGPage() {
           </tbody>
         </table>
       </div>
+
+      {/* 6-Phase Linear Bottom Navigation */}
+      <StepFooterNav
+        currentStep={3}
+        prevStepPath="/discovery"
+        prevStepLabel="Attack Surface"
+        nextStepPath="/agents"
+        nextStepLabel="Approve Test Plan & Proceed to Agent DAG"
+        canAdvance={plan.length > 0}
+        advanceTooltip="Load or calculate WSTG test cases before advancing"
+      />
     </div>
   );
 }

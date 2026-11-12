@@ -12,11 +12,14 @@ import {
   Trash2,
 } from "lucide-react";
 import { useProject } from "@/lib/ProjectContext";
+import { useToast } from "@/lib/ToastContext";
 import { api } from "@/lib/api";
 import { EngagementStepper } from "@/components/EngagementStepper";
+import { StepFooterNav } from "@/components/StepFooterNav";
 
 export default function ScopePage() {
   const { currentProject } = useProject();
+  const { toast, confirmDialog } = useToast();
   const [rules, setRules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -68,8 +71,9 @@ export default function ScopePage() {
       setPortRange("");
       setNotes("");
       await loadRules();
+      toast.success("Scope boundary rule added successfully.");
     } catch (err: any) {
-      alert(`Failed to add scope rule: ${err.message}`);
+      toast.error(`Failed to add scope rule: ${err.message}`);
     } finally {
       setAddingRule(false);
     }
@@ -77,12 +81,20 @@ export default function ScopePage() {
 
   const handleDeleteRule = async (ruleId: string, rulePattern: string) => {
     if (!currentProject) return;
-    if (!confirm(`Remove scope rule "${rulePattern}"?`)) return;
+    const ok = await confirmDialog({
+      title: "Remove Scope Boundary Rule",
+      message: `Remove scope rule "${rulePattern}"? This will modify the enforced egress boundary filters.`,
+      confirmText: "Remove Rule",
+      isDestructive: true,
+    });
+    if (!ok) return;
+
     try {
       await api.deleteScopeRule(currentProject.id, ruleId);
       await loadRules();
+      toast.success(`Scope rule "${rulePattern}" removed.`);
     } catch (err: any) {
-      alert(`Failed to delete scope rule: ${err.message}`);
+      toast.error(`Failed to delete scope rule: ${err.message}`);
     }
   };
 
@@ -105,7 +117,7 @@ export default function ScopePage() {
       <div className="space-y-6">
         <EngagementStepper />
         <div className="p-12 text-center text-xs font-mono text-slate-500 bg-white border border-slate-200 rounded-xl shadow-xs">
-          Please select an active engagement project to configure scope boundaries.
+          Please select an active engagement to configure scope boundaries.
         </div>
       </div>
     );
@@ -341,6 +353,15 @@ export default function ScopePage() {
           </table>
         )}
       </div>
+
+      {/* 6-Phase Linear Bottom Navigation */}
+      <StepFooterNav
+        currentStep={1}
+        nextStepPath="/discovery"
+        nextStepLabel="Save & Continue to Attack Surface Recon"
+        canAdvance={rules.length > 0 || (currentProject.target_domains?.length || 0) > 0}
+        advanceTooltip="Please configure at least 1 in-scope target domain or boundary rule to proceed"
+      />
     </div>
   );
 }

@@ -12,11 +12,14 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useProject } from "@/lib/ProjectContext";
+import { useToast } from "@/lib/ToastContext";
 import { api } from "@/lib/api";
 import { EngagementStepper } from "@/components/EngagementStepper";
+import { StepFooterNav } from "@/components/StepFooterNav";
 
 export default function DiscoveryPage() {
   const { currentProject } = useProject();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<"endpoints" | "domains" | "tech">("endpoints");
   const [endpoints, setEndpoints] = useState<any[]>([]);
   const [domains, setDomains] = useState<any[]>([]);
@@ -76,8 +79,9 @@ export default function DiscoveryPage() {
       const res = await api.triggerCrawl(currentProject.id, maxDepth, maxPages, seeds);
       setCrawlSummary(res);
       await loadData();
+      toast.success(`Crawl finished: discovered ${res.endpoints_discovered || 0} endpoints.`);
     } catch (err: any) {
-      alert(`Crawl failed: ${err.message}`);
+      toast.error(`Crawl failed: ${err.message}`);
     } finally {
       setCrawling(false);
     }
@@ -88,7 +92,7 @@ export default function DiscoveryPage() {
       <div className="space-y-6">
         <EngagementStepper />
         <div className="p-12 text-center text-xs font-mono text-slate-500 bg-white border border-slate-200 rounded-xl shadow-xs">
-          Please select an active engagement project to view discovered attack surface.
+          Please select an active engagement to view discovered attack surface.
         </div>
       </div>
     );
@@ -406,6 +410,16 @@ export default function DiscoveryPage() {
           </div>
         )}
       </div>
+
+      {/* 6-Phase Linear Bottom Navigation */}
+      <StepFooterNav
+        currentStep={2}
+        prevStepPath="/scope"
+        prevStepLabel="Scope & RoE"
+        nextStepPath="/wstg"
+        nextStepLabel="Validate Surface & Continue to WSTG Plan"
+        canAdvance={true}
+      />
     </div>
   );
 }

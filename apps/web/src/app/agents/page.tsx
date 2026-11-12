@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import {
   Bot,
   Play,
@@ -16,10 +17,13 @@ import {
   Clock,
   X,
   Radio,
+  ArrowRight,
 } from "lucide-react";
 import { useProject } from "@/lib/ProjectContext";
+import { useToast } from "@/lib/ToastContext";
 import { api } from "@/lib/api";
 import { EngagementStepper } from "@/components/EngagementStepper";
+import { StepFooterNav } from "@/components/StepFooterNav";
 import { AgentTerminal, DecisionLog, ToolCallLog, ApprovalGate } from "@/components/AgentTerminal";
 
 const WORKFLOW_PHASES = [
@@ -43,6 +47,7 @@ const STANDBY_AGENTS = [
 
 export default function AgentsPage() {
   const { currentProject } = useProject();
+  const { confirmDialog } = useToast();
   const [workflow, setWorkflow] = useState<any>(null);
   const [decisions, setDecisions] = useState<DecisionLog[]>([]);
   const [toolCalls, setToolCalls] = useState<ToolCallLog[]>([]);
@@ -200,7 +205,13 @@ export default function AgentsPage() {
 
   const handleStop = async () => {
     if (!currentProject) return;
-    if (!confirm("Are you sure you want to emergency abort the active autonomous pentest?")) return;
+    const ok = await confirmDialog({
+      title: "Emergency Abort Autonomous Pentest",
+      message: "Are you sure you want to emergency abort the active autonomous pentest? All active agent child processes and sandbox tool executions will be immediately halted.",
+      confirmText: "Abort Assessment",
+      isDestructive: true,
+    });
+    if (!ok) return;
     setActionLoading(true);
     try {
       const res = await api.stopWorkflow(currentProject.id);
@@ -274,10 +285,19 @@ export default function AgentsPage() {
         <EngagementStepper />
         <div className="p-12 text-center bg-white border border-slate-200 rounded-xl shadow-xs">
           <Bot className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-          <h3 className="text-sm font-semibold text-slate-800">No Project Selected</h3>
+          <h3 className="text-sm font-semibold text-slate-800">No Engagement Selected</h3>
           <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-            Please select an active penetration testing engagement from the Projects directory to view the multi-agent DAG orchestrator.
+            Please select an active penetration testing engagement from the Engagements directory to view the multi-agent DAG orchestrator.
           </p>
+          <div className="mt-4">
+            <Link
+              href="/projects"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md bg-blue-900 hover:bg-blue-800 text-xs font-semibold text-white shadow-xs transition-colors"
+            >
+              <span>Select Engagement</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -709,6 +729,16 @@ export default function AgentsPage() {
           </table>
         </div>
       </div>
+
+      {/* 6-Phase Linear Bottom Navigation */}
+      <StepFooterNav
+        currentStep={4}
+        prevStepPath="/wstg"
+        prevStepLabel="OWASP WSTG Plan"
+        nextStepPath="/findings"
+        nextStepLabel="Proceed to Findings & Retest Engine"
+        canAdvance={true}
+      />
     </div>
   );
 }

@@ -2,8 +2,10 @@
 
 import React, { useEffect, useState } from "react";
 import { useProject } from "@/lib/ProjectContext";
+import { useToast } from "@/lib/ToastContext";
 import { api } from "@/lib/api";
 import { EngagementStepper } from "@/components/EngagementStepper";
+import { StepFooterNav } from "@/components/StepFooterNav";
 import {
   AlertTriangle,
   ShieldCheck,
@@ -22,6 +24,7 @@ import {
 
 export default function FindingsPage() {
   const { currentProject } = useProject();
+  const { toast } = useToast();
   const [findings, setFindings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -116,8 +119,9 @@ export default function FindingsPage() {
       const res = await api.retestFinding(currentProject.id, selectedFinding.id);
       setRetestResult(res);
       await fetchFindings();
+      toast.success(res.is_remediated ? "Fix verified: Vulnerability remediated." : "Exploit reproduction succeeded: target still vulnerable.");
     } catch (err: any) {
-      alert("Retest failed: " + (err?.message || "Unknown error"));
+      toast.error("Retest failed: " + (err?.message || "Unknown error"));
     } finally {
       setRetesting(false);
     }
@@ -133,8 +137,9 @@ export default function FindingsPage() {
         `Triage status transition to ${newStatus} via SOC Console`
       );
       await fetchFindings();
+      toast.success(`Finding status transitioned to "${newStatus}".`);
     } catch (err: any) {
-      alert("Status update failed: " + (err?.message || "Error"));
+      toast.error("Status update failed: " + (err?.message || "Error"));
     }
   };
 
@@ -146,7 +151,7 @@ export default function FindingsPage() {
       const data = await api.deduplicateFindings(currentProject.id);
       setDedupData(data);
     } catch (err: any) {
-      alert("Deduplication error: " + (err?.message || "Error"));
+      toast.error("Deduplication error: " + (err?.message || "Error"));
     } finally {
       setDedupLoading(false);
     }
@@ -181,8 +186,9 @@ export default function FindingsPage() {
       setCreateModalOpen(false);
       setNewFinding(emptyFindingForm);
       await fetchFindings();
+      toast.success("Security finding registered successfully.");
     } catch (err: any) {
-      alert("Creation failed: " + (err?.message || "Error"));
+      toast.error("Creation failed: " + (err?.message || "Error"));
     } finally {
       setSubmittingFinding(false);
     }
@@ -300,7 +306,7 @@ export default function FindingsPage() {
       <div className="space-y-6">
         <EngagementStepper />
         <div className="p-12 text-center text-xs font-mono text-slate-500 bg-white border border-slate-200 rounded-xl shadow-xs">
-          Please select an active engagement project to view findings and retest engine.
+          Please select an active engagement to view findings and retest engine.
         </div>
       </div>
     );
@@ -674,7 +680,7 @@ export default function FindingsPage() {
                                 ? ev.raw_response
                                 : ev.reproduction_curl;
                             navigator.clipboard.writeText(text || "");
-                            alert("Copied to clipboard!");
+                            toast.copy("Forensic evidence copied to clipboard.");
                           }}
                           className="flex items-center gap-1 text-slate-400 hover:text-slate-200 cursor-pointer"
                           title="Copy content"
@@ -963,6 +969,16 @@ export default function FindingsPage() {
           </form>
         </div>
       )}
+
+      {/* 6-Phase Linear Bottom Navigation */}
+      <StepFooterNav
+        currentStep={5}
+        prevStepPath="/agents"
+        prevStepLabel="Multi-Agent DAG"
+        nextStepPath="/reports"
+        nextStepLabel="Finalize Findings & Generate PTES Report"
+        canAdvance={true}
+      />
     </div>
   );
 }

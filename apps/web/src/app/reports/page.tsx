@@ -2,8 +2,10 @@
 
 import React, { useEffect, useState } from "react";
 import { useProject } from "@/lib/ProjectContext";
+import { useToast } from "@/lib/ToastContext";
 import { API_BASE_URL, api, getAuthToken } from "@/lib/api";
 import { EngagementStepper } from "@/components/EngagementStepper";
+import { StepFooterNav } from "@/components/StepFooterNav";
 import {
   FileText,
   FileCheck2,
@@ -20,6 +22,7 @@ import {
 
 export default function ReportsPage() {
   const { currentProject } = useProject();
+  const { toast } = useToast();
   const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -108,7 +111,7 @@ export default function ReportsPage() {
       <div className="space-y-6">
         <EngagementStepper />
         <div className="p-12 text-center text-xs font-mono text-slate-500 bg-white border border-slate-200 rounded-xl shadow-xs">
-          Please select an active engagement project to view and compile PTES reports.
+          Please select an active engagement to view and compile PTES reports.
         </div>
       </div>
     );
@@ -295,7 +298,7 @@ export default function ReportsPage() {
                 {verifyResult.title && (
                   <div className="text-[10px] text-slate-600 space-y-0.5 pt-1.5 border-t border-slate-200">
                     <div>Title: {verifyResult.title}</div>
-                    <div>Project: {verifyResult.project_name}</div>
+                    <div>Engagement: {verifyResult.project_name}</div>
                     <div>Format: {verifyResult.file_format || verifyResult.format || "PDF"}</div>
                     <div>
                       Published:{" "}
@@ -386,7 +389,7 @@ export default function ReportsPage() {
                     <button
                       onClick={() => {
                         navigator.clipboard.writeText(report.file_hash_sha256);
-                        alert("SHA-256 seal copied to clipboard!");
+                        toast.copy("SHA-256 seal copied to clipboard.");
                       }}
                       className="text-slate-400 hover:text-slate-700 p-1 shrink-0 cursor-pointer"
                       title="Copy SHA-256"
@@ -415,6 +418,13 @@ export default function ReportsPage() {
           )}
         </div>
       </div>
+
+      {/* 6-Phase Linear Bottom Navigation */}
+      <StepFooterNav
+        currentStep={6}
+        prevStepPath="/findings"
+        prevStepLabel="Findings & Retest"
+      />
     </div>
   );
 }

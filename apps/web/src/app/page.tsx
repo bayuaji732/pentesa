@@ -16,15 +16,16 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useProject } from "@/lib/ProjectContext";
+import { useToast } from "@/lib/ToastContext";
 import { api } from "@/lib/api";
 
 export default function DashboardPage() {
   const { currentProject, loading: projectLoading } = useProject();
+  const { toast } = useToast();
   const [findings, setFindings] = useState<any[]>([]);
   const [coverage, setCoverage] = useState<any>(null);
   const [workflow, setWorkflow] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [startingWorkflow, setStartingWorkflow] = useState(false);
 
   const loadData = async (isPoll = false) => {
     if (!currentProject) {
@@ -64,20 +65,6 @@ export default function DashboardPage() {
     return () => clearInterval(timer);
   }, [currentProject, workflow?.status]);
 
-  const handleStartAutonomousScan = async () => {
-    if (!currentProject) return;
-    setStartingWorkflow(true);
-    try {
-      const started = await api.startWorkflow(currentProject.id, true, "QUICK", true);
-      setWorkflow(started);
-      await loadData();
-    } catch (err: any) {
-      alert(`Workflow launch failed: ${err.message}`);
-    } finally {
-      setStartingWorkflow(false);
-    }
-  };
-
   // Severity counts
   const sevCounts = {
     Critical: findings.filter((f) => f.severity === "Critical").length,
@@ -102,15 +89,15 @@ export default function DashboardPage() {
         <div className="p-4 bg-white border border-slate-200 rounded-full text-slate-500 shadow-sm">
           <Layers className="h-8 w-8 text-blue-900" />
         </div>
-        <h2 className="text-lg font-bold text-slate-900">No Engagement Project Selected</h2>
+        <h2 className="text-lg font-bold text-slate-900">No Engagement Selected</h2>
         <p className="text-xs text-slate-500 leading-relaxed">
-          Please select or onboard an authorized penetration testing engagement to view telemetry and launch autonomous multi-agent testing.
+          Please select or authorize a penetration testing engagement to view telemetry and lifecycle status.
         </p>
         <Link
           href="/projects"
           className="px-4 py-2 bg-blue-900 hover:bg-blue-800 text-white rounded-md text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors"
         >
-          <span>Onboard New Project</span>
+          <span>Select or Authorize Engagement</span>
           <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </div>
@@ -137,35 +124,30 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Quick Actions */}
+        {/* Guided Lifecycle Actions */}
         <div className="flex items-center gap-2.5 shrink-0">
-          <button
-            onClick={handleStartAutonomousScan}
-            disabled={startingWorkflow || workflow?.status === "RUNNING"}
-            className="px-4 py-2 bg-blue-900 hover:bg-blue-800 text-white rounded-md text-xs font-semibold flex items-center gap-2 shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
-          >
-            {startingWorkflow ? (
-              <>
-                <span className="h-3.5 w-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Dispatching Agents...
-              </>
-            ) : workflow?.status === "RUNNING" ? (
-              <>
-                <Cpu className="h-3.5 w-3.5 animate-spin text-amber-300" />
-                Agents Active ({workflow?.current_phase || "SCANNING"})
-              </>
-            ) : (
-              <>
-                <Play className="h-3.5 w-3.5 fill-current" />
-                Launch Multi-Agent Assessment
-              </>
-            )}
-          </button>
+          {workflow?.status === "RUNNING" ? (
+            <Link
+              href="/agents"
+              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-md text-xs font-semibold flex items-center gap-2 shadow-xs transition-colors"
+            >
+              <Cpu className="h-3.5 w-3.5 animate-spin text-white" />
+              <span>Agents Active ({workflow?.current_phase || "SCANNING"}) →</span>
+            </Link>
+          ) : (
+            <Link
+              href="/scope"
+              className="px-4 py-2 bg-blue-900 hover:bg-blue-800 text-white rounded-md text-xs font-semibold flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
+            >
+              <span>Enter Guided Lifecycle (Step 1: Scope)</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          )}
           <Link
-            href="/reports"
+            href="/projects"
             className="px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-md text-xs font-medium transition-colors shadow-xs"
           >
-            View PTES Reports
+            All Engagements
           </Link>
         </div>
       </div>

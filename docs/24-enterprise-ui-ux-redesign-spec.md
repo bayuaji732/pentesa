@@ -251,7 +251,7 @@ To maintain operational integrity and avoid regressions:
 - Build `AgentTerminal.tsx` with monospace streaming window, auto-scroll, log filter chips, and inline HITL gate actions.
 - Connect to existing `/api/agents` and SSE task feeds.
 
-### Phase 8.4: Page-by-Page Light Theme Polish
+### Phase 8.4: Page-by-Page Light Theme Polish (Done)
 - Apply light tokens and high-contrast severity pills across:
   - `/projects` (Project directory table)
   - `/scope` (Scope boundary editor)
@@ -259,4 +259,50 @@ To maintain operational integrity and avoid regressions:
   - `/wstg` (OWASP test matrix)
   - `/findings` (Vulnerability detail and cryptographic chain retest view)
   - `/reports` (PTES report preview and download)
+
+---
+
+## 9. Lifecycle Gating, Zero-Sidebar Architecture & Enterprise Ergonomics (Phase 5 Spec)
+
+> **Architectural Decision Reference:** [ADR-010](decisions/ADR-010-guided-lifecycle-gating-and-engagement-architecture.md)
+
+### 9.1 Zero-Sidebar Header-Driven Layout
+1. **Retire Redundant Left Sidebar:** All 6 lifecycle links are removed from the left sidebar to eliminate duplicate navigation and maximize horizontal screen width for the live terminal, WSTG table, and evidence drawers.
+2. **Global Navigation in TopNav:**
+   - Brand anchor (`PENTESA`) links to `/projects` (Engagements Directory).
+   - Breadcrumb: `Engagements / [Active Engagement Name]`.
+   - Audit trail and operator settings accessible via header icons.
+
+### 9.2 Strict Progressive Lifecycle Gating
+1. **Unlocking Rules:**
+   - **Step 1 (Scope & RoE):** Prerequisite to unlock Step 2: At least 1 in-scope target/domain registered.
+   - **Step 2 (Attack Surface):** Prerequisite to unlock Step 3: At least 1 endpoint enumerated or seed verified.
+   - **Step 3 (OWASP WSTG Plan):** Prerequisite to unlock Step 4: Operator reviews and approves matrix applicability.
+   - **Step 4 (Multi-Agent DAG):** ONLY location where autonomous scans can be launched.
+   - **Step 5 (Findings & Retest):** Unlocked after at least 1 agent run pass.
+   - **Step 6 (PTES Report):** Unlocked after triage review.
+2. **Persistent Bottom Action Dock:**
+   Every step includes a bottom action bar with:
+   - Left: `[ ← Back to Step N-1 ]`
+   - Right: `[ Save & Continue to Step N+1 → ]` or `[ Proceed to Step N+1 → ]` (when optional).
+
+### 9.3 TopNav Dual Real-Time Clock
+- Replaces `"LAYER 1 & 2 SCOPE GUARD ENFORCED"` with a live dual SOC clock:
+  `[ 🕒 09:30:15 UTC  ·  16:30:15 WIB ]` (local timezone auto-detected via browser `Intl.DateTimeFormat`).
+
+### 9.4 In-App Toast & Confirmation System
+- Replace native browser `alert()` and `confirm()` with:
+  - An animated top-right Toast notification stack (Success, Error, Info, Clipboard).
+  - An accessible Confirmation Modal for high-risk destructive actions.
+
+### 9.5 Unified "Engagement" Terminology
+- Standardize all platform UI strings from "Project" to **"Engagement"** (e.g. *Engagements Directory*, *New Engagement*, *Active Engagement*), maintaining consistency with PTES and CREST standards.
+
+### 9.6 Phase 5 Implementation & Verification Status (Complete)
+- **Phase 5.1 (Zero-Sidebar & Dual Clock TopNav):** Complete. Sidebar removed from layout; dual real-time SOC clock (UTC & Local/WIB) ticking at 1s intervals; brand logo links to `/projects`.
+- **Phase 5.2 (In-App Toast & Confirmation Modal Engine):** Complete. `ToastContext.tsx` with zero dependencies; 100% of browser `alert()` and `confirm()` calls removed from all pages.
+- **Phase 5.3 (Strict Lifecycle Gating & Bottom Action Bars):** Complete. `StepFooterNav.tsx` mounted across all 6 lifecycle pages; `EngagementStepper.tsx` upgraded with padlocks; direct scan triggers removed from dashboard.
+- **Phase 5.4 (Directory Streamlining & Ergonomics):** Complete. `/projects` upgraded to single-click card navigation (`Open Engagement →`, direct link to active lifecycle step); new engagements auto-route to Step 1 (`/scope`); 100% terminology standardized to "Engagement".
+- **Container Verification:** Rebuilt and deployed via Docker Compose; all 10 frontend routes confirmed returning HTTP 200 OK.
+
 

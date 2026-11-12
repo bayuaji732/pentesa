@@ -1,7 +1,6 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
-  darkMode: ["class"],
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -10,41 +9,73 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        canvas: "#090d16",
+        canvas: "var(--bg-canvas)",
         surface: {
-          base: "#0f172a",
-          elevated: "#1e293b",
-          overlay: "#334155",
+          base: "var(--bg-surface-base)",
+          elevated: "var(--bg-surface-elevated)",
+          overlay: "var(--bg-surface-overlay)",
         },
         border: {
-          subtle: "#1e293b",
-          default: "#334155",
-          focused: "#64748b",
+          subtle: "var(--border-subtle)",
+          default: "var(--border-default)",
+          focused: "var(--border-focused)",
+        },
+        brand: {
+          primary: "var(--brand-primary)",
+          "primary-hover": "var(--brand-primary-hover)",
+          accent: "var(--brand-accent)",
         },
         sev: {
-          critical: "#ef4444",
-          "critical-bg": "#450a0a",
-          high: "#f97316",
-          "high-bg": "#431407",
-          medium: "#f59e0b",
-          "medium-bg": "#451a03",
-          low: "#3b82f6",
-          "low-bg": "#172554",
-          info: "#64748b",
-          "info-bg": "#0f172a",
+          critical: "var(--sev-critical)",
+          "critical-bg": "var(--sev-critical-bg)",
+          "critical-border": "var(--sev-critical-border)",
+          high: "var(--sev-high)",
+          "high-bg": "var(--sev-high-bg)",
+          "high-border": "var(--sev-high-border)",
+          medium: "var(--sev-medium)",
+          "medium-bg": "var(--sev-medium-bg)",
+          "medium-border": "var(--sev-medium-border)",
+          low: "var(--sev-low)",
+          "low-bg": "var(--sev-low-bg)",
+          "low-border": "var(--sev-low-border)",
+          info: "var(--sev-info)",
+          "info-bg": "var(--sev-info-bg)",
+          "info-border": "var(--sev-info-border)",
         },
         state: {
           passed: "#10b981",
           failed: "#ef4444",
-          running: "#06b6d4",
-          review: "#a855f7",
+          running: "#0284c7",
+          review: "#8b5cf6",
           blocked: "#f43f5e",
-          na: "#475569",
+          na: "#64748b",
         },
       },
       fontFamily: {
-        sans: ["Inter", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
-        mono: ["JetBrains Mono", "Courier New", "monospace"],
+        sans: [
+          "ui-sans-serif",
+          "system-ui",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Segoe UI",
+          "Roboto",
+          "Helvetica Neue",
+          "Arial",
+          "sans-serif",
+        ],
+        mono: [
+          "ui-monospace",
+          "SFMono-Regular",
+          "Menlo",
+          "Monaco",
+          "Consolas",
+          "Liberation Mono",
+          "Courier New",
+          "monospace",
+        ],
+      },
+      boxShadow: {
+        xs: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
       },
     },
   },
@@ -52,4 +83,3 @@ const config: Config = {
 };
 
 export default config;
-

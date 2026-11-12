@@ -10,10 +10,10 @@ import {
   CheckCircle2,
   Lock,
   RefreshCw,
-  ExternalLink,
 } from "lucide-react";
 import { useProject } from "@/lib/ProjectContext";
 import { api } from "@/lib/api";
+import { EngagementStepper } from "@/components/EngagementStepper";
 
 export default function DiscoveryPage() {
   const { currentProject } = useProject();
@@ -85,67 +85,73 @@ export default function DiscoveryPage() {
 
   if (!currentProject) {
     return (
-      <div className="p-8 text-center text-xs font-mono text-slate-500">
-        Please select a project to view discovered attack surface.
+      <div className="space-y-6">
+        <EngagementStepper />
+        <div className="p-12 text-center text-xs font-mono text-slate-500 bg-white border border-slate-200 rounded-xl shadow-xs">
+          Please select an active engagement project to view discovered attack surface.
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
+      <EngagementStepper />
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
         <div>
-          <h1 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-            <Globe className="h-5 w-5 text-cyan-400" />
+          <h1 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+            <Globe className="h-5 w-5 text-blue-900" />
             Attack Surface Discovery & Inventory
           </h1>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500 mt-0.5">
             Automated scope-enforced web crawling, endpoint inventory, and technology detection.
           </p>
         </div>
         <button
           onClick={loadData}
-          className="p-1.5 bg-slate-900 border border-slate-800 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-200 transition-colors"
+          disabled={loading}
+          className="p-2 bg-white border border-slate-200 hover:bg-slate-50 rounded-md text-slate-600 hover:text-slate-900 transition-colors shadow-xs"
+          title="Refresh discovery inventory"
         >
-          <RefreshCw className="h-4 w-4" />
+          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin text-blue-700" : ""}`} />
         </button>
       </div>
 
       {/* Crawl Control & Topology Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Topology Summary Cards */}
-        <div className="lg:col-span-1 grid grid-cols-3 gap-2">
-          <div className="bg-surface-base border border-slate-800 rounded-lg p-3 text-center">
-            <Radio className="h-4 w-4 text-cyan-400 mx-auto mb-1" />
-            <div className="text-xl font-bold font-mono text-slate-100">{domains.length}</div>
-            <div className="text-[10px] text-slate-400 font-mono">Domains</div>
+        <div className="lg:col-span-1 grid grid-cols-3 gap-2.5">
+          <div className="bg-white border border-slate-200 rounded-xl p-3.5 text-center shadow-xs">
+            <Radio className="h-4 w-4 text-blue-700 mx-auto mb-1.5" />
+            <div className="text-xl font-bold font-mono text-slate-900">{domains.length}</div>
+            <div className="text-[11px] text-slate-500 font-medium">Domains</div>
           </div>
-          <div className="bg-surface-base border border-slate-800 rounded-lg p-3 text-center">
-            <Layers className="h-4 w-4 text-emerald-400 mx-auto mb-1" />
-            <div className="text-xl font-bold font-mono text-slate-100">{endpoints.length}</div>
-            <div className="text-[10px] text-slate-400 font-mono">Endpoints</div>
+          <div className="bg-white border border-slate-200 rounded-xl p-3.5 text-center shadow-xs">
+            <Layers className="h-4 w-4 text-emerald-600 mx-auto mb-1.5" />
+            <div className="text-xl font-bold font-mono text-slate-900">{endpoints.length}</div>
+            <div className="text-[11px] text-slate-500 font-medium">Endpoints</div>
           </div>
-          <div className="bg-surface-base border border-slate-800 rounded-lg p-3 text-center">
-            <Server className="h-4 w-4 text-amber-400 mx-auto mb-1" />
-            <div className="text-xl font-bold font-mono text-slate-100">{technologies.length}</div>
-            <div className="text-[10px] text-slate-400 font-mono">Tech Stack</div>
+          <div className="bg-white border border-slate-200 rounded-xl p-3.5 text-center shadow-xs">
+            <Server className="h-4 w-4 text-amber-600 mx-auto mb-1.5" />
+            <div className="text-xl font-bold font-mono text-slate-900">{technologies.length}</div>
+            <div className="text-[11px] text-slate-500 font-medium">Tech Stack</div>
           </div>
         </div>
 
         {/* Crawler Launch Card */}
-        <div className="lg:col-span-2 bg-surface-base border border-slate-800 rounded-lg p-4 space-y-3">
+        <div className="lg:col-span-2 bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-3.5">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-              <Play className="h-4 w-4 text-red-400 fill-current" />
+            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <Play className="h-4 w-4 text-blue-900 fill-current" />
               Automated Scope-Enforced Web Crawler
             </h3>
             {crawlSummary && (
               <span
-                className={`text-[11px] font-mono ${
+                className={`text-[11px] font-mono font-medium ${
                   crawlSummary.endpoints_discovered === 0 && crawlSummary.errors?.length > 0
-                    ? "text-amber-400"
-                    : "text-emerald-400"
+                    ? "text-amber-700"
+                    : "text-emerald-700"
                 }`}
               >
                 Discovered: {crawlSummary.endpoints_discovered} endpoints, {crawlSummary.technologies_detected} technologies
@@ -154,54 +160,54 @@ export default function DiscoveryPage() {
           </div>
 
           <form onSubmit={handleTriggerCrawl} className="flex flex-wrap items-center gap-3">
-            <div className="flex-1 min-w-[220px] flex items-center gap-2 text-xs font-mono text-slate-300">
-              <label className="shrink-0 text-slate-400">Target URL:</label>
+            <div className="flex-1 min-w-[220px] flex items-center gap-2 text-xs text-slate-700">
+              <label className="shrink-0 font-semibold text-slate-700">Target URL:</label>
               <input
                 type="text"
                 value={seedUrl}
                 onChange={(e) => setSeedUrl(e.target.value)}
                 placeholder="https://app.organization.com/ (auto-detect if blank)"
-                className="w-full h-8 px-2.5 bg-slate-900 border border-slate-700 rounded text-slate-100 font-mono text-xs focus:outline-none focus:border-red-500"
+                className="w-full h-9 px-3 bg-white border border-slate-300 rounded-md text-slate-900 font-mono text-xs focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
               />
             </div>
 
-            <div className="flex items-center gap-2 text-xs font-mono text-slate-300">
-              <label className="text-slate-400">Depth:</label>
+            <div className="flex items-center gap-2 text-xs text-slate-700">
+              <label className="font-semibold text-slate-700">Depth:</label>
               <input
                 type="number"
                 min="1"
                 max="5"
                 value={maxDepth}
                 onChange={(e) => setMaxDepth(parseInt(e.target.value) || 1)}
-                className="w-14 h-8 px-2 bg-slate-900 border border-slate-700 rounded text-slate-100 font-mono text-center"
+                className="w-14 h-9 px-2 bg-white border border-slate-300 rounded-md text-slate-900 font-mono text-center text-xs focus:outline-none focus:border-blue-600"
               />
             </div>
 
-            <div className="flex items-center gap-2 text-xs font-mono text-slate-300">
-              <label className="text-slate-400">Max Pages:</label>
+            <div className="flex items-center gap-2 text-xs text-slate-700">
+              <label className="font-semibold text-slate-700">Max Pages:</label>
               <input
                 type="number"
                 min="5"
                 max="500"
                 value={maxPages}
                 onChange={(e) => setMaxPages(parseInt(e.target.value) || 10)}
-                className="w-16 h-8 px-2 bg-slate-900 border border-slate-700 rounded text-slate-100 font-mono text-center"
+                className="w-16 h-9 px-2 bg-white border border-slate-300 rounded-md text-slate-900 font-mono text-center text-xs focus:outline-none focus:border-blue-600"
               />
             </div>
 
             <button
               type="submit"
               disabled={crawling}
-              className="px-4 h-8 bg-red-600 hover:bg-red-500 text-white rounded text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50 shrink-0"
+              className="px-4 h-9 bg-blue-900 hover:bg-blue-800 text-white rounded-md text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
             >
               {crawling ? (
                 <>
-                  <span className="h-3 w-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Crawling In-Scope Targets...
+                  <span className="h-3.5 w-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Crawling Targets...
                 </>
               ) : (
                 <>
-                  <Play className="h-3 w-3 fill-current" />
+                  <Play className="h-3.5 w-3.5 fill-current" />
                   Start Crawler
                 </>
               )}
@@ -209,8 +215,8 @@ export default function DiscoveryPage() {
           </form>
 
           {crawlSummary?.errors && crawlSummary.errors.length > 0 && (
-            <div className="p-2.5 rounded border border-amber-800/80 bg-amber-950/30 text-[11px] font-mono text-amber-300 space-y-1">
-              <div className="font-semibold">
+            <div className="p-3 rounded-lg border border-amber-200 bg-amber-50 text-[11px] font-mono text-amber-800 space-y-1">
+              <div className="font-bold">
                 Crawler Warnings / Connection Errors ({crawlSummary.errors.length}):
               </div>
               {crawlSummary.errors.slice(0, 5).map((errMsg: string, idx: number) => (
@@ -224,35 +230,35 @@ export default function DiscoveryPage() {
       </div>
 
       {/* Tabs & Inventory Data Table */}
-      <div className="bg-surface-base border border-slate-800 rounded-lg overflow-hidden">
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
         {/* Navigation Tabs */}
-        <div className="flex border-b border-slate-800 bg-slate-900/60 px-2 pt-2">
+        <div className="flex border-b border-slate-200 bg-slate-50 px-2 pt-2">
           <button
             onClick={() => setActiveTab("endpoints")}
-            className={`px-4 py-2 text-xs font-mono font-semibold border-b-2 transition-all ${
+            className={`px-4 py-2.5 text-xs font-mono font-semibold border-b-2 transition-all ${
               activeTab === "endpoints"
-                ? "border-red-500 text-slate-100 bg-surface-base"
-                : "border-transparent text-slate-400 hover:text-slate-200"
+                ? "border-blue-900 text-blue-900 bg-white rounded-t-lg font-bold shadow-xs"
+                : "border-transparent text-slate-500 hover:text-slate-800"
             }`}
           >
             Discovered Endpoints ({endpoints.length})
           </button>
           <button
             onClick={() => setActiveTab("domains")}
-            className={`px-4 py-2 text-xs font-mono font-semibold border-b-2 transition-all ${
+            className={`px-4 py-2.5 text-xs font-mono font-semibold border-b-2 transition-all ${
               activeTab === "domains"
-                ? "border-red-500 text-slate-100 bg-surface-base"
-                : "border-transparent text-slate-400 hover:text-slate-200"
+                ? "border-blue-900 text-blue-900 bg-white rounded-t-lg font-bold shadow-xs"
+                : "border-transparent text-slate-500 hover:text-slate-800"
             }`}
           >
             Subdomains ({domains.length})
           </button>
           <button
             onClick={() => setActiveTab("tech")}
-            className={`px-4 py-2 text-xs font-mono font-semibold border-b-2 transition-all ${
+            className={`px-4 py-2.5 text-xs font-mono font-semibold border-b-2 transition-all ${
               activeTab === "tech"
-                ? "border-red-500 text-slate-100 bg-surface-base"
-                : "border-transparent text-slate-400 hover:text-slate-200"
+                ? "border-blue-900 text-blue-900 bg-white rounded-t-lg font-bold shadow-xs"
+                : "border-transparent text-slate-500 hover:text-slate-800"
             }`}
           >
             Detected Technologies ({technologies.length})
@@ -268,46 +274,59 @@ export default function DiscoveryPage() {
               </div>
             ) : (
               <table className="w-full text-left text-xs font-mono">
-                <thead className="bg-slate-900/80 text-slate-400 text-[10px] uppercase border-b border-slate-800">
+                <thead className="bg-slate-50/50 text-slate-600 text-[10px] uppercase border-b border-slate-200 font-bold tracking-wider">
                   <tr>
-                    <th className="py-2.5 px-3">Method</th>
-                    <th className="py-2.5 px-3">Host</th>
-                    <th className="py-2.5 px-3">URL Path</th>
-                    <th className="py-2.5 px-3">Authentication</th>
-                    <th className="py-2.5 px-3">Testing Status</th>
+                    <th className="py-2.5 px-3.5">Method</th>
+                    <th className="py-2.5 px-3.5">Host</th>
+                    <th className="py-2.5 px-3.5">URL Path</th>
+                    <th className="py-2.5 px-3.5">Authentication</th>
+                    <th className="py-2.5 px-3.5">Testing Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60">
+                <tbody className="divide-y divide-slate-100">
                   {endpoints.map((ep) => (
-                    <tr key={ep.id} className="hover:bg-slate-800/30 transition-colors">
-                      <td className="py-2.5 px-3">
+                    <tr key={ep.id} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="py-2.5 px-3.5">
                         <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold border ${
                             ep.http_method === "GET"
-                              ? "bg-blue-950 text-blue-400 border border-blue-800"
+                              ? "bg-blue-50 text-blue-800 border-blue-200"
                               : ep.http_method === "POST"
-                              ? "bg-emerald-950 text-emerald-400 border border-emerald-800"
+                              ? "bg-emerald-50 text-emerald-800 border-emerald-200"
                               : ep.http_method === "PUT"
-                              ? "bg-amber-950 text-amber-400 border border-amber-800"
-                              : "bg-red-950 text-red-400 border border-red-800"
+                              ? "bg-amber-50 text-amber-800 border-amber-200"
+                              : "bg-rose-50 text-rose-800 border-rose-200"
                           }`}
                         >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              ep.http_method === "GET"
+                                ? "bg-blue-600"
+                                : ep.http_method === "POST"
+                                ? "bg-emerald-600"
+                                : ep.http_method === "PUT"
+                                ? "bg-amber-600"
+                                : "bg-rose-600"
+                            }`}
+                          />
                           {ep.http_method}
                         </span>
                       </td>
-                      <td className="py-2.5 px-3 text-slate-300 font-bold">{ep.fqdn}</td>
-                      <td className="py-2.5 px-3 text-slate-100">{ep.url_path}</td>
-                      <td className="py-2.5 px-3">
+                      <td className="py-2.5 px-3.5 text-slate-700 font-semibold">{ep.fqdn}</td>
+                      <td className="py-2.5 px-3.5 text-slate-900 font-medium">{ep.url_path}</td>
+                      <td className="py-2.5 px-3.5">
                         {ep.auth_required ? (
-                          <span className="text-amber-400 flex items-center gap-1 text-[11px]">
+                          <span className="text-amber-800 font-semibold flex items-center gap-1 text-[11px]">
                             <Lock className="h-3 w-3" /> Required
                           </span>
                         ) : (
                           <span className="text-slate-500">Public</span>
                         )}
                       </td>
-                      <td className="py-2.5 px-3">
-                        <span className="text-cyan-400 font-semibold">{ep.testing_status || "Discovered"}</span>
+                      <td className="py-2.5 px-3.5">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-blue-50 text-blue-800 border border-blue-200">
+                          {ep.testing_status || "Discovered"}
+                        </span>
                       </td>
                     </tr>
                   ))}
@@ -326,24 +345,24 @@ export default function DiscoveryPage() {
               </div>
             ) : (
               <table className="w-full text-left text-xs font-mono">
-                <thead className="bg-slate-900/80 text-slate-400 text-[10px] uppercase border-b border-slate-800">
+                <thead className="bg-slate-50/50 text-slate-600 text-[10px] uppercase border-b border-slate-200 font-bold tracking-wider">
                   <tr>
-                    <th className="py-2.5 px-3">FQDN</th>
-                    <th className="py-2.5 px-3">Resolved IP(s)</th>
-                    <th className="py-2.5 px-3">Discovery Source</th>
-                    <th className="py-2.5 px-3">Status</th>
+                    <th className="py-2.5 px-3.5">FQDN</th>
+                    <th className="py-2.5 px-3.5">Resolved IP(s)</th>
+                    <th className="py-2.5 px-3.5">Discovery Source</th>
+                    <th className="py-2.5 px-3.5">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60">
+                <tbody className="divide-y divide-slate-100">
                   {domains.map((d) => (
-                    <tr key={d.id} className="hover:bg-slate-800/30 transition-colors">
-                      <td className="py-2.5 px-3 text-slate-100 font-bold">{d.fqdn}</td>
-                      <td className="py-2.5 px-3 text-slate-300">
+                    <tr key={d.id} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="py-2.5 px-3.5 text-slate-900 font-bold">{d.fqdn}</td>
+                      <td className="py-2.5 px-3.5 text-slate-700">
                         {Array.isArray(d.resolved_ips) ? d.resolved_ips.join(", ") : d.resolved_ips || "DNS Unresolved"}
                       </td>
-                      <td className="py-2.5 px-3 text-slate-400">{d.discovery_source || "CRAWLER"}</td>
-                      <td className="py-2.5 px-3">
-                        <span className="text-emerald-400 flex items-center gap-1 text-[11px]">
+                      <td className="py-2.5 px-3.5 text-slate-500">{d.discovery_source || "CRAWLER"}</td>
+                      <td className="py-2.5 px-3.5">
+                        <span className="text-emerald-700 font-semibold flex items-center gap-1 text-[11px]">
                           <CheckCircle2 className="h-3 w-3" /> Active
                         </span>
                       </td>
@@ -364,21 +383,21 @@ export default function DiscoveryPage() {
               </div>
             ) : (
               <table className="w-full text-left text-xs font-mono">
-                <thead className="bg-slate-900/80 text-slate-400 text-[10px] uppercase border-b border-slate-800">
+                <thead className="bg-slate-50/50 text-slate-600 text-[10px] uppercase border-b border-slate-200 font-bold tracking-wider">
                   <tr>
-                    <th className="py-2.5 px-3">Technology Component</th>
-                    <th className="py-2.5 px-3">Detected Version</th>
-                    <th className="py-2.5 px-3">Category</th>
-                    <th className="py-2.5 px-3">Detection Confidence</th>
+                    <th className="py-2.5 px-3.5">Technology Component</th>
+                    <th className="py-2.5 px-3.5">Detected Version</th>
+                    <th className="py-2.5 px-3.5">Category</th>
+                    <th className="py-2.5 px-3.5">Detection Confidence</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60">
+                <tbody className="divide-y divide-slate-100">
                   {technologies.map((t) => (
-                    <tr key={t.id} className="hover:bg-slate-800/30 transition-colors">
-                      <td className="py-2.5 px-3 text-slate-100 font-bold">{t.name}</td>
-                      <td className="py-2.5 px-3 text-cyan-400 font-semibold">{t.version || "Unknown"}</td>
-                      <td className="py-2.5 px-3 text-slate-400">{t.category}</td>
-                      <td className="py-2.5 px-3 text-emerald-400 font-bold">{t.confidence || 100}%</td>
+                    <tr key={t.id} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="py-2.5 px-3.5 text-slate-900 font-bold">{t.name}</td>
+                      <td className="py-2.5 px-3.5 text-blue-800 font-semibold">{t.version || "Unknown"}</td>
+                      <td className="py-2.5 px-3.5 text-slate-600">{t.category}</td>
+                      <td className="py-2.5 px-3.5 text-emerald-700 font-bold">{t.confidence || 100}%</td>
                     </tr>
                   ))}
                 </tbody>
@@ -390,4 +409,3 @@ export default function DiscoveryPage() {
     </div>
   );
 }
-

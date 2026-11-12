@@ -7,20 +7,20 @@ import {
   Pause,
   Square,
   Cpu,
-  BrainCircuit,
-  Wrench,
-  CheckCircle2,
-  Clock,
   RefreshCw,
   Coins,
   ShieldAlert,
   AlertCircle,
   RotateCcw,
-  Check,
+  CheckCircle2,
+  Clock,
   X,
+  Radio,
 } from "lucide-react";
 import { useProject } from "@/lib/ProjectContext";
 import { api } from "@/lib/api";
+import { EngagementStepper } from "@/components/EngagementStepper";
+import { AgentTerminal, DecisionLog, ToolCallLog, ApprovalGate } from "@/components/AgentTerminal";
 
 const WORKFLOW_PHASES = [
   "PLANNING",
@@ -32,44 +32,28 @@ const WORKFLOW_PHASES = [
 ] as const;
 
 const STANDBY_AGENTS = [
-  { agent_id: "AGT-01", agent_name: "Project Planning Agent", phase: "PLANNING", status: "STANDBY", prompt_tokens: 0, completion_tokens: 0, total_cost_usd: 0, decisions_count: 0, tool_calls_count: 0 },
-  { agent_id: "AGT-03", agent_name: "Reconnaissance & Surface Mapping Agent", phase: "RECON", status: "STANDBY", prompt_tokens: 0, completion_tokens: 0, total_cost_usd: 0, decisions_count: 0, tool_calls_count: 0 },
-  { agent_id: "AGT-05", agent_name: "WSTG Assessment Agent", phase: "WSTG_PLANNING", status: "STANDBY", prompt_tokens: 0, completion_tokens: 0, total_cost_usd: 0, decisions_count: 0, tool_calls_count: 0 },
-  { agent_id: "AGT-09", agent_name: "Vulnerability Detection Agent", phase: "ACTIVE_ASSESSMENT", status: "STANDBY", prompt_tokens: 0, completion_tokens: 0, total_cost_usd: 0, decisions_count: 0, tool_calls_count: 0 },
-  { agent_id: "AGT-07", agent_name: "Authorization Testing Agent", phase: "ACTIVE_ASSESSMENT", status: "STANDBY", prompt_tokens: 0, completion_tokens: 0, total_cost_usd: 0, decisions_count: 0, tool_calls_count: 0 },
-  { agent_id: "AGT-11", agent_name: "Vulnerability Validation & Quality Control Agent", phase: "VALIDATION", status: "STANDBY", prompt_tokens: 0, completion_tokens: 0, total_cost_usd: 0, decisions_count: 0, tool_calls_count: 0 },
-  { agent_id: "AGT-15", agent_name: "PTES Reporting Agent", phase: "REPORTING", status: "STANDBY", prompt_tokens: 0, completion_tokens: 0, total_cost_usd: 0, decisions_count: 0, tool_calls_count: 0 },
+  { agent_id: "AGT-01", agent_name: "Project Planning Agent", phase: "PLANNING", role: "Orchestration & RoE Validation", status: "STANDBY", prompt_tokens: 0, completion_tokens: 0, total_cost_usd: 0, decisions_count: 0, tool_calls_count: 0 },
+  { agent_id: "AGT-03", agent_name: "Reconnaissance & Surface Mapping Agent", phase: "RECON", role: "Endpoint & Subdomain Crawler", status: "STANDBY", prompt_tokens: 0, completion_tokens: 0, total_cost_usd: 0, decisions_count: 0, tool_calls_count: 0 },
+  { agent_id: "AGT-05", agent_name: "WSTG Assessment Agent", phase: "WSTG_PLANNING", role: "106-Test Matrix Generation", status: "STANDBY", prompt_tokens: 0, completion_tokens: 0, total_cost_usd: 0, decisions_count: 0, tool_calls_count: 0 },
+  { agent_id: "AGT-09", agent_name: "Vulnerability Detection Agent", phase: "ACTIVE_ASSESSMENT", role: "SQLi, XSS & Input Prober", status: "STANDBY", prompt_tokens: 0, completion_tokens: 0, total_cost_usd: 0, decisions_count: 0, tool_calls_count: 0 },
+  { agent_id: "AGT-07", agent_name: "Authorization Testing Agent", phase: "ACTIVE_ASSESSMENT", role: "IDOR & Privilege Escalation", status: "STANDBY", prompt_tokens: 0, completion_tokens: 0, total_cost_usd: 0, decisions_count: 0, tool_calls_count: 0 },
+  { agent_id: "AGT-11", agent_name: "Vulnerability Validation & QC Agent", phase: "VALIDATION", role: "False Positive Proof Filter", status: "STANDBY", prompt_tokens: 0, completion_tokens: 0, total_cost_usd: 0, decisions_count: 0, tool_calls_count: 0 },
+  { agent_id: "AGT-15", agent_name: "PTES Reporting Agent", phase: "REPORTING", role: "Technical & Executive Deliverable", status: "STANDBY", prompt_tokens: 0, completion_tokens: 0, total_cost_usd: 0, decisions_count: 0, tool_calls_count: 0 },
 ];
-
-function formatTraceContent(raw: string): { isJson: boolean; formatted: string } {
-  const trimmed = (raw || "").trim();
-  if (!trimmed) return { isJson: false, formatted: "(No reasoning trace captured)" };
-  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
-    try {
-      const parsed = JSON.parse(trimmed);
-      return { isJson: true, formatted: JSON.stringify(parsed, null, 2) };
-    } catch {
-      return { isJson: false, formatted: trimmed };
-    }
-  }
-  return { isJson: false, formatted: trimmed };
-}
 
 export default function AgentsPage() {
   const { currentProject } = useProject();
   const [workflow, setWorkflow] = useState<any>(null);
-  const [decisions, setDecisions] = useState<any[]>([]);
-  const [toolCalls, setToolCalls] = useState<any[]>([]);
-  const [approvals, setApprovals] = useState<any[]>([]);
+  const [decisions, setDecisions] = useState<DecisionLog[]>([]);
+  const [toolCalls, setToolCalls] = useState<ToolCallLog[]>([]);
+  const [approvals, setApprovals] = useState<ApprovalGate[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [scanProfile, setScanProfile] = useState<"QUICK" | "FULL" | "DEEP">("QUICK");
   const [autoApproveMedium, setAutoApproveMedium] = useState<boolean>(true);
   const [selectedAgentFilter, setSelectedAgentFilter] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"decisions" | "tools">("decisions");
   const [banner, setBanner] = useState<{ type: "info" | "success" | "error"; text: string } | null>(null);
-  const [justificationText, setJustificationText] = useState("");
   const prevStatusRef = useRef<string | null>(null);
 
   const loadData = useCallback(async (isPoll = false) => {
@@ -87,7 +71,6 @@ export default function AgentsPage() {
       if (wf.status === "fulfilled") {
         setWorkflow(wf.value);
       } else {
-        // 404 before first workflow launch -> treat cleanly as standby
         setWorkflow(null);
       }
       if (decs.status === "fulfilled") setDecisions(decs.value);
@@ -117,12 +100,11 @@ export default function AgentsPage() {
     if (!currentProject) return;
     const status = workflow?.status;
     if (prevStatusRef.current && prevStatusRef.current !== status && !["RUNNING", "PAUSED", "WAITING_APPROVAL"].includes(status || "")) {
-      // Final sync after transition to COMPLETED / FAILED / STOPPED
       loadData(true);
       if (status === "COMPLETED") {
         setBanner({
           type: "success",
-          text: `${workflow?.state_data?.scan_profile || scanProfile} workflow completed — all agent telemetry and traces synced.`,
+          text: `${workflow?.state_data?.scan_profile || scanProfile} workflow completed successfully — all agent telemetry and findings recorded.`,
         });
       } else if (status === "FAILED") {
         setBanner({
@@ -134,7 +116,7 @@ export default function AgentsPage() {
       loadData(true);
       setBanner({
         type: "info",
-        text: "Workflow paused at Human-in-the-Loop Approval Gate — approve or reject the pending action below.",
+        text: "Workflow paused at Human-in-the-Loop Approval Gate — operator authorization required.",
       });
     }
     prevStatusRef.current = status || null;
@@ -158,7 +140,7 @@ export default function AgentsPage() {
       setWorkflow(res);
       setBanner({
         type: "info",
-        text: `Launched ${scanProfile} multi-agent swarm (async streaming active)...`,
+        text: `Launched ${scanProfile} multi-agent DAG swarm — streaming live telemetry below.`,
       });
       await loadData(true);
     } catch (err: any) {
@@ -179,7 +161,7 @@ export default function AgentsPage() {
       } else {
         await loadData(false);
       }
-      setBanner({ type: "info", text: "Workflow state reset cleanly. Ready for new scan launch." });
+      setBanner({ type: "info", text: "Workflow state reset cleanly. Ready for new launch." });
     } catch (err: any) {
       setBanner({ type: "error", text: `Reset failed: ${err.message}` });
     } finally {
@@ -193,7 +175,7 @@ export default function AgentsPage() {
     try {
       const res = await api.pauseWorkflow(currentProject.id);
       setWorkflow(res);
-      setBanner({ type: "info", text: `Workflow paused at phase ${res.current_phase}. Click Resume DAG to continue.` });
+      setBanner({ type: "info", text: `Workflow paused at phase ${res.current_phase}. Click Resume to proceed.` });
     } catch (err: any) {
       setBanner({ type: "error", text: `Pause failed: ${err.message}` });
     } finally {
@@ -207,7 +189,7 @@ export default function AgentsPage() {
     try {
       const res = await api.resumeWorkflow(currentProject.id);
       setWorkflow(res);
-      setBanner({ type: "info", text: `Resumed workflow execution from ${res.current_phase}.` });
+      setBanner({ type: "info", text: `Resumed workflow execution from phase ${res.current_phase}.` });
       await loadData(true);
     } catch (err: any) {
       setBanner({ type: "error", text: `Resume failed: ${err.message}` });
@@ -218,12 +200,12 @@ export default function AgentsPage() {
 
   const handleStop = async () => {
     if (!currentProject) return;
-    if (!confirm("Are you sure you want to emergency abort the active pentest workflow?")) return;
+    if (!confirm("Are you sure you want to emergency abort the active autonomous pentest?")) return;
     setActionLoading(true);
     try {
       const res = await api.stopWorkflow(currentProject.id);
       setWorkflow(res);
-      setBanner({ type: "error", text: "Emergency stop triggered — active workflow aborted." });
+      setBanner({ type: "error", text: "Emergency stop triggered — active agents halted." });
       await loadData(true);
     } catch (err: any) {
       setBanner({ type: "error", text: `Stop failed: ${err.message}` });
@@ -232,29 +214,15 @@ export default function AgentsPage() {
     }
   };
 
-  const handleApprovalDecision = async (approvalId: string, decision: "APPROVE" | "REJECT") => {
+  const handleApprovalDecision = async (approvalId: string, decision: "APPROVE" | "REJECT", justification: string) => {
     if (!currentProject) return;
-    const trimmed = justificationText.trim();
-    if (trimmed.length < 5) {
-      setBanner({
-        type: "error",
-        text: "Please enter an operator audit justification (minimum 5 characters) before approving or rejecting.",
-      });
-      return;
-    }
     setActionLoading(true);
     try {
-      await api.decideApproval(
-        currentProject.id,
-        approvalId,
-        decision,
-        trimmed
-      );
-      setJustificationText("");
+      await api.decideApproval(currentProject.id, approvalId, decision, justification);
       setBanner({
         type: decision === "APPROVE" ? "success" : "info",
         text: decision === "APPROVE"
-          ? "Approval granted — resuming multi-agent workflow execution."
+          ? "Approval granted — resumed multi-agent workflow execution."
           : "Action rejected — workflow continuing safely without active probe.",
       });
       await loadData(false);
@@ -299,99 +267,118 @@ export default function AgentsPage() {
   }, [agentsList]);
 
   const activeScanProfile = (workflow?.state_data?.scan_profile || scanProfile || "QUICK").toUpperCase();
-  const pendingApprovals = approvals.filter((a) => a.status === "PENDING");
 
   if (!currentProject) {
     return (
-      <div className="p-8 text-center text-xs font-mono text-slate-500">
-        Please select a project to view autonomous multi-agent orchestrator.
+      <div className="space-y-6">
+        <EngagementStepper />
+        <div className="p-12 text-center bg-white border border-slate-200 rounded-xl shadow-xs">
+          <Bot className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+          <h3 className="text-sm font-semibold text-slate-800">No Project Selected</h3>
+          <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+            Please select an active penetration testing engagement from the Projects directory to view the multi-agent DAG orchestrator.
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header & Controls */}
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+      {/* 6-Phase Engagement Lifecycle Stepper */}
+      <EngagementStepper />
+
+      {/* Header & Controls Toolbar */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-xs flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div>
-          <h1 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-            <Bot className="h-5 w-5 text-cyan-400" />
-            Autonomous Multi-Agent DAG Orchestrator
-          </h1>
-          <p className="text-xs text-slate-400">
-            Hierarchical supervision across 7 specialized agents with live token accounting, tool telemetry, and thought trace auditing.
-          </p>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-700">
+              <Bot className="h-5 w-5" />
+            </div>
+            <div>
+              <h1 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                Autonomous Multi-Agent DAG Orchestrator
+                <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                  Phase 4 of 6
+                </span>
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Hierarchical LangGraph supervision across 7 specialized offensive agents with live token accounting and transparent reasoning traces.
+              </p>
+            </div>
+          </div>
         </div>
 
-        {/* Workflow Actions & Scan Profile */}
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
-          {/* Scan Profile Selector */}
-          <div className="flex items-center rounded border border-slate-700 bg-slate-900 p-0.5 text-xs font-mono">
+        {/* Scan Profiles & Execution Buttons */}
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          {/* Profile Switcher */}
+          <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-1 text-xs font-medium">
             <button
               onClick={() => setScanProfile("QUICK")}
               disabled={actionLoading || ["RUNNING", "PAUSED", "WAITING_APPROVAL"].includes(workflow?.status)}
-              className={`px-2.5 py-1 rounded transition-colors disabled:opacity-60 ${
+              className={`px-3 py-1.5 rounded-md transition-all disabled:opacity-60 text-xs ${
                 scanProfile === "QUICK"
-                  ? "bg-cyan-600 text-white font-bold"
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-white text-blue-900 font-bold shadow-xs border border-slate-200/80"
+                  : "text-slate-600 hover:text-slate-900"
               }`}
               title="Quick Scan: Live LiteLLM reasoning + lightweight WSTG smoke checks (~10-20s)"
             >
-              ⚡ Quick Scan
+              ⚡ Quick
             </button>
             <button
               onClick={() => setScanProfile("FULL")}
               disabled={actionLoading || ["RUNNING", "PAUSED", "WAITING_APPROVAL"].includes(workflow?.status)}
-              className={`px-2.5 py-1 rounded transition-colors disabled:opacity-60 ${
+              className={`px-3 py-1.5 rounded-md transition-all disabled:opacity-60 text-xs ${
                 scanProfile === "FULL"
-                  ? "bg-cyan-600 text-white font-bold"
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-white text-blue-900 font-bold shadow-xs border border-slate-200/80"
+                  : "text-slate-600 hover:text-slate-900"
               }`}
-              title="Full Scan: Live LLM reasoning + standard WSTG & header audit (~15-30s)"
+              title="Full Scan: Standard WSTG matrix + header audit + passive surface inspection (~15-30s)"
             >
-              🛡️ Full Scan
+              🛡️ Full
             </button>
             <button
               onClick={() => setScanProfile("DEEP")}
               disabled={actionLoading || ["RUNNING", "PAUSED", "WAITING_APPROVAL"].includes(workflow?.status)}
-              className={`px-2.5 py-1 rounded transition-colors disabled:opacity-60 ${
+              className={`px-3 py-1.5 rounded-md transition-all disabled:opacity-60 text-xs ${
                 scanProfile === "DEEP"
-                  ? "bg-cyan-600 text-white font-bold"
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-white text-blue-900 font-bold shadow-xs border border-slate-200/80"
+                  : "text-slate-600 hover:text-slate-900"
               }`}
-              title="Deep Scan: Live LLM + Nuclei/Ffuf + active SQLi/XSS/Debug probes (~30-60s)"
+              title="Deep Scan: Full active SQLi/XSS/Debug probes + Nuclei fuzzing (~30-60s)"
             >
-              🔬 Deep Scan
+              🔬 Deep
             </button>
           </div>
 
-          {/* HITL Approval Gate Toggle */}
+          {/* HITL Auto-Approve Checkbox */}
           <label
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded border border-slate-800 bg-slate-900/70 text-[11px] font-mono text-slate-300 cursor-pointer select-none"
-            title="When unchecked on Full/Deep scans, the agent pauses at an Approval Gate before active scanning"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50/80 text-[11px] font-sans text-slate-700 cursor-pointer select-none hover:bg-slate-100/80 transition-colors"
+            title="When unchecked on Full/Deep scans, the agent pauses at an Approval Gate before medium-risk probes"
           >
             <input
               type="checkbox"
               checked={autoApproveMedium}
               onChange={(e) => setAutoApproveMedium(e.target.checked)}
-              className="accent-cyan-500 rounded"
+              className="accent-blue-600 rounded"
             />
             Auto-Approve Medium
           </label>
 
+          {/* Action Trigger Buttons */}
           {workflow?.status === "RUNNING" ? (
             <>
               <button
                 onClick={handlePause}
                 disabled={actionLoading}
-                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors disabled:opacity-50"
               >
                 <Pause className="h-3.5 w-3.5" /> Pause
               </button>
               <button
                 onClick={handleStop}
                 disabled={actionLoading}
-                className="px-3 py-1.5 bg-red-700 hover:bg-red-600 text-white rounded text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors disabled:opacity-50"
               >
                 <Square className="h-3.5 w-3.5" /> Stop
               </button>
@@ -401,23 +388,23 @@ export default function AgentsPage() {
               <button
                 onClick={handleResume}
                 disabled={actionLoading}
-                className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors disabled:opacity-50"
               >
                 <Play className="h-3.5 w-3.5 fill-current" /> Resume DAG
               </button>
               <button
                 onClick={handleStop}
                 disabled={actionLoading}
-                className="px-3 py-1.5 bg-red-700 hover:bg-red-600 text-white rounded text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors disabled:opacity-50"
               >
-                <Square className="h-3.5 w-3.5" /> Stop
+                <Square className="h-3.5 w-3.5" /> Abort
               </button>
             </>
           ) : workflow?.status === "WAITING_APPROVAL" ? (
             <button
               onClick={handleStop}
               disabled={actionLoading}
-              className="px-3 py-1.5 bg-red-700 hover:bg-red-600 text-white rounded text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50"
+              className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors disabled:opacity-50"
             >
               <Square className="h-3.5 w-3.5" /> Abort Gate
             </button>
@@ -425,7 +412,7 @@ export default function AgentsPage() {
             <button
               onClick={handleStart}
               disabled={actionLoading}
-              className="px-4 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-lg shadow-red-950/40 disabled:opacity-50"
+              className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs hover:shadow disabled:opacity-50 cursor-pointer"
             >
               <Play className="h-3.5 w-3.5 fill-current" />
               {actionLoading ? "Launching..." : `Start ${scanProfile} Scan`}
@@ -433,126 +420,131 @@ export default function AgentsPage() {
           )}
 
           {workflow?.status &&
-            ["FAILED", "STOPPED", "INTERRUPTED", "RUNNING", "PAUSED", "WAITING_APPROVAL"].includes(workflow.status) && (
+            ["FAILED", "STOPPED", "INTERRUPTED", "RUNNING", "PAUSED", "WAITING_APPROVAL", "COMPLETED"].includes(workflow.status) && (
               <button
                 onClick={handleReset}
                 disabled={actionLoading}
-                title="Reset workflow to clean state"
-                className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 rounded text-xs font-mono flex items-center gap-1 transition-colors disabled:opacity-50"
+                title="Reset workflow to standby state"
+                className="px-2.5 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors disabled:opacity-50 shadow-xs cursor-pointer"
               >
-                <RotateCcw className="h-3 w-3" /> Reset
+                <RotateCcw className="h-3 w-3 text-slate-500" /> Reset
               </button>
             )}
 
           <button
             onClick={() => loadData(false)}
             title="Refresh Swarm Status"
-            className="p-1.5 bg-slate-900 border border-slate-800 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-200 transition-colors"
+            className="p-2 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg text-slate-600 transition-colors shadow-xs"
           >
-            <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin text-cyan-400" : ""}`} />
+            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin text-blue-600" : ""}`} />
           </button>
         </div>
       </div>
 
-      {/* Operator Action / Workflow Error Banner */}
+      {/* Operator Notification Banner */}
       {(banner || (workflow?.status === "FAILED" && workflow?.state_data?.error)) && (
         <div
-          className={`p-3 rounded-lg border text-xs font-mono flex items-center justify-between gap-3 ${
+          className={`p-3.5 rounded-xl border text-xs font-sans flex items-center justify-between gap-3 shadow-xs ${
             banner?.type === "error" || (workflow?.status === "FAILED" && workflow?.state_data?.error && !banner)
-              ? "bg-red-950/60 border-red-800 text-red-300"
+              ? "bg-rose-50 border-rose-200 text-rose-900"
               : banner?.type === "success"
-              ? "bg-emerald-950/60 border-emerald-800 text-emerald-300"
-              : "bg-cyan-950/50 border-cyan-800 text-cyan-200"
+              ? "bg-emerald-50 border-emerald-200 text-emerald-900"
+              : "bg-blue-50 border-blue-200 text-blue-900"
           }`}
         >
-          <span className="flex items-center gap-2">
+          <span className="flex items-center gap-2 font-medium">
             <AlertCircle className="h-4 w-4 shrink-0" />
             {banner?.text || `Workflow failed: ${workflow?.state_data?.error}`}
           </span>
           {banner && (
-            <button onClick={() => setBanner(null)} className="text-slate-400 hover:text-slate-200">
+            <button onClick={() => setBanner(null)} className="text-slate-400 hover:text-slate-700">
               <X className="h-3.5 w-3.5" />
             </button>
           )}
         </div>
       )}
 
-      {/* Telemetry Summary KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="bg-surface-base border border-slate-800 rounded-lg p-3.5">
-          <div className="text-[10px] font-mono uppercase text-slate-400">Active Profile & State</div>
-          <div className="mt-1.5 flex items-center justify-between">
-            <span className="text-sm font-bold font-mono text-cyan-400">{activeScanProfile}</span>
+      {/* Telemetry KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+          <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+            Active Profile &amp; State
+          </div>
+          <div className="mt-2 flex items-center justify-between">
+            <span className="text-base font-bold font-mono text-blue-900">{activeScanProfile}</span>
             <span
-              className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${
+              className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
                 workflow?.status === "COMPLETED"
-                  ? "bg-emerald-950 text-emerald-400 border-emerald-800"
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                   : workflow?.status === "RUNNING"
-                  ? "bg-cyan-950 text-cyan-300 border-cyan-700 animate-pulse"
+                  ? "bg-blue-50 text-blue-700 border-blue-200 animate-pulse"
                   : workflow?.status === "PAUSED" || workflow?.status === "WAITING_APPROVAL"
-                  ? "bg-amber-950 text-amber-300 border-amber-700"
+                  ? "bg-amber-50 text-amber-700 border-amber-200"
                   : workflow?.status === "FAILED" || workflow?.status === "STOPPED"
-                  ? "bg-red-950 text-red-400 border-red-800"
-                  : "bg-slate-800 text-slate-300 border-slate-700"
+                  ? "bg-rose-50 text-rose-700 border-rose-200"
+                  : "bg-slate-100 text-slate-600 border-slate-200"
               }`}
             >
               {workflow?.status || "STANDBY"}
             </span>
           </div>
-          <div className="text-[10px] font-mono text-slate-500 mt-1">
+          <div className="text-[10px] text-slate-500 mt-1 font-mono">
             Engine: Live LiteLLM Gateway
           </div>
         </div>
 
-        <div className="bg-surface-base border border-slate-800 rounded-lg p-3.5">
-          <div className="text-[10px] font-mono uppercase text-slate-400 flex items-center gap-1">
-            <Coins className="h-3 w-3 text-amber-400" /> Token Burn (In / Out)
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+          <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+            <Coins className="h-3.5 w-3.5 text-amber-500" /> Token Burn (Total)
           </div>
-          <div className="mt-1.5 text-lg font-bold font-mono text-slate-100">
+          <div className="mt-2 text-xl font-bold font-mono text-slate-900">
             {telemetryTotals.totalTokens.toLocaleString()}
           </div>
-          <div className="text-[10px] font-mono text-slate-400 mt-0.5">
+          <div className="text-[10px] font-mono text-slate-500 mt-0.5">
             {telemetryTotals.promptTokens.toLocaleString()} in / {telemetryTotals.completionTokens.toLocaleString()} out
           </div>
         </div>
 
-        <div className="bg-surface-base border border-slate-800 rounded-lg p-3.5">
-          <div className="text-[10px] font-mono uppercase text-slate-400">Estimated LLM Cost</div>
-          <div className="mt-1.5 text-lg font-bold font-mono text-emerald-400">
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+          <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+            Estimated LLM Cost
+          </div>
+          <div className="mt-2 text-xl font-bold font-mono text-emerald-700">
             ${telemetryTotals.totalCostUsd.toFixed(4)}
           </div>
-          <div className="text-[10px] font-mono text-slate-500 mt-0.5">
-            {telemetryTotals.totalDecisions} traces • {telemetryTotals.totalToolCalls} tool calls
+          <div className="text-[10px] text-slate-500 mt-0.5 font-mono">
+            {telemetryTotals.totalDecisions} traces • {telemetryTotals.totalToolCalls} tool executions
           </div>
         </div>
 
-        <div className="bg-surface-base border border-slate-800 rounded-lg p-3.5">
-          <div className="text-[10px] font-mono uppercase text-slate-400">Pipeline Progress</div>
-          <div className="mt-1.5 text-lg font-bold font-mono text-slate-100">
-            {telemetryTotals.completedCount} / {agentsList.length} Agents
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+          <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+            Swarm Agents Complete
           </div>
-          <div className="text-[10px] font-mono text-slate-400 mt-0.5">
-            Candidates: {workflow?.state_data?.candidate_findings_count ?? 0} • Confirmed: {workflow?.state_data?.confirmed_findings_count ?? 0}
+          <div className="mt-2 text-xl font-bold font-mono text-slate-900">
+            {telemetryTotals.completedCount} / {agentsList.length}
+          </div>
+          <div className="text-[10px] text-slate-500 mt-0.5 font-mono">
+            Findings: {workflow?.state_data?.confirmed_findings_count ?? 0} confirmed ({workflow?.state_data?.candidate_findings_count ?? 0} candidates)
           </div>
         </div>
       </div>
 
-      {/* Workflow Phase Pipeline */}
-      <div className="bg-surface-base border border-slate-800 rounded-lg p-4 space-y-3">
+      {/* Workflow Phase Pipeline Bar */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-xs space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
-          <span className="text-slate-400">
+          <span className="text-slate-600">
             Current Phase:{" "}
-            <strong className={workflow?.status === "COMPLETED" ? "text-emerald-400" : "text-cyan-400"}>
+            <strong className={workflow?.status === "COMPLETED" ? "text-emerald-700 font-bold" : "text-blue-700 font-bold"}>
               {workflow?.current_phase || "IDLE / READY"}
             </strong>
           </span>
-          <span className="text-slate-400">
-            Endpoints Mapped: <strong className="text-slate-200">{workflow?.state_data?.endpoints_count ?? 0}</strong>
+          <span className="text-slate-600">
+            Endpoints Evaluated: <strong className="text-slate-900 font-bold">{workflow?.state_data?.endpoints_count ?? 0}</strong>
           </span>
         </div>
 
-        {/* 6-Step Phase Pipeline Breadcrumbs */}
-        <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 text-center text-[11px] font-mono">
+        <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 text-center text-xs font-mono">
           {WORKFLOW_PHASES.map((phase, idx) => {
             const currentIdx = WORKFLOW_PHASES.indexOf(workflow?.current_phase);
             const isAllCompleted = workflow?.status === "COMPLETED" || workflow?.current_phase === "COMPLETED";
@@ -562,142 +554,78 @@ export default function AgentsPage() {
             return (
               <div
                 key={phase}
-                className={`p-2 rounded border transition-all ${
+                className={`p-2 rounded-lg border transition-all ${
                   isCompletedStep
-                    ? "bg-emerald-950/50 border-emerald-700/80 text-emerald-300"
+                    ? "bg-emerald-50 border-emerald-200 text-emerald-900 font-medium"
                     : isCurrentStep
-                    ? "bg-cyan-950/80 border-cyan-500 text-cyan-300 font-bold shadow-lg shadow-cyan-950/50"
-                    : "bg-slate-900/60 border-slate-800 text-slate-500"
+                    ? "bg-blue-50 border-blue-600 text-blue-900 font-bold ring-1 ring-blue-500/20 shadow-xs"
+                    : "bg-slate-50 border-slate-200 text-slate-500"
                 }`}
               >
                 <div className="text-[10px] flex items-center justify-center gap-1 opacity-80">
                   {isCompletedStep ? (
-                    <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+                    <CheckCircle2 className="h-3 w-3 text-emerald-600" />
                   ) : isCurrentStep ? (
-                    <Clock className={`h-3 w-3 text-cyan-400 ${workflow?.status === "RUNNING" ? "animate-spin" : ""}`} />
+                    <Clock className={`h-3 w-3 text-blue-600 ${workflow?.status === "RUNNING" ? "animate-spin" : ""}`} />
                   ) : null}
                   Step {idx + 1}
                 </div>
-                <div className="truncate mt-0.5">{phase}</div>
+                <div className="truncate mt-0.5 text-[11px]">{phase}</div>
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* Human-in-the-Loop Approval Gate Panel */}
-      {approvals.length > 0 && (
-        <div
-          className={`bg-surface-base border rounded-lg p-4 space-y-3 ${
-            pendingApprovals.length > 0 ? "border-amber-600/80 bg-amber-950/10" : "border-slate-800"
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <ShieldAlert className={`h-4 w-4 ${pendingApprovals.length > 0 ? "text-amber-400 animate-pulse" : "text-slate-400"}`} />
-              <h3 className="text-sm font-semibold text-slate-200">
-                Human-in-the-Loop Approval Gates ({pendingApprovals.length} Pending)
-              </h3>
-            </div>
-            <span className="text-[10px] font-mono text-slate-400">RoE Medium/High-Risk Action Authorization</span>
+      {/* CLAUDE CODE LIVE AGENT STREAM TERMINAL */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Radio className="w-4 h-4 text-blue-600" />
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+              Live Agent Streaming Console (Real-Time Forensic Feed)
+            </h2>
           </div>
-
-          {pendingApprovals.length > 0 && (
-            <div className="space-y-1">
-              <label className="text-[10px] font-mono text-slate-400 uppercase">Operator Audit Justification</label>
-              <input
-                type="text"
-                value={justificationText}
-                onChange={(e) => setJustificationText(e.target.value)}
-                className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded text-xs text-slate-200 font-mono focus:outline-none focus:border-amber-500"
-                placeholder="Enter justification (min 5 characters)..."
-              />
-            </div>
-          )}
-
-          <div className="space-y-2 max-h-60 overflow-y-auto">
-            {approvals.map((req) => (
-              <div
-                key={req.id}
-                className="p-3 bg-slate-900/80 border border-slate-800 rounded flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs font-mono"
-              >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-cyan-400">
-                      {req.agent_id}
-                    </span>
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-950 text-amber-300 border border-amber-800">
-                      {req.risk_level}
-                    </span>
-                    <span className="font-sans font-semibold text-slate-100">{req.action}</span>
-                  </div>
-                  <div className="text-[11px] text-slate-400">
-                    Target: <span className="text-slate-300">{req.target}</span>
-                  </div>
-                  {req.justification && (
-                    <div className="text-[10px] text-slate-500">Decision note: {req.justification}</div>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  {req.status === "PENDING" ? (
-                    <>
-                      <button
-                        onClick={() => handleApprovalDecision(req.id, "APPROVE")}
-                        disabled={actionLoading}
-                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-semibold flex items-center gap-1 disabled:opacity-50"
-                      >
-                        <Check className="h-3.5 w-3.5" /> Approve &amp; Resume
-                      </button>
-                      <button
-                        onClick={() => handleApprovalDecision(req.id, "REJECT")}
-                        disabled={actionLoading}
-                        className="px-3 py-1.5 bg-red-700 hover:bg-red-600 text-white rounded text-xs font-semibold flex items-center gap-1 disabled:opacity-50"
-                      >
-                        <X className="h-3.5 w-3.5" /> Reject
-                      </button>
-                    </>
-                  ) : (
-                    <span
-                      className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-                        req.status === "APPROVED"
-                          ? "bg-emerald-950 text-emerald-400 border-emerald-800"
-                          : "bg-red-950 text-red-400 border-red-800"
-                      }`}
-                    >
-                      {req.status}
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+          <span className="text-[11px] font-mono text-slate-500">
+            Interactive Agent Execution Viewport
+          </span>
         </div>
-      )}
 
-      {/* Agents Telemetry Table */}
-      <div className="bg-surface-base border border-slate-800 rounded-lg overflow-hidden">
-        <div className="p-3 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-xs font-bold font-mono uppercase text-slate-300 flex items-center gap-2">
-            <Cpu className="h-4 w-4 text-cyan-400" />
-            Specialized Security Agents ({agentsList.length})
-          </h3>
-          <div className="flex items-center gap-3 text-[10px] font-mono text-slate-500">
+        <AgentTerminal
+          workflow={workflow}
+          decisions={decisions}
+          toolCalls={toolCalls}
+          approvals={approvals}
+          selectedAgentId={selectedAgentFilter}
+          onApprovalDecision={handleApprovalDecision}
+        />
+      </div>
+
+      {/* Specialized Security Agents Table */}
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+        <div className="p-3.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 bg-slate-50/60">
+          <div className="flex items-center gap-2">
+            <Cpu className="h-4 w-4 text-blue-600" />
+            <h3 className="text-xs font-bold font-mono uppercase text-slate-700">
+              Specialized Offensive Agents Telemetry ({agentsList.length})
+            </h3>
+          </div>
+          <div className="flex items-center gap-3 text-[11px] font-mono text-slate-500">
             {selectedAgentFilter && (
               <button
                 onClick={() => setSelectedAgentFilter(null)}
-                className="px-2 py-0.5 bg-cyan-950 border border-cyan-800 text-cyan-300 rounded hover:bg-cyan-900"
+                className="px-2 py-0.5 bg-blue-50 border border-blue-200 text-blue-800 rounded-md font-semibold hover:bg-blue-100"
               >
-                Filtering: {selectedAgentFilter} &times;
+                Filtered: {selectedAgentFilter} &times;
               </button>
             )}
-            <span>Click an agent row to filter trace logs</span>
+            <span>Click row to scope terminal logs</span>
           </div>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs font-mono">
-            <thead className="bg-slate-900/80 text-slate-400 text-[10px] uppercase border-b border-slate-800">
+            <thead className="bg-slate-50 text-slate-600 text-[10px] uppercase border-b border-slate-200 font-semibold">
               <tr>
                 <th className="py-2.5 px-3">Agent</th>
                 <th className="py-2.5 px-3">Operational Phase</th>
@@ -708,7 +636,7 @@ export default function AgentsPage() {
                 <th className="py-2.5 px-3">Tools Dispatched</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
+            <tbody className="divide-y divide-slate-100">
               {agentsList.map((a: any) => {
                 const isSelected = selectedAgentFilter === a.agent_id;
                 return (
@@ -718,190 +646,68 @@ export default function AgentsPage() {
                       setSelectedAgentFilter((prev) => (prev === a.agent_id ? null : a.agent_id))
                     }
                     className={`cursor-pointer transition-colors ${
-                      isSelected ? "bg-cyan-950/30" : "hover:bg-slate-800/30"
+                      isSelected ? "bg-blue-50/70" : "hover:bg-slate-50/80"
                     }`}
                   >
-                    <td className="py-2.5 px-3 text-slate-100 font-bold font-sans">
+                    <td className="py-3 px-3 text-slate-900 font-semibold font-sans">
                       <div className="flex items-center gap-2">
-                        <Bot className={`h-3.5 w-3.5 shrink-0 ${a.status === "RUNNING" ? "text-cyan-300 animate-bounce" : "text-cyan-400"}`} />
+                        <Bot className={`h-4 w-4 shrink-0 ${a.status === "RUNNING" ? "text-blue-600 animate-pulse" : "text-slate-500"}`} />
                         <span>{a.agent_name}</span>
-                        <span className="text-[10px] font-mono text-slate-500">({a.agent_id})</span>
+                        <span className="text-[10px] font-mono text-slate-500 font-normal">({a.agent_id})</span>
                       </div>
                       {a.error_message && (
-                        <div className="text-[10px] font-mono font-normal text-red-400 mt-1">
+                        <div className="text-[10px] font-mono font-normal text-rose-600 mt-1">
                           Error: {a.error_message}
                         </div>
                       )}
                     </td>
-                    <td className="py-2.5 px-3 text-slate-300 text-[11px]">{a.phase}</td>
-                    <td className="py-2.5 px-3">
+                    <td className="py-3 px-3 text-slate-600 text-[11px]">{a.phase}</td>
+                    <td className="py-3 px-3">
                       <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                        className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
                           a.status === "COMPLETED"
-                            ? "bg-emerald-950 text-emerald-400 border-emerald-800"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                             : a.status === "RUNNING"
-                            ? "bg-cyan-950 text-cyan-300 border-cyan-700 animate-pulse"
+                            ? "bg-blue-50 text-blue-700 border-blue-200"
                             : a.status === "QUEUED"
-                            ? "bg-slate-900 text-slate-400 border-slate-700"
+                            ? "bg-slate-100 text-slate-600 border-slate-200"
                             : a.status === "WAITING_APPROVAL"
-                            ? "bg-amber-950 text-amber-300 border-amber-700"
+                            ? "bg-amber-50 text-amber-700 border-amber-200"
                             : a.status === "FAILED" || a.status === "STOPPED"
-                            ? "bg-red-950 text-red-400 border-red-800"
-                            : "bg-slate-800 text-slate-300 border-slate-700"
+                            ? "bg-rose-50 text-rose-700 border-rose-200"
+                            : "bg-slate-100 text-slate-600 border-slate-200"
                         }`}
                       >
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${
+                            a.status === "COMPLETED"
+                              ? "bg-emerald-600"
+                              : a.status === "RUNNING"
+                              ? "bg-blue-600 animate-pulse"
+                              : a.status === "WAITING_APPROVAL"
+                              ? "bg-amber-600 animate-pulse"
+                              : a.status === "FAILED" || a.status === "STOPPED"
+                              ? "bg-rose-600"
+                              : "bg-slate-400"
+                          }`}
+                        />
                         {a.status || "STANDBY"}
                       </span>
                     </td>
-                    <td className="py-2.5 px-3 text-slate-300 text-[11px]">
+                    <td className="py-3 px-3 text-slate-700 text-[11px]">
                       {(a.prompt_tokens || 0).toLocaleString()} / {(a.completion_tokens || 0).toLocaleString()}
                     </td>
-                    <td className="py-2.5 px-3 text-emerald-400 text-[11px]">
+                    <td className="py-3 px-3 text-emerald-700 font-semibold text-[11px]">
                       ${Number(a.total_cost_usd || 0).toFixed(4)}
                     </td>
-                    <td className="py-2.5 px-3 text-cyan-400 font-bold">{a.decisions_count || 0}</td>
-                    <td className="py-2.5 px-3 text-slate-300">{a.tool_calls_count || 0}</td>
+                    <td className="py-3 px-3 text-blue-700 font-bold">{a.decisions_count || 0}</td>
+                    <td className="py-3 px-3 text-slate-700">{a.tool_calls_count || 0}</td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
         </div>
-      </div>
-
-      {/* Agent Thought Trace & Tool Execution Tabs */}
-      <div className="bg-surface-base border border-slate-800 rounded-lg p-4 space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setActiveTab("decisions")}
-              className={`px-3 py-1.5 rounded text-xs font-semibold flex items-center gap-1.5 transition-colors ${
-                activeTab === "decisions"
-                  ? "bg-slate-800 text-purple-300 border border-slate-700"
-                  : "text-slate-400 hover:text-slate-200"
-              }`}
-            >
-              <BrainCircuit className="h-4 w-4 text-purple-400" />
-              Real-Time Agent Thought Trace &amp; Decisions ({decisions.length})
-            </button>
-            <button
-              onClick={() => setActiveTab("tools")}
-              className={`px-3 py-1.5 rounded text-xs font-semibold flex items-center gap-1.5 transition-colors ${
-                activeTab === "tools"
-                  ? "bg-slate-800 text-cyan-300 border border-slate-700"
-                  : "text-slate-400 hover:text-slate-200"
-              }`}
-            >
-              <Wrench className="h-4 w-4 text-cyan-400" />
-              Tool Executions Dispatched ({toolCalls.length})
-            </button>
-          </div>
-          <span className="text-[10px] font-mono text-slate-500">
-            {selectedAgentFilter ? `Filtered: ${selectedAgentFilter}` : "Autonomous Reasoning Audit Log"}
-          </span>
-        </div>
-
-        {initialLoading ? (
-          <div className="p-8 text-center text-xs font-mono text-slate-500">
-            Loading agent telemetry stream...
-          </div>
-        ) : activeTab === "decisions" ? (
-          decisions.length === 0 ? (
-            <div className="p-8 text-center text-xs font-mono text-slate-500 border border-slate-800/80 rounded bg-slate-900/40">
-              No agent decisions recorded yet. Start the autonomous workflow to stream thought traces.
-            </div>
-          ) : (
-            <div className="space-y-2.5 max-h-[30rem] overflow-y-auto pr-1">
-              {decisions.map((d) => {
-                const trace = formatTraceContent(d.thought_trace);
-                return (
-                  <div
-                    key={d.id}
-                    className="p-3 bg-slate-900/80 border border-slate-800 rounded-md space-y-2 font-mono text-xs"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
-                      <div className="flex items-center gap-2">
-                        <span className="px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800 font-bold text-[10px]">
-                          {d.agent_id || "AGT"}
-                        </span>
-                        <span className="text-cyan-400 font-bold font-sans">
-                          {d.agent_name || "Specialized Agent"}
-                        </span>
-                        {d.phase && (
-                          <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px]">
-                            {d.phase}
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-slate-500">{new Date(d.created_at).toLocaleString()}</span>
-                    </div>
-
-                    {trace.isJson ? (
-                      <pre className="p-2.5 bg-slate-950/90 border border-slate-800/80 rounded text-[11px] text-slate-200 overflow-x-auto whitespace-pre-wrap">
-                        {trace.formatted}
-                      </pre>
-                    ) : (
-                      <div className="text-slate-200 font-sans text-xs whitespace-pre-wrap">{trace.formatted}</div>
-                    )}
-
-                    <div className="flex flex-wrap items-center gap-4 text-[11px] pt-1.5 text-slate-400 border-t border-slate-800/60">
-                      <span>Intent: <strong className="text-slate-300">{d.intent}</strong></span>
-                      <span>Confidence: <strong className="text-emerald-400">{d.confidence || "High"}</strong></span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )
-        ) : toolCalls.length === 0 ? (
-          <div className="p-8 text-center text-xs font-mono text-slate-500 border border-slate-800/80 rounded bg-slate-900/40">
-            No structured tool calls recorded yet.
-          </div>
-        ) : (
-          <div className="space-y-2.5 max-h-[30rem] overflow-y-auto pr-1">
-            {toolCalls.map((tc) => (
-              <div
-                key={tc.id}
-                className="p-3 bg-slate-900/80 border border-slate-800 rounded-md space-y-2 font-mono text-xs"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded bg-slate-800 text-cyan-300 font-bold">
-                      {tc.tool_name}
-                    </span>
-                    <span className="text-slate-300 font-sans">
-                      by {tc.agent_name || tc.agent_id}
-                    </span>
-                    <span
-                      className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
-                        tc.status === "SUCCESS"
-                          ? "bg-emerald-950 text-emerald-400 border-emerald-800"
-                          : "bg-red-950 text-red-400 border-red-800"
-                      }`}
-                    >
-                      {tc.status}
-                    </span>
-                    {tc.duration_ms != null && (
-                      <span className="text-slate-500 text-[10px]">{tc.duration_ms}ms</span>
-                    )}
-                  </div>
-                  <span className="text-slate-500">{new Date(tc.created_at).toLocaleString()}</span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-[11px]">
-                  <div className="p-2 bg-slate-950/90 border border-slate-800/80 rounded overflow-x-auto">
-                    <div className="text-[10px] text-slate-500 uppercase mb-1">Input Arguments</div>
-                    <pre className="text-slate-300 whitespace-pre-wrap">{JSON.stringify(tc.input_arguments, null, 2)}</pre>
-                  </div>
-                  <div className="p-2 bg-slate-950/90 border border-slate-800/80 rounded overflow-x-auto">
-                    <div className="text-[10px] text-slate-500 uppercase mb-1">Output Result</div>
-                    <pre className="text-emerald-300 whitespace-pre-wrap">{JSON.stringify(tc.output_result || {}, null, 2)}</pre>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );

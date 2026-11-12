@@ -6,8 +6,8 @@ import { TopNav } from "@/components/TopNav";
 import { Sidebar } from "@/components/Sidebar";
 
 export const metadata: Metadata = {
-  title: "Pentesa — Autonomous Security Operations Center",
-  description: "AI-Powered Autonomous Web Application Penetration Testing Platform",
+  title: "Pentesa — Autonomous Pentest Engine",
+  description: "Enterprise Autonomous Web Application Penetration Testing Platform",
 };
 
 export default function RootLayout({
@@ -16,8 +16,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className="bg-canvas text-slate-100 flex flex-col h-screen overflow-hidden">
+    <html lang="en">
+      <body className="bg-canvas text-slate-900 flex flex-col h-screen overflow-hidden font-sans antialiased">
         <ProjectProvider>
           <TopNav />
           <div className="flex flex-1 overflow-hidden">
@@ -31,4 +31,3 @@ export default function RootLayout({
     </html>
   );
 }
-

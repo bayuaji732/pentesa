@@ -1,9 +1,10 @@
 # Pentesa — Comprehensive UI/UX Specification & Design System
 
 > **Document Identifier:** PENTESA-UIUX-SPEC-V2.0  
-> **Status:** Approved for Implementation  
-> **Architecture Pattern:** Dark Mode First, High-Density Security Operations Center (SOC) Interface  
-> **Frontend Stack:** React 18 + TypeScript + Tailwind CSS + Shadcn UI (Radix Primitives) + Lucide Icons  
+> **Status:** Superseded by v3.0 ([docs/24-enterprise-ui-ux-redesign-spec.md](24-enterprise-ui-ux-redesign-spec.md) and [docs/decisions/ADR-009](decisions/ADR-009-enterprise-light-theme-and-lifecycle-navigation.md))  
+> **Notice:** The design system and navigation model have transitioned from Dark-Mode First to Enterprise Light Theme (OKLCH Tokens), Progressive PTES Lifecycle Stepper, Inset Dark Live Terminal, and Strict Project Breadcrumbs. Refer to Document 24 for the authoritative v3.0 standard.  
+> **Architecture Pattern:** Enterprise Light Theme with Inset Dark High-Contrast Terminal  
+> **Frontend Stack:** Next.js 14 App Router + React 18 + TypeScript + Tailwind CSS + Lucide Icons  
 > **Target Release:** v1.0 GA  
 
 ---

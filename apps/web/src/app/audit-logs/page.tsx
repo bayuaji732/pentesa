@@ -12,10 +12,6 @@ import {
   Filter,
   Download,
   Clock,
-  Code2,
-  ExternalLink,
-  ChevronDown,
-  ChevronRight,
   Database,
   ArrowRight,
   CheckCircle2,
@@ -136,27 +132,31 @@ export default function AuditLogsPage() {
     const act = action?.toUpperCase() || "";
     if (act.includes("CREATE") || act.includes("START")) {
       return (
-        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-950/80 text-cyan-400 border border-cyan-800">
+        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-50 text-blue-900 border border-blue-200">
+          <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />
           {action}
         </span>
       );
     }
     if (act.includes("REPORT") || act.includes("PUBLISH")) {
       return (
-        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950/80 text-emerald-400 border border-emerald-800">
+        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-50 text-emerald-900 border border-emerald-200">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
           {action}
         </span>
       );
     }
     if (act.includes("FINDING") || act.includes("EXPLOIT")) {
       return (
-        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-red-950/80 text-red-400 border border-red-800">
+        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-50 text-rose-900 border border-rose-200">
+          <span className="h-1.5 w-1.5 rounded-full bg-rose-600" />
           {action}
         </span>
       );
     }
     return (
-      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-800 text-slate-300 border border-slate-700">
+      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 text-slate-800 border border-slate-200">
+        <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />
         {action}
       </span>
     );
@@ -165,15 +165,15 @@ export default function AuditLogsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold tracking-tight text-slate-100">Cryptographic Audit Hash Chain</h1>
-            <span className="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">Cryptographic Audit Hash Chain</h1>
+            <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
               {logs.length} Blocks
             </span>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-500 mt-0.5">
             Tamper-evident, forward-secure SHA-256 Merkle chain recording every security action, rule change, and finding.
           </p>
         </div>
@@ -182,9 +182,9 @@ export default function AuditLogsPage() {
           <button
             onClick={handleExportJson}
             disabled={logs.length === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-200 border border-slate-700 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-md bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 border border-slate-200 shadow-xs transition-colors cursor-pointer"
           >
-            <Download className="h-3.5 w-3.5 text-cyan-400" />
+            <Download className="h-3.5 w-3.5 text-blue-900" />
             Export Signed Ledger
           </button>
           <button
@@ -194,10 +194,10 @@ export default function AuditLogsPage() {
               handleVerifyChain(true, false);
             }}
             disabled={loading || verifying}
-            className="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 border border-slate-700"
+            className="p-2 rounded-md bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200 shadow-xs transition-colors"
             title="Refresh logs & chain"
           >
-            <RefreshCw className={`h-4 w-4 ${loading || verifying ? "animate-spin text-cyan-400" : ""}`} />
+            <RefreshCw className={`h-4 w-4 ${loading || verifying ? "animate-spin text-blue-700" : ""}`} />
           </button>
         </div>
       </div>
@@ -205,16 +205,16 @@ export default function AuditLogsPage() {
       {/* Cryptographic Tamper Evidence Banner */}
       {chainStatus && (
         <div
-          className={`p-4 rounded border flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+          className={`p-5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs ${
             chainStatus.is_valid
-              ? "bg-emerald-950/40 border-emerald-800/80 text-emerald-300"
-              : "bg-red-950/40 border-red-800/80 text-red-300"
+              ? "bg-emerald-50 border-emerald-200 text-emerald-900"
+              : "bg-rose-50 border-rose-200 text-rose-900"
           }`}
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3.5">
             <div
-              className={`p-2 rounded-full ${
-                chainStatus.is_valid ? "bg-emerald-900/60 text-emerald-400" : "bg-red-900/60 text-red-400"
+              className={`p-2.5 rounded-full ${
+                chainStatus.is_valid ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
               }`}
             >
               {chainStatus.is_valid ? <ShieldCheck className="h-5 w-5" /> : <AlertTriangle className="h-5 w-5" />}
@@ -225,23 +225,23 @@ export default function AuditLogsPage() {
                   ? `● Cryptographic Hash Chain Valid: All ${chainStatus.total_records} entries verified`
                   : `✘ Integrity Hash Chain Mismatch Detected`}
               </div>
-              <p className="text-[11px] text-slate-400 mt-0.5">
+              <p className="text-[11px] text-slate-600 mt-0.5 leading-normal">
                 {chainStatus.is_valid
                   ? "Every block is linked to previous block via SHA-256(prev_hash || payload). Zero ledger corruption or modification detected."
                   : chainStatus.reason || "Ledger inconsistency identified."}
               </p>
               {lastVerified && (
-                <div className="text-[10px] font-mono text-slate-400/90 mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                <div className="text-[10px] font-mono text-slate-500 mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
                   <span>
-                    Last verified: <span className="text-slate-200">{lastVerified.at}</span>
+                    Last verified: <strong className="text-slate-800">{lastVerified.at}</strong>
                   </span>
                   <span>
-                    Duration: <span className="text-slate-200">{lastVerified.durationMs} ms</span>
+                    Duration: <strong className="text-slate-800">{lastVerified.durationMs} ms</strong>
                   </span>
                   <span>Check #{lastVerified.runCount}</span>
                   {chainStatus.last_hash && (
                     <span title={chainStatus.last_hash}>
-                      Head: <span className="text-cyan-400">{chainStatus.last_hash.slice(0, 14)}...</span>
+                      Head: <span className="text-blue-900 font-bold">{chainStatus.last_hash.slice(0, 14)}...</span>
                     </span>
                   )}
                 </div>
@@ -251,7 +251,7 @@ export default function AuditLogsPage() {
 
           <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
             {justVerified && chainStatus.is_valid && (
-              <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-mono bg-emerald-900/60 text-emerald-300 border border-emerald-700/70">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-mono font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
                 <CheckCircle2 className="h-3 w-3" />
                 Verified
               </span>
@@ -260,9 +260,9 @@ export default function AuditLogsPage() {
               type="button"
               onClick={() => handleVerifyChain(true)}
               disabled={verifying}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-slate-900 hover:bg-black disabled:opacity-60 text-xs font-mono border border-slate-700 text-slate-200 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white hover:bg-slate-50 disabled:opacity-60 text-xs font-semibold border border-slate-300 text-slate-800 shadow-xs transition-colors cursor-pointer"
             >
-              <RefreshCw className={`h-3.5 w-3.5 ${verifying ? "animate-spin text-cyan-400" : ""}`} />
+              <RefreshCw className={`h-3.5 w-3.5 ${verifying ? "animate-spin text-blue-700" : ""}`} />
               {verifying ? "Verifying..." : "Re-verify Chain"}
             </button>
           </div>
@@ -270,26 +270,26 @@ export default function AuditLogsPage() {
       )}
 
       {/* Filtering Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-surface-base p-3 rounded border border-slate-800">
+      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
         <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-500" />
+          <Search className="absolute left-3 top-3 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search action, resource, hash..."
-            className="w-full bg-surface-elevated pl-9 pr-3 py-1.5 rounded text-xs text-slate-200 border border-slate-700 focus:outline-none focus:border-red-500 placeholder-slate-500 font-mono"
+            className="w-full bg-white pl-9 pr-3 py-1.5 rounded-md text-xs text-slate-900 border border-slate-300 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 placeholder:text-slate-400 font-mono transition-all"
           />
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <span className="text-[11px] font-mono text-slate-400 flex items-center gap-1">
+          <span className="text-[11px] font-mono text-slate-500 font-semibold flex items-center gap-1">
             <Filter className="h-3 w-3" /> Action:
           </span>
           <select
             value={filterAction}
             onChange={(e) => setFilterAction(e.target.value)}
-            className="bg-surface-elevated text-xs text-slate-200 border border-slate-700 rounded px-2.5 py-1.5 focus:outline-none focus:border-red-500 font-mono"
+            className="bg-white text-xs text-slate-900 border border-slate-300 rounded-md px-3 py-1.5 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 font-mono"
           >
             <option value="ALL">All Actions</option>
             <option value="LOGIN_SUCCESS">LOGIN_SUCCESS</option>
@@ -317,11 +317,11 @@ export default function AuditLogsPage() {
       </div>
 
       {/* Audit Log Table */}
-      <div className="bg-surface-base border border-slate-800 rounded overflow-hidden">
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-surface-elevated border-b border-slate-800 text-[11px] font-mono text-slate-400 uppercase tracking-wider">
+              <tr className="bg-slate-50/50 border-b border-slate-200 text-[10px] font-mono text-slate-600 uppercase tracking-wider font-bold">
                 <th className="py-2.5 px-4 font-semibold">Timestamp (UTC)</th>
                 <th className="py-2.5 px-4 font-semibold">Action Verb</th>
                 <th className="py-2.5 px-4 font-semibold">Resource Affected</th>
@@ -330,11 +330,11 @@ export default function AuditLogsPage() {
                 <th className="py-2.5 px-4 font-semibold text-right">Details</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/80 font-mono text-slate-300">
+            <tbody className="divide-y divide-slate-100 font-mono text-slate-700">
               {loading ? (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-slate-500">
-                    <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2 text-cyan-400" />
+                    <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2 text-blue-700" />
                     Streaming cryptographic ledger...
                   </td>
                 </tr>
@@ -349,19 +349,19 @@ export default function AuditLogsPage() {
                   <tr
                     key={log.id}
                     onClick={() => setSelectedLog(log)}
-                    className="hover:bg-surface-elevated/80 transition-colors cursor-pointer group"
+                    className="hover:bg-slate-50/70 transition-colors cursor-pointer group"
                   >
-                    <td className="py-3 px-4 whitespace-nowrap text-slate-400">
+                    <td className="py-3 px-4 whitespace-nowrap text-slate-500">
                       <div className="flex items-center gap-1.5">
-                        <Clock className="h-3 w-3 text-slate-500" />
+                        <Clock className="h-3 w-3 text-slate-400" />
                         {new Date(log.created_at).toISOString().replace("T", " ").slice(0, 19)}
                       </div>
                     </td>
 
                     <td className="py-3 px-4 whitespace-nowrap">{getActionBadge(log.action)}</td>
 
-                    <td className="py-3 px-4 whitespace-nowrap text-slate-300">
-                      <span className="font-semibold text-slate-200">{log.resource_type}</span>
+                    <td className="py-3 px-4 whitespace-nowrap text-slate-800">
+                      <span className="font-semibold text-slate-900">{log.resource_type}</span>
                       {log.resource_id && (
                         <span className="text-[10px] text-slate-500 ml-1.5">
                           ({log.resource_id.slice(0, 8)}...)
@@ -369,17 +369,17 @@ export default function AuditLogsPage() {
                       )}
                     </td>
 
-                    <td className="py-3 px-4 whitespace-nowrap text-slate-400">
+                    <td className="py-3 px-4 whitespace-nowrap text-slate-600">
                       {log.ip_address || "N/A"}
                     </td>
 
                     <td className="py-3 px-4 whitespace-nowrap">
                       <div className="flex items-center gap-1 text-[10px] text-slate-500">
-                        <span className="text-slate-400 font-mono truncate max-w-[90px]" title={log.prev_hash}>
+                        <span className="text-slate-500 font-mono truncate max-w-[90px]" title={log.prev_hash}>
                           {log.prev_hash?.slice(0, 10)}...
                         </span>
-                        <ArrowRight className="h-3 w-3 text-cyan-500 shrink-0" />
-                        <span className="text-cyan-400 font-mono truncate max-w-[90px]" title={log.hash}>
+                        <ArrowRight className="h-3 w-3 text-blue-600 shrink-0" />
+                        <span className="text-blue-900 font-bold font-mono truncate max-w-[90px]" title={log.hash}>
                           {log.hash?.slice(0, 10)}...
                         </span>
                       </div>
@@ -391,7 +391,7 @@ export default function AuditLogsPage() {
                           e.stopPropagation();
                           setSelectedLog(log);
                         }}
-                        className="text-[11px] font-mono text-cyan-400 hover:text-cyan-300 group-hover:underline"
+                        className="text-[11px] font-mono font-semibold text-blue-700 hover:text-blue-900 group-hover:underline cursor-pointer"
                       >
                         Inspect Payload →
                       </button>
@@ -406,62 +406,62 @@ export default function AuditLogsPage() {
 
       {/* JSON Delta Inspector Modal */}
       {selectedLog && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-surface-base border border-slate-800 rounded-lg max-w-2xl w-full p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-xl max-w-2xl w-full p-6 space-y-4 shadow-xl">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
-                <Database className="h-5 w-5 text-cyan-400" />
-                <h3 className="text-base font-bold text-slate-100">Audit Ledger Block Inspection</h3>
+                <Database className="h-5 w-5 text-blue-900" />
+                <h3 className="text-base font-bold text-slate-900">Audit Ledger Block Inspection</h3>
               </div>
               <button
                 onClick={() => setSelectedLog(null)}
-                className="text-slate-500 hover:text-slate-300 font-mono"
+                className="text-slate-400 hover:text-slate-700 font-mono text-base p-1"
               >
                 ✕
               </button>
             </div>
 
             <div className="space-y-3 font-mono text-xs">
-              <div className="grid grid-cols-2 gap-3 p-3 bg-surface-elevated rounded border border-slate-800 text-slate-300">
+              <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200 text-slate-800">
                 <div>
-                  <span className="text-slate-500">Action:</span> {selectedLog.action}
+                  <span className="text-slate-500 font-semibold">Action:</span> {selectedLog.action}
                 </div>
                 <div>
-                  <span className="text-slate-500">Resource:</span> {selectedLog.resource_type}
+                  <span className="text-slate-500 font-semibold">Resource:</span> {selectedLog.resource_type}
                 </div>
                 <div>
-                  <span className="text-slate-500">Timestamp:</span> {selectedLog.created_at}
+                  <span className="text-slate-500 font-semibold">Timestamp:</span> {selectedLog.created_at}
                 </div>
                 <div>
-                  <span className="text-slate-500">IP Address:</span> {selectedLog.ip_address || "N/A"}
+                  <span className="text-slate-500 font-semibold">IP Address:</span> {selectedLog.ip_address || "N/A"}
                 </div>
               </div>
 
               {/* Hash Chain Details */}
-              <div className="p-3 bg-slate-950 rounded border border-slate-800 space-y-2 text-[11px]">
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-2 text-[11px]">
                 <div>
-                  <span className="text-slate-500">Previous Hash (H_prev):</span>
-                  <div className="text-slate-400 break-all">{selectedLog.prev_hash}</div>
+                  <span className="text-slate-500 font-semibold">Previous Hash (H_prev):</span>
+                  <div className="text-slate-600 break-all">{selectedLog.prev_hash}</div>
                 </div>
                 <div>
-                  <span className="text-slate-500">Block SHA-256 Digest (H_curr):</span>
-                  <div className="text-cyan-400 break-all">{selectedLog.hash}</div>
+                  <span className="text-slate-500 font-semibold">Block SHA-256 Digest (H_curr):</span>
+                  <div className="text-blue-900 font-bold break-all">{selectedLog.hash}</div>
                 </div>
               </div>
 
-              {/* Serialized Details Payload */}
+              {/* Serialized Details Payload in Inset Dark Terminal */}
               <div>
-                <span className="text-slate-400 block mb-1">State Modification Delta (JSON Payload):</span>
-                <pre className="p-3 rounded bg-black/80 border border-slate-800 text-[11px] text-emerald-400 overflow-x-auto max-h-56">
+                <span className="text-slate-700 font-semibold block mb-1">State Modification Delta (JSON Payload):</span>
+                <pre className="p-3 rounded-lg bg-[#0b0f19] border border-slate-800 text-[11px] text-emerald-400 overflow-x-auto max-h-56">
                   {JSON.stringify(selectedLog.details, null, 2)}
                 </pre>
               </div>
             </div>
 
-            <div className="pt-3 border-t border-slate-800 flex justify-end">
+            <div className="pt-3 border-t border-slate-100 flex justify-end">
               <button
                 onClick={() => setSelectedLog(null)}
-                className="px-4 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-mono"
+                className="px-4 py-2 rounded-md bg-white hover:bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 cursor-pointer"
               >
                 Close Inspector
               </button>

@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Shield, Lock, Mail, AlertCircle, ArrowRight } from "lucide-react";
+import { Shield, Lock, Mail, AlertCircle, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { api } from "@/lib/api";
 import { useProject } from "@/lib/ProjectContext";
 
@@ -11,6 +11,7 @@ export default function LoginPage() {
   const { refreshProjects } = useProject();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -24,11 +25,12 @@ export default function LoginPage() {
       await refreshProjects();
       router.push("/");
     } catch (err: any) {
-      const msg = typeof err?.message === "string"
-        ? err.message
-        : typeof err?.data?.detail === "string"
-          ? err.data.detail
-          : "Invalid credentials or backend unreachable";
+      const msg =
+        typeof err?.message === "string"
+          ? err.message
+          : typeof err?.data?.detail === "string"
+            ? err.data.detail
+            : "Invalid credentials or backend unreachable";
       setError(msg);
     } finally {
       setLoading(false);
@@ -36,25 +38,25 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen -m-6 flex items-center justify-center bg-canvas p-4 select-none">
-      <div className="w-full max-w-md bg-surface-base border border-slate-800 rounded-xl p-8 shadow-2xl space-y-6">
+    <div className="min-h-[calc(100vh-3.5rem)] -m-6 flex items-center justify-center bg-slate-50 p-4 select-none">
+      <div className="w-full max-w-md bg-white border border-slate-200/90 rounded-xl p-8 shadow-sm space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex h-12 w-12 rounded-xl bg-red-950/80 border border-red-800/80 items-center justify-center text-red-400 mb-2">
+          <div className="inline-flex h-12 w-12 rounded-xl bg-blue-900 border border-blue-800 items-center justify-center text-white shadow-xs mx-auto mb-2">
             <Shield className="h-6 w-6" />
           </div>
-          <h1 className="text-xl font-bold tracking-wider text-slate-100">
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">
             PENTESA SOC CONSOLE
           </h1>
-          <p className="text-xs text-slate-400 font-mono">
+          <p className="text-xs text-slate-500 font-medium">
             Autonomous Web Application Penetration Testing Platform
           </p>
         </div>
 
         {/* Error Alert */}
         {error && (
-          <div className="p-3 bg-red-950/60 border border-red-800/80 rounded-lg flex items-center gap-2.5 text-red-400 text-xs">
-            <AlertCircle className="h-4 w-4 shrink-0" />
+          <div className="p-3 bg-rose-50 border border-rose-200 rounded-md flex items-center gap-2.5 text-rose-800 text-xs font-medium">
+            <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
             <span>{error}</span>
           </div>
         )}
@@ -62,39 +64,49 @@ export default function LoginPage() {
         {/* Credentials Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-300">Email</label>
+            <label className="text-xs font-semibold text-slate-700">Email</label>
             <div className="relative">
-              <Mail className="h-4 w-4 text-slate-500 absolute left-3 top-2.5" />
+              <Mail className="h-4 w-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder=""
-                className="w-full h-9 pl-9 pr-3 bg-slate-900 border border-slate-700 rounded-md text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-red-500 font-mono"
+                autoComplete="email"
+                className="w-full h-10 pl-9 pr-3 bg-white border border-slate-300 rounded-md text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 shadow-xs transition-[color,box-shadow]"
               />
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-300">Password</label>
+            <label className="text-xs font-semibold text-slate-700">Password</label>
             <div className="relative">
-              <Lock className="h-4 w-4 text-slate-500 absolute left-3 top-2.5" />
+              <Lock className="h-4 w-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder=""
-                className="w-full h-9 pl-9 pr-3 bg-slate-900 border border-slate-700 rounded-md text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-red-500 font-mono"
+                autoComplete="current-password"
+                className="w-full h-10 pl-9 pr-10 bg-white border border-slate-300 rounded-md text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 shadow-xs transition-[color,box-shadow]"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-2.5 top-2.5 p-1 text-slate-400 hover:text-slate-700 transition-colors"
+                title={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
             </div>
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full h-9 bg-red-600 hover:bg-red-500 text-white text-xs font-semibold rounded-md transition-colors flex items-center justify-center gap-2 shadow-lg shadow-red-950/40 disabled:opacity-50"
+            className="w-full h-10 bg-blue-900 hover:bg-blue-800 text-white text-xs font-semibold rounded-md shadow-xs transition-colors flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
           >
             {loading ? (
               <span className="flex items-center gap-2">
@@ -110,7 +122,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="pt-2 border-t border-slate-800 text-center">
+        <div className="pt-2 border-t border-slate-100 text-center">
           <p className="text-[11px] text-slate-500 font-mono">
             Authorized security operators only &mdash; all sessions are cryptographically audited
           </p>
@@ -119,4 +131,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

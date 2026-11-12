@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from "react";
 import {
   ShieldCheck,
-  ShieldAlert,
   Plus,
   Search,
   CheckCircle2,
@@ -14,6 +13,7 @@ import {
 } from "lucide-react";
 import { useProject } from "@/lib/ProjectContext";
 import { api } from "@/lib/api";
+import { EngagementStepper } from "@/components/EngagementStepper";
 
 export default function ScopePage() {
   const { currentProject } = useProject();
@@ -102,43 +102,51 @@ export default function ScopePage() {
 
   if (!currentProject) {
     return (
-      <div className="p-8 text-center text-xs font-mono text-slate-500">
-        Please select a project to configure scope boundaries.
+      <div className="space-y-6">
+        <EngagementStepper />
+        <div className="p-12 text-center text-xs font-mono text-slate-500 bg-white border border-slate-200 rounded-xl shadow-xs">
+          Please select an active engagement project to configure scope boundaries.
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
+      <EngagementStepper />
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
         <div>
-          <h1 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-emerald-400" />
+          <h1 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-emerald-600" />
             Layer 1 & Layer 2 Scope Boundary Engine
           </h1>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500 mt-0.5">
             Enforces strict dot-boundary domain isolation, CIDR containment, and IMDS metadata protection.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={loadRules}
-            className="p-1.5 bg-slate-900 border border-slate-800 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-200 transition-colors"
+            disabled={loading}
+            className="p-2 bg-white border border-slate-200 hover:bg-slate-50 rounded-md text-slate-600 hover:text-slate-900 transition-colors shadow-xs"
+            title="Refresh scope rules"
           >
-            <RefreshCw className="h-4 w-4" />
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin text-blue-700" : ""}`} />
           </button>
         </div>
       </div>
 
       {/* Interactive Live Scope Tester */}
-      <div className="bg-surface-base border border-slate-800 rounded-lg p-4 space-y-3">
+      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Search className="h-4 w-4 text-cyan-400" />
-            <h3 className="text-sm font-semibold text-slate-200">Interactive Scope Boundary Tester</h3>
+            <Search className="h-4 w-4 text-blue-700" />
+            <h3 className="text-sm font-bold text-slate-900">Interactive Scope Boundary Tester</h3>
           </div>
-          <span className="text-[10px] font-mono text-slate-500">Dual-Layer Mathematical Evaluation</span>
+          <span className="text-[10px] font-mono font-medium text-slate-500 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded">
+            Dual-Layer Mathematical Evaluation
+          </span>
         </div>
 
         <form onSubmit={handleEvaluateScope} className="flex gap-2">
@@ -148,12 +156,12 @@ export default function ScopePage() {
             value={testUrl}
             onChange={(e) => setTestUrl(e.target.value)}
             placeholder="https://app.organization.com/path or http://169.254.169.254"
-            className="flex-1 h-9 px-3 bg-slate-900 border border-slate-700 rounded text-xs font-mono text-slate-100 placeholder-slate-500 focus:outline-none focus:border-red-500"
+            className="flex-1 h-9 px-3 bg-white border border-slate-300 rounded-md text-xs font-mono text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 transition-all"
           />
           <button
             type="submit"
             disabled={evaluating}
-            className="h-9 px-4 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-100 text-xs font-medium rounded transition-colors flex items-center gap-1.5 shrink-0"
+            className="h-9 px-4 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-md transition-colors flex items-center gap-1.5 shrink-0 shadow-xs cursor-pointer disabled:opacity-50"
           >
             {evaluating ? "Evaluating..." : "Evaluate Scope"}
           </button>
@@ -161,54 +169,54 @@ export default function ScopePage() {
 
         {checkResult && (
           <div
-            className={`p-3 rounded border text-xs font-mono flex items-center justify-between ${
+            className={`p-3 rounded-lg border text-xs font-mono flex items-center justify-between ${
               checkResult.is_in_scope
-                ? "bg-emerald-950/40 border-emerald-800 text-emerald-400"
-                : "bg-red-950/40 border-red-800 text-red-400"
+                ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                : "bg-rose-50 border-rose-200 text-rose-800"
             }`}
           >
             <div className="flex items-center gap-2">
               {checkResult.is_in_scope ? (
-                <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
               ) : (
-                <XCircle className="h-4 w-4 text-red-400 shrink-0" />
+                <XCircle className="h-4 w-4 text-rose-600 shrink-0" />
               )}
               <span>
                 <strong>{checkResult.is_in_scope ? "IN-SCOPE" : "OUT OF SCOPE / BLOCKED"}</strong>:{" "}
                 {checkResult.reason || (checkResult.is_in_scope ? "Destination strictly complies with authorized rules" : "Destination violates engagement scope boundaries")}
               </span>
             </div>
-            <span className="text-[10px] text-slate-400">Layer 1 Verified</span>
+            <span className="text-[10px] text-slate-500 font-semibold">Layer 1 Verified</span>
           </div>
         )}
       </div>
 
       {/* Add New Scope Rule Form */}
-      <div className="bg-surface-base border border-slate-800 rounded-lg p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-          <Plus className="h-4 w-4 text-red-400" />
+      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-3.5">
+        <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+          <Plus className="h-4 w-4 text-blue-900" />
           Add Authorized Boundary Rule
         </h3>
 
         <form onSubmit={handleAddRule} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3">
           <div className="space-y-1 md:col-span-2">
-            <label className="text-[11px] font-mono text-slate-400">Target Pattern</label>
+            <label className="text-[11px] font-semibold text-slate-700">Target Pattern *</label>
             <input
               type="text"
               required
               value={pattern}
               onChange={(e) => setPattern(e.target.value)}
               placeholder="app.organization.com, *.organization.com, /logout"
-              className="w-full h-8 px-2.5 bg-slate-900 border border-slate-700 rounded text-xs font-mono text-slate-100 focus:outline-none focus:border-red-500"
+              className="w-full h-9 px-3 bg-white border border-slate-300 rounded-md text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-[11px] font-mono text-slate-400">Rule Type</label>
+            <label className="text-[11px] font-semibold text-slate-700">Rule Type</label>
             <select
               value={ruleType}
               onChange={(e) => setRuleType(e.target.value)}
-              className="w-full h-8 px-2 bg-slate-900 border border-slate-700 rounded text-xs font-mono text-slate-100 focus:outline-none focus:border-red-500"
+              className="w-full h-9 px-2 bg-white border border-slate-300 rounded-md text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
             >
               <option value="EXACT_DOMAIN">EXACT_DOMAIN</option>
               <option value="DOMAIN_WILDCARD">DOMAIN_WILDCARD (*.)</option>
@@ -220,11 +228,11 @@ export default function ScopePage() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-[11px] font-mono text-slate-400">Target Type</label>
+            <label className="text-[11px] font-semibold text-slate-700">Disposition</label>
             <select
               value={targetType}
               onChange={(e) => setTargetType(e.target.value)}
-              className="w-full h-8 px-2 bg-slate-900 border border-slate-700 rounded text-xs font-mono text-slate-100 focus:outline-none focus:border-red-500"
+              className="w-full h-9 px-2 bg-white border border-slate-300 rounded-md text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
             >
               <option value="IN_SCOPE">IN_SCOPE (Allow)</option>
               <option value="OUT_OF_SCOPE">OUT_OF_SCOPE (Block)</option>
@@ -232,13 +240,13 @@ export default function ScopePage() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-[11px] font-mono text-slate-400">Port Range (Optional)</label>
+            <label className="text-[11px] font-semibold text-slate-700">Port Range (Optional)</label>
             <input
               type="text"
               value={portRange}
               onChange={(e) => setPortRange(e.target.value)}
               placeholder="80,443 or 9000"
-              className="w-full h-8 px-2.5 bg-slate-900 border border-slate-700 rounded text-xs font-mono text-slate-100 focus:outline-none focus:border-red-500"
+              className="w-full h-9 px-3 bg-white border border-slate-300 rounded-md text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
             />
           </div>
 
@@ -246,7 +254,7 @@ export default function ScopePage() {
             <button
               type="submit"
               disabled={addingRule}
-              className="w-full h-8 bg-red-600 hover:bg-red-500 text-white rounded text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+              className="w-full h-9 bg-blue-900 hover:bg-blue-800 text-white rounded-md text-xs font-semibold shadow-xs transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
             >
               <Plus className="h-3.5 w-3.5" />
               {addingRule ? "Adding..." : "Add Rule"}
@@ -256,12 +264,12 @@ export default function ScopePage() {
       </div>
 
       {/* Rules Inventory Table */}
-      <div className="bg-surface-base border border-slate-800 rounded-lg overflow-hidden">
-        <div className="p-3 border-b border-slate-800 flex items-center justify-between">
-          <h3 className="text-xs font-bold font-mono uppercase text-slate-300">
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+        <div className="p-3.5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+          <h3 className="text-xs font-bold font-mono uppercase text-slate-700">
             Active Scope Rules ({rules.length})
           </h3>
-          <span className="text-[10px] font-mono text-slate-500">Strictly Enforced on Egress</span>
+          <span className="text-[10px] font-mono text-slate-500 font-semibold">Strictly Enforced on Egress</span>
         </div>
 
         {rules.length === 0 ? (
@@ -270,53 +278,59 @@ export default function ScopePage() {
           </div>
         ) : (
           <table className="w-full text-left text-xs font-mono">
-            <thead className="bg-slate-900/80 text-slate-400 text-[10px] uppercase border-b border-slate-800">
+            <thead className="bg-slate-50/50 text-slate-600 text-[10px] uppercase border-b border-slate-200 font-bold tracking-wider">
               <tr>
-                <th className="py-2.5 px-3">Type</th>
-                <th className="py-2.5 px-3">Target Pattern</th>
-                <th className="py-2.5 px-3">Disposition</th>
-                <th className="py-2.5 px-3">Protocols / Ports</th>
-                <th className="py-2.5 px-3">Critical Target</th>
-                <th className="py-2.5 px-3">Notes</th>
-                <th className="py-2.5 px-3 text-right">Action</th>
+                <th className="py-2.5 px-3.5">Type</th>
+                <th className="py-2.5 px-3.5">Target Pattern</th>
+                <th className="py-2.5 px-3.5">Disposition</th>
+                <th className="py-2.5 px-3.5">Protocols / Ports</th>
+                <th className="py-2.5 px-3.5">Critical Target</th>
+                <th className="py-2.5 px-3.5">Notes</th>
+                <th className="py-2.5 px-3.5 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
+            <tbody className="divide-y divide-slate-100">
               {rules.map((r) => (
-                <tr key={r.id} className="hover:bg-slate-800/30 transition-colors">
-                  <td className="py-2.5 px-3 text-slate-300 font-bold">{r.rule_type}</td>
-                  <td className="py-2.5 px-3 text-slate-100 font-bold">{r.pattern}</td>
-                  <td className="py-2.5 px-3">
+                <tr key={r.id} className="hover:bg-slate-50/70 transition-colors">
+                  <td className="py-2.5 px-3.5 text-slate-700 font-semibold">{r.rule_type}</td>
+                  <td className="py-2.5 px-3.5 text-slate-900 font-bold">{r.pattern}</td>
+                  <td className="py-2.5 px-3.5">
                     <span
-                      className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold border ${
                         r.target_type === "IN_SCOPE"
-                          ? "bg-emerald-950 text-emerald-400 border-emerald-800"
-                          : "bg-red-950 text-red-400 border-red-800"
+                          ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                          : "bg-rose-50 text-rose-800 border-rose-200"
                       }`}
                     >
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full ${
+                          r.target_type === "IN_SCOPE" ? "bg-emerald-500" : "bg-rose-500"
+                        }`}
+                      />
                       {r.target_type}
                     </span>
                   </td>
-                  <td className="py-2.5 px-3 text-slate-400 text-[11px]">
+                  <td className="py-2.5 px-3.5 text-slate-600 text-[11px]">
                     {r.protocol || "http,https"}:{r.port_range || "80,443"}
                   </td>
-                  <td className="py-2.5 px-3">
+                  <td className="py-2.5 px-3.5">
                     {r.is_critical ? (
-                      <span className="text-red-400 font-bold flex items-center gap-1 text-[10px]">
-                        <AlertTriangle className="h-3 w-3" /> CRITICAL
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-800 border border-rose-200">
+                        <span className="h-1.5 w-1.5 rounded-full bg-rose-600 animate-pulse" />
+                        CRITICAL
                       </span>
                     ) : (
                       <span className="text-slate-500">Standard</span>
                     )}
                   </td>
-                  <td className="py-2.5 px-3 text-slate-400 text-[11px] truncate max-w-xs">
+                  <td className="py-2.5 px-3.5 text-slate-500 text-[11px] truncate max-w-xs">
                     {r.notes || "—"}
                   </td>
-                  <td className="py-2.5 px-3 text-right">
+                  <td className="py-2.5 px-3.5 text-right">
                     <button
                       onClick={() => handleDeleteRule(r.id, r.pattern)}
                       title="Delete scope rule"
-                      className="p-1 rounded text-slate-500 hover:text-red-400 hover:bg-red-950/60 transition-colors"
+                      className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -330,4 +344,3 @@ export default function ScopePage() {
     </div>
   );
 }
-

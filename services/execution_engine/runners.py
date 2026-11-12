@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database.models.discovery import Endpoint, Technology
 from database.models.project import Project
 from database.models.scope import ScopeRule
-from database.models.wstg import TestExecution, TestExecutionLog, WSTGTestInstance
+from database.models.wstg import TestExecution, TestExecutionLog, WSTGTestCatalog, WSTGTestInstance
 from packages.common.exceptions import ScopeViolationException
 from services.scope_engine.service import scope_service
 from services.scope_engine.validator import parse_port_range
@@ -105,13 +105,15 @@ class ExecutionContext:
         project_id: uuid.UUID,
         wstg_id: str,
         endpoint: Optional[Endpoint],
-        session: AsyncSession
+        session: AsyncSession,
+        http_transport: Optional[httpx.AsyncBaseTransport] = None,
     ):
         self.execution_id = execution_id
         self.project_id = project_id
         self.wstg_id = wstg_id
         self.endpoint = endpoint
         self.session = session
+        self.http_transport = http_transport
         self.logs: List[Dict[str, str]] = []
 
     async def log(self, level: str, message: str) -> None:
@@ -193,8 +195,9 @@ class SecurityHeadersRunner(BaseTestRunner):
 
         try:
             client_kwargs: Dict[str, Any] = {"timeout": 10.0, "verify": False}
-            if self.default_http_transport is not None:
-                client_kwargs["transport"] = self.default_http_transport
+            transport = ctx.http_transport if ctx.http_transport is not None else self.default_http_transport
+            if transport is not None:
+                client_kwargs["transport"] = transport
             async with httpx.AsyncClient(**client_kwargs) as client:
                 resp = await asyncio.wait_for(client.get(target_url), timeout=10.0)
 
@@ -282,8 +285,9 @@ class HttpMethodsRunner(BaseTestRunner):
 
         try:
             client_kwargs: Dict[str, Any] = {"timeout": 10.0, "verify": False}
-            if self.default_http_transport is not None:
-                client_kwargs["transport"] = self.default_http_transport
+            transport = ctx.http_transport if ctx.http_transport is not None else self.default_http_transport
+            if transport is not None:
+                client_kwargs["transport"] = transport
             async with httpx.AsyncClient(**client_kwargs) as client:
                 for method in dangerous_methods:
                     await ctx.log("DEBUG", f"Testing method: {method}")
@@ -335,8 +339,9 @@ class MetafilesRunner(BaseTestRunner):
 
         try:
             client_kwargs: Dict[str, Any] = {"timeout": 10.0, "verify": False}
-            if self.default_http_transport is not None:
-                client_kwargs["transport"] = self.default_http_transport
+            transport = ctx.http_transport if ctx.http_transport is not None else self.default_http_transport
+            if transport is not None:
+                client_kwargs["transport"] = transport
             async with httpx.AsyncClient(**client_kwargs) as client:
                 resp = await asyncio.wait_for(client.get(target_url), timeout=10.0)
 
@@ -374,7 +379,7 @@ class MetafilesRunner(BaseTestRunner):
 
 
 class GenericProbeRunner(BaseTestRunner):
-    """Generic test execution runner for simulated or standard test catalog checks."""
+    """Generic test execution runner with catalog-aware manual review boundaries."""
 
     async def execute(self, ctx: ExecutionContext) -> ExecutionResult:
         await ctx.log("INFO", f"Starting automated execution for {ctx.wstg_id}")
@@ -385,6 +390,19 @@ class GenericProbeRunner(BaseTestRunner):
             # Pre-flight scope check
             await ctx.check_scope(target_url)
             await ctx.log("INFO", f"Target endpoint {ctx.endpoint.http_method} {target_url} confirmed in-scope.")
+
+        cat_stmt = select(WSTGTestCatalog).where(WSTGTestCatalog.id == ctx.wstg_id)
+        catalog = (await ctx.session.execute(cat_stmt)).scalar_one_or_none()
+        if catalog and (catalog.requires_human_review or catalog.automation_capability == "Manual"):
+            await ctx.log(
+                "WARNING",
+                f"{ctx.wstg_id} ({catalog.name}) requires human/manual security verification ({catalog.automation_capability} automation)."
+            )
+            return ExecutionResult(
+                status="NEEDS_REVIEW",
+                exit_code=0,
+                summary=f"Pre-check completed; {ctx.wstg_id} requires manual security review."
+            )
 
         await ctx.log("INFO", f"Executing rule-based probes for {ctx.wstg_id}...")
         await ctx.log("INFO", "Validation completed cleanly. Zero vulnerabilities detected.")
@@ -410,7 +428,8 @@ def get_runner_for_test(wstg_id: str) -> BaseTestRunner:
 
 async def execute_wstg_test_run(
     session: AsyncSession,
-    execution_id: uuid.UUID
+    execution_id: uuid.UUID,
+    http_transport: Optional[httpx.AsyncBaseTransport] = None,
 ) -> TestExecution:
     """Execute a queued test execution, enforce scope, stream logs, and update status."""
     # 1. Fetch execution record
@@ -433,7 +452,8 @@ async def execute_wstg_test_run(
         project_id=execution.project_id,
         wstg_id=instance.wstg_id,
         endpoint=endpoint,
-        session=session
+        session=session,
+        http_transport=http_transport,
     )
 
     # Transition states to RUNNING

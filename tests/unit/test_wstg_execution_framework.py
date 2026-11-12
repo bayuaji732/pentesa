@@ -181,3 +181,78 @@ async def test_execution_log_streaming(db_session: AsyncSession, test_project: P
     assert len(logs) >= 2
     assert any("Starting automated execution" in log.message for log in logs)
     assert any("Validation completed cleanly" in log.message for log in logs)
+
+
+@pytest.mark.asyncio
+async def test_generic_runner_marks_manual_review_items_as_needs_review(
+    db_session: AsyncSession,
+    test_project: Project,
+):
+    """Verify catalog tests requiring human review transition to Needs Manual Review instead of blindly Passing."""
+    await initialize_project_wstg_instances(db_session, test_project.id)
+    inst_stmt = select(WSTGTestInstance).where(
+        WSTGTestInstance.project_id == test_project.id,
+        WSTGTestInstance.wstg_id == "WSTG-BUSL-01",
+    )
+    instance = (await db_session.execute(inst_stmt)).scalar_one()
+
+    exec_record = TestExecution(
+        project_id=test_project.id,
+        wstg_instance_id=instance.id,
+        endpoint_id=None,
+        status="QUEUED",
+        runner_type="AUTOMATED",
+    )
+    db_session.add(exec_record)
+    await db_session.commit()
+    await db_session.refresh(exec_record)
+
+    executed = await execute_wstg_test_run(db_session, exec_record.id)
+    assert executed.status == "NEEDS_REVIEW"
+    await db_session.refresh(instance)
+    assert instance.status == "Needs Manual Review"
+
+
+@pytest.mark.asyncio
+async def test_execute_wstg_test_run_accepts_injected_http_transport(
+    db_session: AsyncSession,
+    test_project: Project,
+):
+    """Verify execute_wstg_test_run uses injected http_transport cleanly."""
+    await initialize_project_wstg_instances(db_session, test_project.id)
+    ep = Endpoint(
+        project_id=test_project.id,
+        fqdn="target.com",
+        url_path="/",
+        http_method="GET",
+        discovery_source="CRAWLER",
+    )
+    db_session.add(ep)
+    await db_session.flush()
+
+    inst = (
+        await db_session.execute(
+            select(WSTGTestInstance).where(
+                WSTGTestInstance.project_id == test_project.id,
+                WSTGTestInstance.wstg_id == "WSTG-CLNT-09",
+            )
+        )
+    ).scalar_one()
+
+    exec_record = TestExecution(
+        project_id=test_project.id,
+        wstg_instance_id=inst.id,
+        endpoint_id=ep.id,
+        status="QUEUED",
+    )
+    db_session.add(exec_record)
+    await db_session.commit()
+    await db_session.refresh(exec_record)
+
+    transport = httpx.MockTransport(
+        lambda req: httpx.Response(200, headers={"X-Frame-Options": "SAMEORIGIN"}, text="<html>ok</html>")
+    )
+    executed = await execute_wstg_test_run(db_session, exec_record.id, http_transport=transport)
+    assert executed.status == "PASSED"
+    await db_session.refresh(inst)
+    assert inst.status == "Passed"

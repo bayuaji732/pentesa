@@ -194,3 +194,88 @@ async def test_wstg_execute_and_logs_api(
     logs = logs_resp.json()
     assert len(logs) >= 2
     assert any("Starting automated execution" in l["message"] for l in logs)
+
+
+@pytest.mark.asyncio
+async def test_wstg_plan_includes_enriched_metadata_counts_and_findings_sync(
+    client: AsyncClient,
+    admin_token: str,
+    test_project,
+):
+    """Verify /wstg/plan includes category_code, description, applicable, execution_count, and findings_count."""
+    headers = {"Authorization": f"Bearer {admin_token}"}
+
+    # Dispatch an execution for WSTG-INFO-01 and create a finding for WSTG-INPV-05
+    exec_resp = await client.post(
+        f"/api/v1/projects/{test_project.id}/wstg/execute/WSTG-INFO-01?runner_type=AUTOMATED",
+        headers=headers,
+    )
+    assert exec_resp.status_code == 201
+
+    finding_resp = await client.post(
+        f"/api/v1/projects/{test_project.id}/findings",
+        headers=headers,
+        json={
+            "title": "SQL Injection in Search",
+            "description": "Error-based SQLi",
+            "severity": "Critical",
+            "cwe_id": "CWE-89",
+            "wstg_id": "WSTG-INPV-05",
+        },
+    )
+    assert finding_resp.status_code == 201
+
+    plan_resp = await client.get(
+        f"/api/v1/projects/{test_project.id}/wstg/plan",
+        headers=headers,
+    )
+    assert plan_resp.status_code == 200
+    items = {item["wstg_id"]: item for item in plan_resp.json()}
+
+    info01 = items["WSTG-INFO-01"]
+    assert info01["category_code"] == "WSTG-INFO"
+    assert len(info01["description"]) > 10
+    assert info01["execution_count"] >= 1
+    assert info01["applicable"] is True
+
+    inpv05 = items["WSTG-INPV-05"]
+    assert inpv05["status"] == "Failed"
+    assert inpv05["findings_count"] == 1
+    assert inpv05["applicable"] is True
+
+
+@pytest.mark.asyncio
+async def test_unhandled_exception_preserves_cors_headers(
+    db_session: AsyncSession,
+    admin_token: str,
+    test_project,
+):
+    """Verify unhandled 500 responses preserve CORS headers instead of collapsing into browser Failed to fetch."""
+    from httpx import ASGITransport
+    from apps.api.main import app
+    from database.session import get_db
+
+    async def override_get_db():
+        yield db_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        transport = ASGITransport(app=app, raise_app_exceptions=False)
+        async with AsyncClient(transport=transport, base_url="http://test") as raw_client:
+            with patch(
+                "services.execution_engine.service.WSTGExecutionService.recalculate_plan",
+                side_effect=RuntimeError("simulated unexpected failure"),
+            ):
+                resp = await raw_client.post(
+                    f"/api/v1/projects/{test_project.id}/wstg/recalculate",
+                    headers={
+                        "Authorization": f"Bearer {admin_token}",
+                        "Origin": "http://localhost:3000",
+                    },
+                )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert resp.status_code == 500
+    assert resp.json()["error"] == "INTERNAL_SERVER_ERROR"
+    assert "access-control-allow-origin" in {k.lower() for k in resp.headers.keys()}

@@ -7,15 +7,16 @@ import asyncio
 from typing import List, Optional
 from urllib.parse import urlparse
 import httpx
-from sqlalchemy import select
+from sqlalchemy import case, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from agents.base import BaseAgent
 from agents.llm.provider import BaseLLMProvider
 from database.models.discovery import Endpoint
-from database.models.wstg import WSTGTestInstance
+from database.models.wstg import WSTGTestCatalog, WSTGTestInstance
 from packages.schemas.wstg import TestExecutionCreate
 from services.execution_engine.coverage import WSTGCoverageService
+from services.execution_engine.planner import recalculate_project_test_plan
 from services.execution_engine.service import WSTGExecutionService
 from services.orchestrator.state import PentestWorkflowState
 
@@ -66,19 +67,66 @@ class WSTGAssessmentAgent(BaseAgent):
             confidence="High",
         )
 
-        # 2. Query planned WSTG instances & primary endpoint
+        # 2. Recalculate applicability against latest surface, then query Planned tests
+        await recalculate_project_test_plan(self.session, state.project_id)
+
+        runnable_priority = case(
+            (WSTGTestInstance.wstg_id.in_(["WSTG-INFO-03", "WSTG-CONF-06", "WSTG-CONF-07", "WSTG-CLNT-09"]), 0),
+            (WSTGTestCatalog.automation_capability == "Full", 1),
+            else_=2,
+        )
         stmt = (
             select(WSTGTestInstance)
+            .join(WSTGTestCatalog, WSTGTestInstance.wstg_id == WSTGTestCatalog.id)
             .where(
                 WSTGTestInstance.project_id == state.project_id,
-                WSTGTestInstance.status.in_(["Planned", "Not Started", "Running", "Needs Manual Review"]),
+                WSTGTestInstance.status == "Planned",
+            )
+            .order_by(
+                runnable_priority,
+                WSTGTestInstance.applicable_endpoints_count.desc(),
+                WSTGTestInstance.wstg_id,
             )
             .limit(batch_limit)
         )
         instances = (await self.session.execute(stmt)).scalars().all()
 
-        ep_stmt = select(Endpoint.id).where(Endpoint.project_id == state.project_id).limit(1)
-        first_endpoint_id = (await self.session.execute(ep_stmt)).scalar_one_or_none()
+        ep_stmt = select(Endpoint).where(Endpoint.project_id == state.project_id)
+        all_endpoints = list((await self.session.execute(ep_stmt)).scalars().all())
+        first_endpoint_id = all_endpoints[0].id if all_endpoints else None
+
+        def _pick_endpoint_id(wid: str):
+            if not all_endpoints:
+                return None
+            if wid.startswith("WSTG-INPV"):
+                param_ep = next((e for e in all_endpoints if e.parameter_schema), None)
+                if param_ep:
+                    return param_ep.id
+            elif wid.startswith(("WSTG-ATHN", "WSTG-IDNT", "WSTG-SESS")):
+                auth_ep = next(
+                    (
+                        e for e in all_endpoints
+                        if e.auth_required or any(k in (e.url_path or "").lower() for k in ("login", "auth", "register", "session"))
+                    ),
+                    None,
+                )
+                if auth_ep:
+                    return auth_ep.id
+            elif wid.startswith("WSTG-APIT"):
+                api_ep = next(
+                    (e for e in all_endpoints if "/api" in (e.url_path or "").lower() or "json" in (e.content_type or "").lower()),
+                    None,
+                )
+                if api_ep:
+                    return api_ep.id
+            elif wid in {"WSTG-CONF-07", "WSTG-CLNT-09", "WSTG-INFO-03"}:
+                web_ep = next(
+                    (e for e in all_endpoints if "html" in (e.content_type or "").lower() or e.url_path == "/"),
+                    None,
+                )
+                if web_ep:
+                    return web_ep.id
+            return first_endpoint_id
 
         target_domain = state.discovered_subdomains[0] if state.discovered_subdomains else None
         target_url = state.target_base_url or (f"https://{target_domain}" if target_domain else None)
@@ -96,9 +144,10 @@ class WSTGAssessmentAgent(BaseAgent):
                         project_id=state.project_id,
                         payload=TestExecutionCreate(
                             wstg_id=inst.wstg_id,
-                            endpoint_id=first_endpoint_id,
+                            endpoint_id=_pick_endpoint_id(inst.wstg_id),
                             runner_type="AGENT",
                         ),
+                        http_transport=self.get_http_transport(),
                     )
                     if test_exec.status in ("PASSED", "FAILED", "NEEDS_REVIEW"):
                         executed_count += 1
@@ -141,6 +190,11 @@ class WSTGAssessmentAgent(BaseAgent):
                     )
 
                     if missing_headers:
+                        header_wstg_id = (
+                            "WSTG-CONF-07"
+                            if "Strict-Transport-Security" in missing_headers
+                            else ("WSTG-CLNT-09" if "X-Frame-Options" in missing_headers else "WSTG-CONF-02")
+                        )
                         candidate_findings.append({
                             "title": (
                                 "Missing Security Headers (CSP, HSTS)"
@@ -152,7 +206,7 @@ class WSTGAssessmentAgent(BaseAgent):
                                 f"{', '.join(missing_headers)}."
                             ),
                             "severity": "Low",
-                            "wstg_id": "WSTG-CONF-07",
+                            "wstg_id": header_wstg_id,
                             "cwe_id": "CWE-693",
                             "target_url": target_url,
                             "source": "wstg_agent",
@@ -185,7 +239,14 @@ class WSTGAssessmentAgent(BaseAgent):
             status="SUCCESS",
         )
 
-        # 4. Coverage calculation
+        # 4. Sync state matrix & coverage calculation
+        all_insts = (
+            await self.session.execute(
+                select(WSTGTestInstance).where(WSTGTestInstance.project_id == state.project_id)
+            )
+        ).scalars().all()
+        state.wstg_matrix_state = {i.wstg_id: i.status for i in all_insts}
+
         cov_service = WSTGCoverageService(self.session)
         report = await cov_service.calculate_project_coverage(state.project_id)
 

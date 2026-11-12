@@ -122,6 +122,7 @@ async def test_wstg_assessment_agent_http_target_excludes_hsts(db_session, test_
     header_finding = updated.candidate_findings[0]
     assert "HSTS" not in header_finding["title"]
     assert "Strict-Transport-Security" not in header_finding["description"]
+    assert header_finding["wstg_id"] != "WSTG-CONF-07"
 
 
 @pytest.mark.asyncio

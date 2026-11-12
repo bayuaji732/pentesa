@@ -1,6 +1,7 @@
 """Integration tests for Attack Surface Discovery API endpoints."""
 
 import uuid
+import httpx
 import pytest
 from httpx import AsyncClient
 
@@ -178,4 +179,67 @@ async def test_technologies_and_attack_surface_graph_api(
     assert "edges" in graph_data
     assert graph_data["stats"]["endpoints"] >= 1
     assert graph_data["stats"]["technologies"] >= 1
+
+
+@pytest.mark.asyncio
+async def test_discovery_execute_crawl_persists_cookies_and_form_schemas(
+    db_session,
+    test_project,
+):
+    """Verify DiscoveryService.execute_crawl persists Cookie records and multipart form schemas cleanly."""
+    from sqlalchemy import select
+    from database.models.discovery import Cookie
+    from packages.schemas.discovery import CrawlRequest
+    from services.discovery_engine.service import discovery_service
+
+    await db_session.refresh(test_project, attribute_names=["scope_rules"])
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if str(request.url) == "https://target.com/":
+            return httpx.Response(
+                200,
+                headers={
+                    "Content-Type": "text/html",
+                    "Set-Cookie": "PHPSESSID=abc123; Path=/; HttpOnly; SameSite=Lax",
+                },
+                text=(
+                    '<html><form action="/vulnerabilities/upload/" method="POST" enctype="multipart/form-data">'
+                    '<input type="file" name="uploaded">'
+                    "</form></html>"
+                ),
+            )
+        return httpx.Response(404)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as mock_client:
+        summary = await discovery_service.execute_crawl(
+            db_session,
+            test_project,
+            CrawlRequest(
+                seed_urls=["https://target.com/"],
+                max_depth=2,
+                max_pages=5,
+                respect_robots_txt=False,
+                parse_sitemap=False,
+                extract_js_routes=False,
+            ),
+            custom_client=mock_client,
+        )
+
+    assert summary.endpoints_discovered >= 2
+    cookies = (
+        await db_session.execute(select(Cookie).where(Cookie.project_id == test_project.id))
+    ).scalars().all()
+    assert any(c.name == "PHPSESSID" and c.is_httponly is True and c.samesite == "Lax" for c in cookies)
+
+    ep = (
+        await db_session.execute(
+            select(Endpoint).where(
+                Endpoint.project_id == test_project.id,
+                Endpoint.url_path == "/vulnerabilities/upload",
+                Endpoint.http_method == "POST",
+            )
+        )
+    ).scalar_one()
+    assert ep.content_type == "multipart/form-data"
+    assert ep.parameter_schema["body"][0]["type"] == "file"
 

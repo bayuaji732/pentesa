@@ -219,3 +219,21 @@ def test_parse_openapi_spec():
     assert post_ep["content_type"] == "application/json"
     assert post_ep["auth_required"] is True
 
+
+def test_extract_html_artifacts_multipart_upload_form():
+    """Verify extraction of multipart/form-data enctype and file input types."""
+    html = """
+    <html><body>
+      <form action="/vulnerabilities/upload/" method="POST" enctype="multipart/form-data">
+        <input type="file" name="uploaded">
+        <input type="submit" name="Upload" value="Upload">
+      </form>
+    </body></html>
+    """
+    artifacts = extract_html_artifacts(html, "http://dvwa/vulnerabilities/upload/")
+    assert len(artifacts["forms"]) == 1
+    form = artifacts["forms"][0]
+    assert form["enctype"] == "multipart/form-data"
+    inputs_by_name = {i["name"]: i for i in form["inputs"]}
+    assert inputs_by_name["uploaded"]["type"] == "file"
+

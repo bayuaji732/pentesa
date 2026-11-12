@@ -15,6 +15,7 @@ from agents.base import BaseAgent
 from agents.llm.provider import BaseLLMProvider
 from packages.schemas.finding import FalsePositiveCreate, FindingCreate
 from services.evidence_engine.finding_service import FindingService
+from services.execution_engine.planner import sync_wstg_instance_for_finding
 from services.orchestrator.state import PentestWorkflowState
 
 
@@ -202,6 +203,7 @@ class ValidationAgent(BaseAgent):
                         existing.status = "Confirmed"
                         existing.confidence = "Confirmed"
                         await self.session.commit()
+                    await sync_wstg_instance_for_finding(self.session, state.project_id, existing.wstg_id)
                     await self.log_tool_call(
                         tool_name="dedup_engine",
                         input_arguments={"candidate_title": title, "existing_id": str(existing.id)},

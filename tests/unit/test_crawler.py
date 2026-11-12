@@ -156,4 +156,45 @@ async def test_crawler_detects_session_cookies_across_shared_client():
     tech_names = [t["name"] for t in result["technologies"]]
     assert "Apache HTTP Server" in tech_names
     assert "Java (Servlet/Spring)" in tech_names
+    assert len(result["cookies"]) >= 1
+    jsid = next(c for c in result["cookies"] if c["name"] == "JSESSIONID")
+    assert jsid["is_httponly"] is True
+    assert jsid["is_secure"] is False
+
+
+@pytest.mark.asyncio
+async def test_crawler_preserves_multipart_enctype_and_file_input_type():
+    """Verify upload forms preserve multipart/form-data content_type and file parameter types."""
+    project = MockProject()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if str(request.url) == "https://target.com/":
+            return httpx.Response(
+                200,
+                headers={"Content-Type": "text/html"},
+                text=(
+                    '<html><form action="/upload" method="POST" enctype="multipart/form-data">'
+                    '<input type="file" name="avatar">'
+                    '</form></html>'
+                ),
+            )
+        return httpx.Response(404)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as test_client:
+        crawler = ScopeEnforcedCrawler(project=project, rules=project.scope_rules, custom_client=test_client)
+        config = CrawlRequest(
+            seed_urls=["https://target.com/"],
+            max_depth=2,
+            max_pages=5,
+            respect_robots_txt=False,
+            parse_sitemap=False,
+            extract_js_routes=False,
+        )
+        result = await crawler.crawl(config)
+
+    upload_ep = next(e for e in result["endpoints"] if e["url_path"] == "/upload" and e["http_method"] == "POST")
+    assert upload_ep["content_type"] == "multipart/form-data"
+    body_params = upload_ep["parameter_schema"]["body"]
+    assert body_params[0]["name"] == "avatar"
+    assert body_params[0]["type"] == "file"
 

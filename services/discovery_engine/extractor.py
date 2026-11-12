@@ -46,10 +46,12 @@ class SimpleHTMLLinkExtractor(HTMLParser):
         elif tag == "form":
             action = attr_dict.get("action", "").strip()
             method = attr_dict.get("method", "GET").upper()
+            enctype = attr_dict.get("enctype", "").strip().lower()
             form_url = urljoin(self.base_url, action) if action else self.base_url
             self._current_form = {
                 "action": form_url,
                 "method": method,
+                "enctype": enctype,
                 "inputs": []
             }
             self.forms.append(self._current_form)

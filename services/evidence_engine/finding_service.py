@@ -37,6 +37,7 @@ from packages.schemas.finding import (
 from services.evidence_engine.curl_generator import generate_reproduction_curl
 from services.evidence_engine.hasher import compute_stream_hash
 from services.evidence_engine.redactor import redact_raw_stream
+from services.execution_engine.planner import sync_wstg_instance_for_finding
 from services.execution_engine.runners import resolve_project_origin
 from services.scope_engine.service import scope_service
 
@@ -532,6 +533,7 @@ class FindingService:
             user_agent=user_agent
         )
         await self.session.commit()
+        await sync_wstg_instance_for_finding(self.session, project_id, finding.wstg_id)
 
         return await self.get_finding(finding.id, project_id)
 
@@ -587,6 +589,8 @@ class FindingService:
                 user_agent=user_agent
             )
             await self.session.commit()
+            await sync_wstg_instance_for_finding(self.session, project_id, finding.wstg_id)
+            await self.session.refresh(finding)
 
         return finding
 
@@ -640,6 +644,7 @@ class FindingService:
             user_agent=user_agent
         )
         await self.session.commit()
+        await sync_wstg_instance_for_finding(self.session, project_id, finding.wstg_id)
 
         return fp_entry
 
@@ -798,6 +803,7 @@ class FindingService:
             user_agent=user_agent
         )
         await self.session.commit()
+        await sync_wstg_instance_for_finding(self.session, project_id, finding.wstg_id)
 
         now_utc = datetime.datetime.now(datetime.timezone.utc)
         return FindingRetestResponse(
@@ -864,6 +870,8 @@ class FindingService:
             user_agent=user_agent
         )
         await self.session.commit()
+        for wid in {f.wstg_id for f in updated_findings if f.wstg_id}:
+            await sync_wstg_instance_for_finding(self.session, project_id, wid)
 
         return updated_findings
 

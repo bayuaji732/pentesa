@@ -7,7 +7,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from database.models.discovery import DiscoveredDomain, Endpoint, Technology
+from database.models.discovery import Cookie, DiscoveredDomain, Endpoint, Technology
 from database.models.project import Project
 from packages.schemas.discovery import (
     AttackSurfaceGraphResponse,
@@ -93,17 +93,28 @@ class DiscoveryService:
                 session.add(endpoint)
                 endpoints_created += 1
             else:
-                # Merge parameters
+                # Merge parameters safely whether existing elements are dicts or strings
                 existing_params = dict(existing.parameter_schema or {})
                 new_params = ep.get("parameter_schema", {})
                 for loc in ("query", "body", "path", "headers"):
-                    curr_list = existing_params.get(loc, [])
-                    curr_names = {p["name"] for p in curr_list}
+                    curr_list = list(existing_params.get(loc, []))
+                    curr_names = {
+                        p.get("name") if isinstance(p, dict) else str(p)
+                        for p in curr_list
+                    }
                     for np in new_params.get(loc, []):
-                        if np["name"] not in curr_names:
+                        np_name = np.get("name") if isinstance(np, dict) else str(np)
+                        if np_name not in curr_names:
                             curr_list.append(np)
+                            curr_names.add(np_name)
                     existing_params[loc] = curr_list
                 existing.parameter_schema = existing_params
+                new_ct = ep.get("content_type")
+                if new_ct and (
+                    not existing.content_type
+                    or ("multipart" in new_ct.lower() and "multipart" not in existing.content_type.lower())
+                ):
+                    existing.content_type = new_ct
 
         # 3. Persist Detected Technologies
         techs_created = 0
@@ -127,6 +138,33 @@ class DiscoveryService:
                 )
                 session.add(tech_model)
                 techs_created += 1
+
+        # 4. Persist Discovered Cookies
+        for c in crawl_result.get("cookies", []):
+            c_stmt = select(Cookie).where(
+                Cookie.project_id == project.id,
+                Cookie.name == c["name"],
+                Cookie.domain == c["domain"],
+                Cookie.path == c["path"],
+            )
+            existing_c = (await session.execute(c_stmt)).scalar_one_or_none()
+            if existing_c:
+                existing_c.is_secure = existing_c.is_secure or bool(c.get("is_secure"))
+                existing_c.is_httponly = existing_c.is_httponly or bool(c.get("is_httponly"))
+                if c.get("samesite") and not existing_c.samesite:
+                    existing_c.samesite = c["samesite"]
+            else:
+                cookie_model = Cookie(
+                    id=uuid.uuid4(),
+                    project_id=project.id,
+                    name=c["name"],
+                    domain=c["domain"],
+                    path=c.get("path") or "/",
+                    is_secure=bool(c.get("is_secure")),
+                    is_httponly=bool(c.get("is_httponly")),
+                    samesite=c.get("samesite"),
+                )
+                session.add(cookie_model)
 
         await session.commit()
 

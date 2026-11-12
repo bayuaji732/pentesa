@@ -272,7 +272,7 @@ export default function DashboardPage() {
             </div>
             <div className="p-2 bg-slate-900/60 rounded border border-slate-800">
               <div className="text-slate-400 text-[10px]">Testing</div>
-              <div className="text-cyan-400 font-bold text-sm">{coverage?.in_progress_count || 0}</div>
+              <div className="text-cyan-400 font-bold text-sm">{coverage?.running_count || 0}</div>
             </div>
             <div className="p-2 bg-slate-900/60 rounded border border-slate-800">
               <div className="text-slate-400 text-[10px]">Planned</div>

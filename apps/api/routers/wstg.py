@@ -173,6 +173,8 @@ async def recalculate_wstg_test_plan(
         total_instances=result["total_instances"],
         planned_count=result["planned_count"],
         not_applicable_count=result["not_applicable_count"],
+        failed_count=result.get("failed_count", 0),
+        endpoints_analyzed=result.get("endpoints_analyzed", 0),
         summary=result["summary"]
     )
 

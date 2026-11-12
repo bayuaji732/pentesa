@@ -32,11 +32,16 @@ class WSTGTestInstanceResponse(BaseModel):
     project_id: uuid.UUID
     wstg_id: str
     category: str
+    category_code: str = ""
     name: str
+    description: str = ""
     status: str
+    applicable: bool = True
     notes: Optional[str] = None
     justification: Optional[str] = None
     applicable_endpoints_count: int = 0
+    execution_count: int = 0
+    findings_count: int = 0
     automation_capability: str = "Full"
     default_risk: str = "Medium"
     updated_at: datetime
@@ -127,5 +132,7 @@ class TestPlanRecalculateResponse(BaseModel):
     total_instances: int
     planned_count: int
     not_applicable_count: int
+    failed_count: int = 0
+    endpoints_analyzed: int = 0
     summary: str
 

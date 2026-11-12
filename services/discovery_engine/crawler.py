@@ -47,7 +47,102 @@ class ScopeEnforcedCrawler:
         self.discovered_endpoints: Dict[str, Dict[str, Any]] = {}
         self.discovered_domains: Set[str] = set()
         self.detected_technologies: Dict[str, Dict[str, Any]] = {}
+        self.discovered_cookies: Dict[Tuple[str, str, str], Dict[str, Any]] = {}
         self.errors: List[str] = []
+
+    def _capture_response_cookies(
+        self,
+        resp: httpx.Response,
+        url: str,
+        client: httpx.AsyncClient
+    ) -> None:
+        """Capture Set-Cookie headers and jar cookies with security flags."""
+        parsed = urlparse(url)
+        default_domain = parsed.hostname or "unknown"
+
+        raw_headers: List[str] = []
+        if hasattr(resp.headers, "get_list"):
+            raw_headers = resp.headers.get_list("set-cookie")
+        elif "set-cookie" in resp.headers:
+            raw_headers = [resp.headers["set-cookie"]]
+
+        for raw in raw_headers:
+            parts = [p.strip() for p in raw.split(";") if p.strip()]
+            if not parts or "=" not in parts[0]:
+                continue
+            c_name, _ = parts[0].split("=", 1)
+            c_name = c_name.strip()
+            if not c_name:
+                continue
+
+            c_domain = default_domain
+            c_path = "/"
+            is_secure = False
+            is_httponly = False
+            samesite: Optional[str] = None
+
+            for attr in parts[1:]:
+                low = attr.lower()
+                if low == "secure":
+                    is_secure = True
+                elif low == "httponly":
+                    is_httponly = True
+                elif low.startswith("samesite="):
+                    samesite = attr.split("=", 1)[1].strip()
+                elif low.startswith("path="):
+                    c_path = attr.split("=", 1)[1].strip() or "/"
+                elif low.startswith("domain="):
+                    dom_val = attr.split("=", 1)[1].strip().lstrip(".")
+                    if dom_val:
+                        c_domain = dom_val
+
+            key = (c_name, c_domain, c_path)
+            existing = self.discovered_cookies.get(key)
+            if existing:
+                existing["is_secure"] = existing["is_secure"] or is_secure
+                existing["is_httponly"] = existing["is_httponly"] or is_httponly
+                if samesite and not existing.get("samesite"):
+                    existing["samesite"] = samesite
+            else:
+                self.discovered_cookies[key] = {
+                    "name": c_name,
+                    "domain": c_domain,
+                    "path": c_path,
+                    "is_secure": is_secure,
+                    "is_httponly": is_httponly,
+                    "samesite": samesite,
+                }
+
+        for jar_cookie in getattr(client.cookies, "jar", []):
+            c_name = getattr(jar_cookie, "name", None)
+            if not c_name:
+                continue
+            c_domain = (getattr(jar_cookie, "domain", "") or "").lstrip(".") or default_domain
+            c_path = getattr(jar_cookie, "path", None) or "/"
+            rest = {
+                str(k).lower(): v
+                for k, v in (getattr(jar_cookie, "_rest", {}) or {}).items()
+            }
+            is_secure = bool(getattr(jar_cookie, "secure", False))
+            is_httponly = "httponly" in rest
+            samesite = rest.get("samesite")
+
+            key = (c_name, c_domain, c_path)
+            existing = self.discovered_cookies.get(key)
+            if existing:
+                existing["is_secure"] = existing["is_secure"] or is_secure
+                existing["is_httponly"] = existing["is_httponly"] or is_httponly
+                if samesite and not existing.get("samesite"):
+                    existing["samesite"] = samesite
+            else:
+                self.discovered_cookies[key] = {
+                    "name": c_name,
+                    "domain": c_domain,
+                    "path": c_path,
+                    "is_secure": is_secure,
+                    "is_httponly": is_httponly,
+                    "samesite": samesite,
+                }
 
     def _is_url_in_scope(self, url: str) -> bool:
         """Validate single URL using Layer 1 & 2 scope service."""
@@ -108,6 +203,12 @@ class ScopeEnforcedCrawler:
                 for new_p in param_schema.get(loc, []):
                     if new_p["name"] not in existing_names:
                         existing[loc].append(new_p)
+            if content_type:
+                existing_ct = self.discovered_endpoints[key].get("content_type")
+                if not existing_ct or (
+                    "multipart" in content_type.lower() and "multipart" not in existing_ct.lower()
+                ):
+                    self.discovered_endpoints[key]["content_type"] = content_type
 
     async def crawl(self, config: CrawlRequest) -> Dict[str, Any]:
         """Execute automated attack surface crawl starting from seed URLs."""
@@ -191,7 +292,8 @@ class ScopeEnforcedCrawler:
                         self.errors.append(f"Request failed for '{clean_url}': {err_detail}")
                         continue
 
-                # Record endpoint
+                # Record cookies and endpoint
+                self._capture_response_cookies(resp, clean_url, client)
                 content_type = resp.headers.get("content-type", "")
                 self._record_endpoint(
                     url=clean_url,
@@ -248,17 +350,22 @@ class ScopeEnforcedCrawler:
                             form_params = [
                                 {
                                     "name": inp["name"],
-                                    "location": "body" if f_method in ("POST", "PUT") else "query",
-                                    "type": "string",
+                                    "location": "body" if f_method in ("POST", "PUT", "PATCH") else "query",
+                                    "type": inp.get("type") or "string",
                                     "required": inp.get("required", False)
                                 }
                                 for inp in f.get("inputs", [])
                             ]
+                            form_ct = f.get("enctype") or (
+                                "application/x-www-form-urlencoded"
+                                if f_method in ("POST", "PUT", "PATCH")
+                                else None
+                            )
                             self._record_endpoint(
                                 url=f_action,
                                 method=f_method,
                                 parameters=form_params,
-                                content_type="application/x-www-form-urlencoded" if f_method == "POST" else None,
+                                content_type=form_ct,
                                 source="FORM"
                             )
 
@@ -292,6 +399,7 @@ class ScopeEnforcedCrawler:
             "visited_urls": sorted(list(self.visited_urls)),
             "endpoints": list(self.discovered_endpoints.values()),
             "technologies": list(self.detected_technologies.values()),
+            "cookies": list(self.discovered_cookies.values()),
             "domains": sorted(list(self.discovered_domains)),
             "errors": self.errors
         }
@@ -318,6 +426,7 @@ class ScopeEnforcedCrawler:
                 if self._is_url_in_scope(robots_url):
                     try:
                         r = await asyncio.wait_for(client.get(robots_url), timeout=6.0)
+                        self._capture_response_cookies(r, robots_url, client)
                         if r.status_code == 200:
                             paths = parse_robots_txt(r.text)
                             for p in paths:
@@ -333,6 +442,7 @@ class ScopeEnforcedCrawler:
                 if self._is_url_in_scope(sitemap_url):
                     try:
                         r = await asyncio.wait_for(client.get(sitemap_url), timeout=6.0)
+                        self._capture_response_cookies(r, sitemap_url, client)
                         if r.status_code == 200:
                             sitemap_urls = parse_sitemap_xml(r.text)
                             for u in sitemap_urls:

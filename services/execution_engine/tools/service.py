@@ -14,6 +14,7 @@ from integrations.nuclei.runner import NucleiRunner
 from packages.common.exceptions import BadRequestError, ResourceNotFoundError
 from packages.schemas.tool import ToolExecutionRequest, ToolInfoResponse
 from services.evidence_engine.collector import build_forensic_evidence
+from services.execution_engine.planner import sync_wstg_instance_for_finding
 
 
 class ToolService:
@@ -135,6 +136,7 @@ class ToolService:
 
         # 6. Ingest any confirmed findings
         findings_count = 0
+        synced_wstg_ids: set[str] = set()
         for f in result.findings:
             new_finding = Finding(
                 project_id=project_id,
@@ -149,6 +151,8 @@ class ToolService:
             )
             self.session.add(new_finding)
             await self.session.flush()
+            if new_finding.wstg_id:
+                synced_wstg_ids.add(new_finding.wstg_id)
 
             if f.get("raw_request") and f.get("raw_response"):
                 ev = build_forensic_evidence(
@@ -170,6 +174,8 @@ class ToolService:
 
         execution.findings_count = findings_count
         await self.session.commit()
+        for wid in synced_wstg_ids:
+            await sync_wstg_instance_for_finding(self.session, project_id, wid)
         await self.session.refresh(execution)
 
         return execution

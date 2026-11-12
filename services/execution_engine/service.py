@@ -10,11 +10,13 @@ Integrates:
 
 import uuid
 from typing import Any, Dict, List, Optional
-from sqlalchemy import select
+import httpx
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from database.models.discovery import Endpoint
+from database.models.finding import Finding
 from database.models.wstg import (
     TestExecution,
     TestExecutionLog,
@@ -100,6 +102,31 @@ class WSTGExecutionService:
         result = await self.session.execute(stmt)
         rows = result.all()
 
+        exec_counts_stmt = (
+            select(TestExecution.wstg_instance_id, func.count(TestExecution.id))
+            .where(TestExecution.project_id == project_id)
+            .group_by(TestExecution.wstg_instance_id)
+        )
+        exec_counts: Dict[uuid.UUID, int] = {
+            row[0]: int(row[1])
+            for row in (await self.session.execute(exec_counts_stmt)).all()
+        }
+
+        findings_counts_stmt = (
+            select(Finding.wstg_id, func.count(Finding.id))
+            .where(
+                Finding.project_id == project_id,
+                Finding.wstg_id.is_not(None),
+                Finding.status != "False Positive",
+            )
+            .group_by(Finding.wstg_id)
+        )
+        findings_counts: Dict[str, int] = {
+            row[0]: int(row[1])
+            for row in (await self.session.execute(findings_counts_stmt)).all()
+            if row[0]
+        }
+
         plan = []
         for instance, catalog in rows:
             plan.append({
@@ -107,11 +134,16 @@ class WSTGExecutionService:
                 "project_id": instance.project_id,
                 "wstg_id": instance.wstg_id,
                 "category": catalog.category,
+                "category_code": catalog.category_code,
                 "name": catalog.name,
+                "description": catalog.description,
                 "status": instance.status,
+                "applicable": instance.status not in {"Not Applicable", "Not Started"},
                 "notes": instance.notes,
                 "justification": instance.justification,
                 "applicable_endpoints_count": instance.applicable_endpoints_count,
+                "execution_count": exec_counts.get(instance.id, 0),
+                "findings_count": findings_counts.get(instance.wstg_id, 0),
                 "automation_capability": catalog.automation_capability,
                 "default_risk": catalog.default_risk,
                 "updated_at": instance.updated_at
@@ -216,7 +248,8 @@ class WSTGExecutionService:
         payload: TestExecutionCreate,
         user_id: Optional[uuid.UUID] = None,
         ip_address: Optional[str] = None,
-        user_agent: Optional[str] = None
+        user_agent: Optional[str] = None,
+        http_transport: Optional[httpx.AsyncBaseTransport] = None,
     ) -> TestExecution:
         """Create and execute a WSTG test execution run."""
         # Ensure instances are loaded
@@ -278,7 +311,11 @@ class WSTGExecutionService:
         await self.session.commit()
 
         # Execute test run
-        executed = await execute_wstg_test_run(self.session, execution.id)
+        executed = await execute_wstg_test_run(
+            self.session,
+            execution.id,
+            http_transport=http_transport,
+        )
         return executed
 
     async def get_execution(self, execution_id: uuid.UUID) -> TestExecution:

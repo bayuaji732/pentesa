@@ -1,5 +1,6 @@
 """FastAPI application entry point."""
 
+import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -50,7 +51,51 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS Middleware
+logger = logging.getLogger(__name__)
+
+
+class _UnhandledExceptionMiddleware:
+    """Catch unhandled route exceptions inside CORSMiddleware so 500 responses preserve CORS headers."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        response_started = False
+
+        async def _guarded_send(message):
+            nonlocal response_started
+            if message["type"] == "http.response.start":
+                response_started = True
+            await send(message)
+
+        try:
+            await self.app(scope, receive, _guarded_send)
+        except Exception as exc:
+            logger.exception(
+                "Unhandled API exception on %s %s",
+                scope.get("method", "UNKNOWN"),
+                scope.get("path", ""),
+            )
+            if response_started:
+                raise
+            response = JSONResponse(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                content={
+                    "error": "INTERNAL_SERVER_ERROR",
+                    "message": "An unexpected internal server error occurred.",
+                    "detail": str(exc) if settings.debug else "Internal server error",
+                },
+            )
+            await response(scope, receive, send)
+
+
+# Last middleware added runs outermost: register UnhandledExceptionMiddleware first, then CORSMiddleware
+app.add_middleware(_UnhandledExceptionMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -113,5 +158,19 @@ async def conflict_handler(request: Request, exc: ConflictError):
     return JSONResponse(
         status_code=status.HTTP_409_CONFLICT,
         content={"error": "CONFLICT", "message": exc.message, "details": exc.details}
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """Ensure unhandled exceptions return structured JSON inside CORSMiddleware."""
+    logger.exception("Unhandled API exception on %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "error": "INTERNAL_SERVER_ERROR",
+            "message": "An unexpected internal server error occurred.",
+            "detail": str(exc) if settings.debug else "Internal server error",
+        },
     )
 

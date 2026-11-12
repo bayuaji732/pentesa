@@ -115,17 +115,29 @@ export const TopNav: React.FC = () => {
 
         {/* User Account / Logout */}
         <div className="flex items-center gap-2 pl-3 border-l border-slate-800">
-          <div className="flex items-center gap-1.5 text-xs text-slate-300 font-medium">
-            <User className="h-3.5 w-3.5 text-slate-400" />
-            <span>{currentUser?.full_name || currentUser?.email || "Operator"}</span>
-          </div>
-          <button
-            onClick={logout}
-            title="Sign out of Pentesa"
-            className="p-1.5 hover:bg-slate-800 rounded text-slate-400 hover:text-red-400 transition-colors"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-          </button>
+          {token ? (
+            <>
+              <div className="flex items-center gap-1.5 text-xs text-slate-300 font-medium">
+                <User className="h-3.5 w-3.5 text-slate-400" />
+                <span>{currentUser?.full_name || currentUser?.email || "Operator"}</span>
+              </div>
+              <button
+                onClick={logout}
+                title="Sign out of Pentesa"
+                className="p-1.5 hover:bg-slate-800 rounded text-slate-400 hover:text-red-400 transition-colors"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+              </button>
+            </>
+          ) : (
+            <Link
+              href="/login"
+              className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 rounded transition-colors"
+            >
+              <User className="h-3.5 w-3.5 text-slate-400" />
+              <span>Sign In</span>
+            </Link>
+          )}
         </div>
       </div>
     </header>

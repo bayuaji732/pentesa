@@ -24,11 +24,11 @@ export default function LoginPage() {
       await refreshProjects();
       router.push("/");
     } catch (err: any) {
-      const msg = typeof err?.message === "string" 
-        ? err.message 
-        : typeof err?.data?.detail === "string" 
-        ? err.data.detail 
-        : "Invalid credentials or backend unreachable";
+      const msg = typeof err?.message === "string"
+        ? err.message
+        : typeof err?.data?.detail === "string"
+          ? err.data.detail
+          : "Invalid credentials or backend unreachable";
       setError(msg);
     } finally {
       setLoading(false);
@@ -62,7 +62,7 @@ export default function LoginPage() {
         {/* Credentials Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-300">Operator Email</label>
+            <label className="text-xs font-medium text-slate-300">Email</label>
             <div className="relative">
               <Mail className="h-4 w-4 text-slate-500 absolute left-3 top-2.5" />
               <input
@@ -70,14 +70,14 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="operator@organization.com"
+                placeholder=""
                 className="w-full h-9 pl-9 pr-3 bg-slate-900 border border-slate-700 rounded-md text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-red-500 font-mono"
               />
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-300">Master Secret Password</label>
+            <label className="text-xs font-medium text-slate-300">Password</label>
             <div className="relative">
               <Lock className="h-4 w-4 text-slate-500 absolute left-3 top-2.5" />
               <input
@@ -85,7 +85,7 @@ export default function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••••••"
+                placeholder=""
                 className="w-full h-9 pl-9 pr-3 bg-slate-900 border border-slate-700 rounded-md text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-red-500 font-mono"
               />
             </div>

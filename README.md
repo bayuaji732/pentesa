@@ -98,18 +98,53 @@ The frontend console is built with Next.js 14 App Router, React 18, Tailwind CSS
 
 ---
 
-## Production Deployment (Docker Compose)
+## Production Deployment & One-Command Bring-Up (Docker Compose)
 
-For production environments, Pentesa is deployed via a 5-container Docker Compose stack (`pentesa-api`, `pentesa-worker`, `pentesa-web`, PostgreSQL 16 `pentesa-db`, and Redis 7 `pentesa-redis`):
+Pentesa is designed for reproducible one-command deployment using Docker Compose:
 
 ```bash
-# 1. Build and launch all production containers
-docker compose --env-file .env.production -f infrastructure/docker-compose.prod.yml up -d --build
+# 1. Bring up all services (api, web, worker, db, redis) in the background
+docker compose up -d --build
 
-# 2. Initialize PostgreSQL schema/seed data and run pre-flight verification (including LiteLLM check)
-docker compose --env-file .env.production -f infrastructure/docker-compose.prod.yml exec -T api python scripts/verify_deployment.py --init-db
+# 2. Run the end-to-end platform smoke test
+python scripts/smoke_test.py
 ```
-See [`docs/22-production-deployment-guide.md`](docs/22-production-deployment-guide.md) for full operational hardening and [`docs/23-end-to-end-testing-tutorial.md`](docs/23-end-to-end-testing-tutorial.md) for step-by-step local dev, Docker Option B (`http://testphp.vulnweb.com`), and Docker Option C (`juice-shop` / `dvwa`) walkthroughs.
+
+### Stack Components & Health Probes
+
+| Service | Container | Internal Port | Host Port | Health Check |
+|---|---|---|---|---|
+| **API** | `pentesa-api` | 8000 | `8000` | `curl -f http://localhost:8000/healthz` |
+| **Web** | `pentesa-web` | 3000 | `3000` | Node fetch `/login` (HTTP 200) |
+| **Worker** | `pentesa-worker` | - | - | Dependent on `api`, `db`, `redis` healthy |
+| **Database** | `pentesa-db` | 5432 | Internal | `pg_isready` (PostgreSQL 16) |
+| **Cache/Queue** | `pentesa-redis` | 6379 | Internal | `redis-cli ping` (Redis 7) |
+
+### Smoke Test Script (`scripts/smoke_test.py`)
+
+The automated smoke test verifies:
+1. Core API server liveness (`/healthz`)
+2. Database connectivity & readiness (`/readyz`)
+3. External security tool inventory (`/api/v1/tools` verifying nuclei & ffuf)
+4. Next.js Web Console accessibility (`/login`)
+5. User authentication flow (`/api/v1/auth/login`)
+6. Authenticated project & user profile retrieval (`/api/v1/projects`, `/api/v1/users/me`)
+
+Run with custom URLs if needed:
+```bash
+PENTESA_API_URL=http://localhost:8000 PENTESA_WEB_URL=http://localhost:3000 python scripts/smoke_test.py
+```
+
+---
+
+## Reproducible Linux Test Environment
+
+To run the complete automated test suite in an isolated, identical Linux container:
+
+```bash
+# Run full pytest suite in Docker
+docker compose -f docker-compose.test.yml run --rm test-runner pytest tests/ -v --tb=short
+```
 
 ---
 

@@ -6,6 +6,7 @@ import { useToast } from "@/lib/ToastContext";
 import { api } from "@/lib/api";
 import { EngagementStepper } from "@/components/EngagementStepper";
 import { StepFooterNav } from "@/components/StepFooterNav";
+import { EngagementStepGuard } from "@/components/EngagementStepGuard";
 import {
   AlertTriangle,
   ShieldCheck,
@@ -23,6 +24,14 @@ import {
 } from "lucide-react";
 
 export default function FindingsPage() {
+  return (
+    <EngagementStepGuard requiredStep={5} stepTitle="Discovered Findings & Retesting">
+      <FindingsContent />
+    </EngagementStepGuard>
+  );
+}
+
+function FindingsContent() {
   const { currentProject } = useProject();
   const { toast } = useToast();
   const [findings, setFindings] = useState<any[]>([]);

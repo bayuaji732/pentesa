@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Shield,
   Cpu,
@@ -14,12 +15,13 @@ import {
 } from "lucide-react";
 import { useProject } from "@/lib/ProjectContext";
 import { api } from "@/lib/api";
+import { getUnlockedStep } from "@/components/EngagementStepper";
 
 export const TopNav: React.FC = () => {
-  const { currentProject, token, logout } = useProject();
+  const pathname = usePathname();
+  const { currentProject, token, currentUser, logout } = useProject();
   const [workflowStatus, setWorkflowStatus] = useState<string>("IDLE");
   const [activeAgentsCount, setActiveAgentsCount] = useState<number>(0);
-  const [currentUser, setCurrentUser] = useState<{ email?: string; full_name?: string; role?: string } | null>(null);
 
   // Dual Clock State
   const [time, setTime] = useState<{ utc: string; local: string; tzLabel: string }>({
@@ -68,17 +70,6 @@ export const TopNav: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!token) {
-      setCurrentUser(null);
-      return;
-    }
-    api
-      .getCurrentUser()
-      .then((user) => setCurrentUser(user))
-      .catch(() => setCurrentUser(null));
-  }, [token]);
-
-  useEffect(() => {
     if (!currentProject) {
       setWorkflowStatus("IDLE");
       setActiveAgentsCount(0);
@@ -100,6 +91,10 @@ export const TopNav: React.FC = () => {
     const interval = setInterval(fetchStatus, 5000);
     return () => clearInterval(interval);
   }, [currentProject]);
+
+  if (pathname === "/login") {
+    return null;
+  }
 
   return (
     <header className="h-14 border-b border-slate-200 bg-white px-4 flex items-center justify-between select-none sticky top-0 z-50 shadow-xs">
@@ -124,37 +119,45 @@ export const TopNav: React.FC = () => {
         <div className="flex items-center gap-2 pl-3 sm:pl-4 border-l border-slate-200">
           <Link
             href="/projects"
-            className="text-xs text-slate-500 hover:text-blue-900 font-medium flex items-center gap-1.5 transition-colors"
+            className={`text-xs font-medium flex items-center gap-1.5 transition-colors ${
+              pathname === "/projects"
+                ? "text-slate-900 font-bold"
+                : "text-slate-500 hover:text-blue-900"
+            }`}
             title="View all authorized engagements"
           >
             <Layers className="h-3.5 w-3.5 text-slate-400" />
             <span>Engagements</span>
           </Link>
 
-          <ChevronRight className="h-3 w-3 text-slate-300" />
+          {pathname !== "/projects" && (
+            <>
+              <ChevronRight className="h-3 w-3 text-slate-300" />
 
-          {currentProject ? (
-            <div className="flex items-center gap-2">
-              <Link
-                href="/"
-                className="text-xs text-slate-900 hover:text-blue-900 font-semibold max-w-[200px] truncate transition-colors"
-                title={`${currentProject.name} - View Executive Telemetry Overview`}
-              >
-                {currentProject.name}
-              </Link>
-              {currentProject.target_domains?.[0] && (
-                <span className="text-[11px] font-mono text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded hidden sm:inline-block">
-                  {currentProject.target_domains[0]}
-                </span>
+              {currentProject ? (
+                <div className="flex items-center gap-2">
+                  <Link
+                    href="/"
+                    className="text-xs text-slate-900 hover:text-blue-900 font-semibold max-w-[200px] truncate transition-colors"
+                    title={`${currentProject.name} - View Executive Telemetry Overview`}
+                  >
+                    {currentProject.name}
+                  </Link>
+                  {currentProject.target_domains?.[0] && (
+                    <span className="text-[11px] font-mono text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded hidden sm:inline-block">
+                      {currentProject.target_domains[0]}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <Link
+                  href="/projects"
+                  className="text-xs text-blue-700 hover:text-blue-900 font-mono font-medium hover:underline flex items-center gap-1"
+                >
+                  + Select Active Engagement
+                </Link>
               )}
-            </div>
-          ) : (
-            <Link
-              href="/projects"
-              className="text-xs text-blue-700 hover:text-blue-900 font-mono font-medium hover:underline flex items-center gap-1"
-            >
-              + Select Active Engagement
-            </Link>
+            </>
           )}
         </div>
       </div>
@@ -181,33 +184,67 @@ export const TopNav: React.FC = () => {
           <Lock className="h-3.5 w-3.5 text-slate-600" />
         </Link>
 
-        {/* Multi-Agent DAG Status Pill */}
-        <Link
-          href={currentProject ? "/agents" : "/projects"}
-          className="flex items-center gap-2 px-2.5 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded transition-colors"
-          title="Inspect Multi-Agent Execution Telemetry"
-        >
-          <Cpu className={`h-3.5 w-3.5 ${workflowStatus === "RUNNING" ? "text-amber-600 animate-spin" : "text-slate-500"}`} />
-          <span className="text-xs font-mono text-slate-700">
-            Agents: <strong className={workflowStatus === "RUNNING" ? "text-amber-700 font-bold" : "text-slate-900"}>{workflowStatus}</strong>
-            {activeAgentsCount > 0 && <span className="text-slate-500"> ({activeAgentsCount})</span>}
-          </span>
-        </Link>
+        {/* Multi-Agent DAG Status Pill (State-Aware Gated) */}
+        {pathname !== "/projects" && currentProject && (() => {
+          const isAgentsUnlocked =
+            getUnlockedStep(currentProject) >= 4 ||
+            currentProject.status === "COMPLETED" ||
+            workflowStatus === "RUNNING";
+
+          if (!isAgentsUnlocked) {
+            return (
+              <div
+                className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 border border-slate-200 rounded opacity-60 cursor-not-allowed select-none"
+                title="Multi-Agent DAG is locked until Step 1 (Scope) and Step 3 (WSTG Plan) are completed"
+              >
+                <Lock className="h-3 w-3 text-slate-400" />
+                <span className="text-xs font-mono text-slate-500">
+                  Agents: <strong className="font-semibold text-slate-600">STANDBY</strong>
+                </span>
+              </div>
+            );
+          }
+
+          return (
+            <Link
+              href="/agents"
+              className={`flex items-center gap-2 px-2.5 py-1 rounded transition-colors border ${
+                workflowStatus === "RUNNING"
+                  ? "bg-amber-50 border-amber-200 text-amber-900 shadow-2xs hover:bg-amber-100"
+                  : "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700"
+              }`}
+              title="Inspect Multi-Agent Execution Telemetry (Step 4)"
+            >
+              <Cpu
+                className={`h-3.5 w-3.5 ${
+                  workflowStatus === "RUNNING" ? "text-amber-600 animate-spin" : "text-blue-700"
+                }`}
+              />
+              <span className="text-xs font-mono">
+                Agents:{" "}
+                <strong className={workflowStatus === "RUNNING" ? "text-amber-800 font-bold" : "text-slate-900"}>
+                  {workflowStatus}
+                </strong>
+                {activeAgentsCount > 0 && <span className="text-slate-500 font-normal"> ({activeAgentsCount})</span>}
+              </span>
+            </Link>
+          );
+        })()}
 
         {/* User Account / Logout */}
         <div className="flex items-center gap-2 pl-2.5 sm:pl-3 border-l border-slate-200">
-          {token ? (
+          {token && currentUser ? (
             <>
               <div className="flex items-center gap-2 text-xs text-slate-800 font-medium">
                 <div className="h-6 w-6 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600">
                   <User className="h-3.5 w-3.5" />
                 </div>
                 <div className="hidden sm:flex flex-col text-left leading-tight">
-                  <span className="font-semibold text-slate-900 max-w-[120px] truncate">
-                    {currentUser?.full_name || currentUser?.email || "Operator"}
+                  <span className="font-semibold text-slate-900 max-w-[120px] truncate font-mono">
+                    {currentUser.full_name || currentUser.email || "ADMIN"}
                   </span>
-                  <span className="text-[10px] text-slate-500 font-mono">
-                    {currentUser?.role || "Security Analyst"}
+                  <span className="text-[10px] text-slate-500 font-mono font-semibold">
+                    {currentUser.role || "ADMIN"}
                   </span>
                 </div>
               </div>

@@ -85,12 +85,19 @@ export const LIFECYCLE_STEPS: StepperStep[] = [
 
 export function getUnlockedStep(project: Project | null): number {
   if (!project) return 1;
-  if (project.status === "COMPLETED") return 6;
+  const status = project.status?.toUpperCase();
+  if (status === "COMPLETED" || status === "ARCHIVED" || status === "FINISHED") return 6;
 
   let level = 1;
+  if (status === "ACTIVE" || status === "IN_PROGRESS" || status === "RUNNING") {
+    level = 4;
+  }
+
   try {
-    const saved = localStorage.getItem(`pentesa_unlocked_step_${project.id}`);
-    if (saved) level = Math.max(level, parseInt(saved, 10) || 1);
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem(`pentesa_unlocked_step_${project.id}`);
+      if (saved) level = Math.max(level, parseInt(saved, 10) || 1);
+    }
   } catch {}
 
   // Automatically unlock step 2 if engagement already has configured domains or CIDRs

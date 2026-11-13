@@ -16,8 +16,17 @@ import { useToast } from "@/lib/ToastContext";
 import { api } from "@/lib/api";
 import { EngagementStepper } from "@/components/EngagementStepper";
 import { StepFooterNav } from "@/components/StepFooterNav";
+import { EngagementStepGuard } from "@/components/EngagementStepGuard";
 
 export default function DiscoveryPage() {
+  return (
+    <EngagementStepGuard requiredStep={2} stepTitle="Attack Surface Discovery">
+      <DiscoveryContent />
+    </EngagementStepGuard>
+  );
+}
+
+function DiscoveryContent() {
   const { currentProject } = useProject();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<"endpoints" | "domains" | "tech">("endpoints");

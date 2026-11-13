@@ -24,6 +24,7 @@ import { useToast } from "@/lib/ToastContext";
 import { api } from "@/lib/api";
 import { EngagementStepper } from "@/components/EngagementStepper";
 import { StepFooterNav } from "@/components/StepFooterNav";
+import { EngagementStepGuard } from "@/components/EngagementStepGuard";
 import { AgentTerminal, DecisionLog, ToolCallLog, ApprovalGate } from "@/components/AgentTerminal";
 
 const WORKFLOW_PHASES = [
@@ -46,7 +47,15 @@ const STANDBY_AGENTS = [
 ];
 
 export default function AgentsPage() {
-  const { currentProject } = useProject();
+  return (
+    <EngagementStepGuard requiredStep={4} stepTitle="Multi-Agent Execution DAG">
+      <AgentsContent />
+    </EngagementStepGuard>
+  );
+}
+
+function AgentsContent() {
+  const { currentProject, refreshProjects } = useProject();
   const { confirmDialog } = useToast();
   const [workflow, setWorkflow] = useState<any>(null);
   const [decisions, setDecisions] = useState<DecisionLog[]>([]);
@@ -141,6 +150,14 @@ export default function AgentsPage() {
     setActionLoading(true);
     setBanner(null);
     try {
+      if (currentProject.status !== "ACTIVE" && currentProject.status !== "COMPLETED") {
+        try {
+          await api.updateProject(currentProject.id, { status: "ACTIVE" });
+          await refreshProjects();
+        } catch (e) {
+          console.warn("Could not transition project status to ACTIVE", e);
+        }
+      }
       const res = await api.startWorkflow(currentProject.id, autoApproveMedium, scanProfile, true);
       setWorkflow(res);
       setBanner({

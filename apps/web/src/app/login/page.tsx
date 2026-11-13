@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Shield, Lock, Mail, AlertCircle, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { api } from "@/lib/api";
@@ -14,6 +14,13 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.search.includes("expired=1")) {
+      setSessionExpired(true);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,7 +30,7 @@ export default function LoginPage() {
     try {
       await api.login(email, password);
       await refreshProjects();
-      router.push("/");
+      router.push("/projects");
     } catch (err: any) {
       const msg =
         typeof err?.message === "string"
@@ -38,28 +45,35 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-3.5rem)] -m-6 flex items-center justify-center bg-slate-50 p-4 select-none">
-      <div className="w-full max-w-md bg-white border border-slate-200/90 rounded-xl p-8 shadow-sm space-y-6">
-        {/* Brand Header */}
-        <div className="text-center space-y-2">
-          <div className="inline-flex h-12 w-12 rounded-xl bg-blue-900 border border-blue-800 items-center justify-center text-white shadow-xs mx-auto mb-2">
-            <Shield className="h-6 w-6" />
-          </div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">
-            PENTESA SOC CONSOLE
-          </h1>
-          <p className="text-xs text-slate-500 font-medium">
-            Autonomous Web Application Penetration Testing Platform
-          </p>
+    <div className="w-full max-w-md bg-white border border-slate-200/90 rounded-xl p-8 shadow-sm space-y-6 m-4 select-none">
+      {/* Brand Header */}
+      <div className="text-center space-y-2">
+        <div className="inline-flex h-12 w-12 rounded-xl bg-blue-900 border border-blue-800 items-center justify-center text-white shadow-xs mx-auto mb-2">
+          <Shield className="h-6 w-6" />
         </div>
+        <h1 className="text-xl font-bold tracking-tight text-slate-900">
+          PENTESA SOC CONSOLE
+        </h1>
+        <p className="text-xs text-slate-500 font-medium">
+          Autonomous Web Application Penetration Testing Platform
+        </p>
+      </div>
 
-        {/* Error Alert */}
-        {error && (
-          <div className="p-3 bg-rose-50 border border-rose-200 rounded-md flex items-center gap-2.5 text-rose-800 text-xs font-medium">
-            <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
-            <span>{error}</span>
-          </div>
-        )}
+      {/* Session Expired Alert */}
+      {sessionExpired && !error && (
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-md flex items-center gap-2.5 text-amber-800 text-xs font-medium">
+          <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />
+          <span>Session Expired: Your credentials or token have expired. Please sign in again.</span>
+        </div>
+      )}
+
+      {/* Error Alert */}
+      {error && (
+        <div className="p-3 bg-rose-50 border border-rose-200 rounded-md flex items-center gap-2.5 text-rose-800 text-xs font-medium">
+          <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
+          <span>{error}</span>
+        </div>
+      )}
 
         {/* Credentials Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -128,6 +142,5 @@ export default function LoginPage() {
           </p>
         </div>
       </div>
-    </div>
   );
 }

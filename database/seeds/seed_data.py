@@ -24,7 +24,7 @@ async def seed_initial_data(session: AsyncSession) -> None:
             id=uuid.uuid4(),
             email="admin@example.com",
             password_hash=hash_password("Admin123!Secure"),
-            full_name="Platform Administrator",
+            full_name="ADMIN",
             role="ADMIN",
             is_active=True
         )

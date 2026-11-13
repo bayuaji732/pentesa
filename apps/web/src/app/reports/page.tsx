@@ -6,6 +6,7 @@ import { useToast } from "@/lib/ToastContext";
 import { API_BASE_URL, api, getAuthToken } from "@/lib/api";
 import { EngagementStepper } from "@/components/EngagementStepper";
 import { StepFooterNav } from "@/components/StepFooterNav";
+import { EngagementStepGuard } from "@/components/EngagementStepGuard";
 import {
   FileText,
   FileCheck2,
@@ -21,7 +22,15 @@ import {
 } from "lucide-react";
 
 export default function ReportsPage() {
-  const { currentProject } = useProject();
+  return (
+    <EngagementStepGuard requiredStep={6} stepTitle="PTES Final Report & Deliverables">
+      <ReportsContent />
+    </EngagementStepGuard>
+  );
+}
+
+function ReportsContent() {
+  const { currentProject, refreshProjects } = useProject();
   const { toast } = useToast();
   const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -424,6 +433,20 @@ export default function ReportsPage() {
         currentStep={6}
         prevStepPath="/findings"
         prevStepLabel="Findings & Retest"
+        isCompletedStep={true}
+        completedPath="/"
+        completedLabel="Complete Engagement & Return to Dashboard"
+        onComplete={async () => {
+          if (currentProject) {
+            try {
+              await api.updateProject(currentProject.id, { status: "COMPLETED" });
+              await refreshProjects();
+              toast.success("Engagement marked as COMPLETED. Viewing executive dashboard.");
+            } catch {
+              toast.info("Viewing executive dashboard.");
+            }
+          }
+        }}
       />
     </div>
   );

@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, ShieldCheck, Lock } from "lucide-react";
+import { ArrowLeft, ArrowRight, ShieldCheck, Lock, CheckCircle2 } from "lucide-react";
 import { useProject } from "@/lib/ProjectContext";
 
 export interface StepFooterNavProps {
@@ -16,6 +16,10 @@ export interface StepFooterNavProps {
   onAdvance?: () => Promise<boolean | void> | boolean | void;
   advanceTooltip?: string;
   customAction?: React.ReactNode;
+  isCompletedStep?: boolean;
+  completedPath?: string;
+  completedLabel?: string;
+  onComplete?: () => Promise<boolean | void> | boolean | void;
 }
 
 export const StepFooterNav: React.FC<StepFooterNavProps> = ({
@@ -28,6 +32,10 @@ export const StepFooterNav: React.FC<StepFooterNavProps> = ({
   onAdvance,
   advanceTooltip,
   customAction,
+  isCompletedStep,
+  completedPath = "/",
+  completedLabel = "Complete Engagement & Return to Dashboard",
+  onComplete,
 }) => {
   const router = useRouter();
   const { currentProject } = useProject();
@@ -68,6 +76,31 @@ export const StepFooterNav: React.FC<StepFooterNavProps> = ({
       router.push(nextStepPath);
     } catch (err) {
       console.error("Step advancement error", err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleComplete = async () => {
+    if (submitting) return;
+
+    setSubmitting(true);
+    try {
+      if (onComplete) {
+        const result = await onComplete();
+        if (result === false) {
+          setSubmitting(false);
+          return;
+        }
+      }
+
+      if (currentProject) {
+        localStorage.setItem(`pentesa_unlocked_step_${currentProject.id}`, "6");
+      }
+
+      router.push(completedPath);
+    } catch (err) {
+      console.error("Step completion error", err);
     } finally {
       setSubmitting(false);
     }
@@ -124,6 +157,28 @@ export const StepFooterNav: React.FC<StepFooterNavProps> = ({
             ) : (
               <>
                 <span>{nextStepLabel || "Save & Continue to Next Step"}</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </>
+            )}
+          </button>
+        )}
+
+        {(isCompletedStep || currentStep === 6) && (
+          <button
+            type="button"
+            onClick={handleComplete}
+            disabled={submitting}
+            className="px-5 py-2.5 rounded-md text-xs font-semibold flex items-center gap-2 shadow-xs transition-colors cursor-pointer bg-emerald-700 hover:bg-emerald-800 text-white"
+          >
+            {submitting ? (
+              <>
+                <span className="h-3.5 w-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span>Finalizing Engagement...</span>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="h-4 w-4" />
+                <span>{completedLabel}</span>
                 <ArrowRight className="h-3.5 w-3.5" />
               </>
             )}

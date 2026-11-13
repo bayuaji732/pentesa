@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   AlertOctagon,
   AlertTriangle,
@@ -14,13 +15,19 @@ import {
   ArrowRight,
   ExternalLink,
   RefreshCw,
+  ShieldCheck,
+  FileText,
+  Globe,
+  Crosshair,
+  Lock,
 } from "lucide-react";
 import { useProject } from "@/lib/ProjectContext";
 import { useToast } from "@/lib/ToastContext";
 import { api } from "@/lib/api";
 
 export default function DashboardPage() {
-  const { currentProject, loading: projectLoading } = useProject();
+  const router = useRouter();
+  const { currentProject, projects, loading: projectLoading, setCurrentProject } = useProject();
   const { toast } = useToast();
   const [findings, setFindings] = useState<any[]>([]);
   const [coverage, setCoverage] = useState<any>(null);
@@ -84,22 +91,120 @@ export default function DashboardPage() {
   }
 
   if (!currentProject) {
+    const portfolioCounts = {
+      total: projects.length,
+      planning: projects.filter((p) => p.status === "PLANNING" || !p.status).length,
+      active: projects.filter((p) => p.status === "ACTIVE" || p.status === "IN_PROGRESS").length,
+      completed: projects.filter((p) => p.status === "COMPLETED").length,
+    };
+
     return (
-      <div className="h-full flex flex-col items-center justify-center text-center space-y-4 max-w-md mx-auto py-16">
-        <div className="p-4 bg-white border border-slate-200 rounded-full text-slate-500 shadow-sm">
-          <Layers className="h-8 w-8 text-blue-900" />
+      <div className="space-y-6">
+        {/* Portfolio Header */}
+        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-blue-900 border border-blue-800 flex items-center justify-center text-white shadow-xs">
+                <Layers className="h-4 w-4" />
+              </div>
+              <h1 className="text-xl font-bold tracking-tight text-slate-900">
+                Security Portfolio Overview
+              </h1>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              Macro telemetry, target authorizations, and operational progress across all enterprise perimeters.
+            </p>
+          </div>
+          <Link
+            href="/projects"
+            className="flex items-center gap-1.5 px-4 py-2 bg-blue-900 hover:bg-blue-800 text-white rounded-md text-xs font-semibold shadow-xs transition-colors shrink-0"
+          >
+            <span>Open Engagements Directory</span>
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
         </div>
-        <h2 className="text-lg font-bold text-slate-900">No Engagement Selected</h2>
-        <p className="text-xs text-slate-500 leading-relaxed">
-          Please select or authorize a penetration testing engagement to view telemetry and lifecycle status.
-        </p>
-        <Link
-          href="/projects"
-          className="px-4 py-2 bg-blue-900 hover:bg-blue-800 text-white rounded-md text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors"
-        >
-          <span>Select or Authorize Engagement</span>
-          <ArrowRight className="h-3.5 w-3.5" />
-        </Link>
+
+        {/* Portfolio KPI Summary Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+            <span className="text-[11px] font-mono text-slate-500 uppercase font-semibold">Total Engagements</span>
+            <div className="text-2xl font-bold font-mono text-slate-900 mt-1">{portfolioCounts.total}</div>
+            <span className="text-[10px] text-slate-400 font-mono">Registered perimeters</span>
+          </div>
+
+          <div className="bg-white border border-blue-200 rounded-xl p-4 shadow-xs">
+            <span className="text-[11px] font-mono text-blue-700 uppercase font-semibold">In Planning</span>
+            <div className="text-2xl font-bold font-mono text-blue-900 mt-1">{portfolioCounts.planning}</div>
+            <span className="text-[10px] text-slate-400 font-mono">Scope & WSTG preparation</span>
+          </div>
+
+          <div className="bg-white border border-emerald-200 rounded-xl p-4 shadow-xs">
+            <span className="text-[11px] font-mono text-emerald-700 uppercase font-semibold flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              Active Scans
+            </span>
+            <div className="text-2xl font-bold font-mono text-emerald-900 mt-1">{portfolioCounts.active}</div>
+            <span className="text-[10px] text-slate-400 font-mono">Autonomous testing underway</span>
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+            <span className="text-[11px] font-mono text-slate-600 uppercase font-semibold">Completed</span>
+            <div className="text-2xl font-bold font-mono text-slate-800 mt-1">{portfolioCounts.completed}</div>
+            <span className="text-[10px] text-slate-400 font-mono">PTES reports published</span>
+          </div>
+        </div>
+
+        {/* Recent Engagements List */}
+        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h3 className="text-sm font-bold text-slate-900">Recent Authorized Engagements</h3>
+            <Link
+              href="/projects"
+              className="text-xs text-blue-700 hover:text-blue-900 font-medium flex items-center gap-1 transition-colors"
+            >
+              <span>View All ({projects.length})</span>
+              <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
+
+          {projects.length === 0 ? (
+            <div className="text-center py-8 text-xs font-mono text-slate-500">
+              No engagement projects found. Click &quot;Open Engagements Directory&quot; to onboard your first target.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {projects.slice(0, 6).map((proj) => (
+                <div
+                  key={proj.id}
+                  onClick={() => {
+                    setCurrentProject(proj);
+                    if (proj.status === "COMPLETED") {
+                      router.push("/reports");
+                    } else if (proj.status === "ACTIVE") {
+                      router.push("/agents");
+                    } else {
+                      router.push("/scope");
+                    }
+                  }}
+                  className="p-4 rounded-lg border border-slate-200 hover:border-blue-400 hover:shadow-xs transition-all cursor-pointer bg-white group flex flex-col justify-between space-y-2"
+                >
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900 group-hover:text-blue-900 transition-colors">
+                      {proj.name}
+                    </h4>
+                    <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">{proj.description || "No description"}</p>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] font-mono text-slate-500 pt-2 border-t border-slate-100">
+                    <span className="truncate max-w-[150px]">{proj.target_domains?.[0] || "No targets"}</span>
+                    <span className="text-blue-700 font-semibold group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
+                      Open <ArrowRight className="h-3 w-3" />
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -111,10 +216,17 @@ export default function DashboardPage() {
         <div className="space-y-1.5">
           <div className="flex items-center gap-2.5">
             <h1 className="text-lg font-bold text-slate-900">{currentProject.name}</h1>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              ACTIVE ENGAGEMENT
-            </span>
+            {currentProject.status === "COMPLETED" ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 text-slate-800 border border-slate-200">
+                <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />
+                COMPLETED ENGAGEMENT
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                ACTIVE ENGAGEMENT
+              </span>
+            )}
           </div>
           <p className="text-xs text-slate-600 max-w-2xl leading-normal">{currentProject.description}</p>
           <div className="flex flex-wrap items-center gap-4 pt-1 text-[11px] font-mono text-slate-500">
@@ -126,7 +238,15 @@ export default function DashboardPage() {
 
         {/* Guided Lifecycle Actions */}
         <div className="flex items-center gap-2.5 shrink-0">
-          {workflow?.status === "RUNNING" ? (
+          {currentProject.status === "COMPLETED" ? (
+            <Link
+              href="/reports"
+              className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-md text-xs font-semibold flex items-center gap-2 shadow-xs transition-colors"
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              <span>View Final Report (Step 6) →</span>
+            </Link>
+          ) : workflow?.status === "RUNNING" ? (
             <Link
               href="/agents"
               className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-md text-xs font-semibold flex items-center gap-2 shadow-xs transition-colors"
@@ -219,6 +339,115 @@ export default function DashboardPage() {
           <div className="text-[11px] text-slate-500 mt-1 font-medium">Fingerprints, Banners</div>
         </div>
       </div>
+
+      {/* If COMPLETED: Executive Assessment Dossier Deep-Dive Cards */}
+      {currentProject.status === "COMPLETED" && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+            <h3 className="text-sm font-bold text-slate-900 uppercase font-mono tracking-wider">
+              Executive Assessment Dossier & Deep-Dive
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* 1. OWASP WSTG Matrix Explorer */}
+            <Link
+              href="/wstg"
+              className="p-4 bg-white border border-slate-200 hover:border-blue-400 hover:shadow-xs rounded-xl transition-all group flex flex-col justify-between space-y-3"
+            >
+              <div>
+                <div className="flex items-center justify-between text-xs font-mono text-slate-500">
+                  <span className="text-blue-700 font-semibold flex items-center gap-1">
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Phase 3
+                  </span>
+                  <span className="text-emerald-700 font-bold">{coverage?.overall_coverage_pct || 0}% WSTG</span>
+                </div>
+                <h4 className="text-sm font-bold text-slate-900 mt-1 group-hover:text-blue-900 transition-colors">
+                  OWASP WSTG Matrix
+                </h4>
+                <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+                  Inspect the complete 106-test methodology matrix, category breakdowns, and passed/failed tests.
+                </p>
+              </div>
+              <span className="text-xs font-semibold text-blue-700 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                Explore Matrix <ArrowRight className="h-3 w-3" />
+              </span>
+            </Link>
+
+            {/* 2. Autonomous Multi-Agent Telemetry */}
+            <Link
+              href="/agents"
+              className="p-4 bg-white border border-slate-200 hover:border-blue-400 hover:shadow-xs rounded-xl transition-all group flex flex-col justify-between space-y-3"
+            >
+              <div>
+                <div className="flex items-center justify-between text-xs font-mono text-slate-500">
+                  <span className="text-blue-700 font-semibold flex items-center gap-1">
+                    <Cpu className="h-3.5 w-3.5" /> Phase 4
+                  </span>
+                  <span className="text-slate-800 font-bold">Execution Logs</span>
+                </div>
+                <h4 className="text-sm font-bold text-slate-900 mt-1 group-hover:text-blue-900 transition-colors">
+                  Agent Telemetry & Logs
+                </h4>
+                <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+                  Review the multi-agent DAG execution timeline, terminal stdout streams, and logged supervisor decisions.
+                </p>
+              </div>
+              <span className="text-xs font-semibold text-blue-700 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                Inspect Telemetry <ArrowRight className="h-3 w-3" />
+              </span>
+            </Link>
+
+            {/* 3. Vulnerability Findings & Retest */}
+            <Link
+              href="/findings"
+              className="p-4 bg-white border border-slate-200 hover:border-blue-400 hover:shadow-xs rounded-xl transition-all group flex flex-col justify-between space-y-3"
+            >
+              <div>
+                <div className="flex items-center justify-between text-xs font-mono text-slate-500">
+                  <span className="text-blue-700 font-semibold flex items-center gap-1">
+                    <AlertTriangle className="h-3.5 w-3.5 text-amber-600" /> Phase 5
+                  </span>
+                  <span className="text-rose-700 font-bold">{findings.length} Findings</span>
+                </div>
+                <h4 className="text-sm font-bold text-slate-900 mt-1 group-hover:text-blue-900 transition-colors">
+                  Vulnerability Registry
+                </h4>
+                <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+                  Examine discovered vulnerabilities by CVSS severity, raw cURL proofs-of-concept, and cryptographic evidence.
+                </p>
+              </div>
+              <span className="text-xs font-semibold text-blue-700 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                View All Findings <ArrowRight className="h-3 w-3" />
+              </span>
+            </Link>
+
+            {/* 4. PTES Report Deliverable */}
+            <Link
+              href="/reports"
+              className="p-4 bg-white border border-slate-200 hover:border-blue-400 hover:shadow-xs rounded-xl transition-all group flex flex-col justify-between space-y-3"
+            >
+              <div>
+                <div className="flex items-center justify-between text-xs font-mono text-slate-500">
+                  <span className="text-blue-700 font-semibold flex items-center gap-1">
+                    <FileText className="h-3.5 w-3.5 text-emerald-600" /> Phase 6
+                  </span>
+                  <span className="text-emerald-700 font-bold">PTES Deliverable</span>
+                </div>
+                <h4 className="text-sm font-bold text-slate-900 mt-1 group-hover:text-blue-900 transition-colors">
+                  Reports & Attestation
+                </h4>
+                <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+                  Download published PDF/JSON report deliverables and verify tamper-proof cryptographic SHA-256 seals.
+                </p>
+              </div>
+              <span className="text-xs font-semibold text-blue-700 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                Download & Verify <ArrowRight className="h-3 w-3" />
+              </span>
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Main Grid: Coverage & AI Agent DAG */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

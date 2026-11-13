@@ -113,6 +113,10 @@ class WorkflowSupervisor:
                     f"Engagement authorization window expired on {auth_end.isoformat()}."
                 )
 
+        # Transition engagement status from PLANNING to ACTIVE upon assessment launch
+        if project.status != "COMPLETED":
+            project.status = "ACTIVE"
+
         # 2. Check for already running workflow (auto-recover stale ones > 3 min)
         active = await self.get_active_workflow(project_id)
         if active and active.status in ("RUNNING", "WAITING_APPROVAL"):

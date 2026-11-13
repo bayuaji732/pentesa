@@ -17,6 +17,7 @@ import { useProject } from "@/lib/ProjectContext";
 import { api } from "@/lib/api";
 import { EngagementStepper } from "@/components/EngagementStepper";
 import { StepFooterNav } from "@/components/StepFooterNav";
+import { EngagementStepGuard } from "@/components/EngagementStepGuard";
 
 const WSTG_CATEGORIES = [
   { code: "ALL", name: "All Categories (106)" },
@@ -92,6 +93,14 @@ function getStatusDotClass(status: string): string {
 }
 
 export default function WSTGPage() {
+  return (
+    <EngagementStepGuard requiredStep={3} stepTitle="OWASP WSTG Plan">
+      <WSTGContent />
+    </EngagementStepGuard>
+  );
+}
+
+function WSTGContent() {
   const { currentProject } = useProject();
   const [plan, setPlan] = useState<any[]>([]);
   const [coverage, setCoverage] = useState<any>(null);

@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ProjectProvider } from "@/lib/ProjectContext";
 import { ToastProvider } from "@/lib/ToastContext";
-import { TopNav } from "@/components/TopNav";
+import { AppShell } from "@/components/AppShell";
 
 export const metadata: Metadata = {
   title: "Pentesa — Autonomous Pentest Engine",
@@ -20,12 +20,7 @@ export default function RootLayout({
       <body className="bg-canvas text-slate-900 flex flex-col h-screen overflow-hidden font-sans antialiased">
         <ToastProvider>
           <ProjectProvider>
-            <TopNav />
-            <main className="flex-1 overflow-y-auto bg-canvas p-4 sm:p-6 lg:p-8">
-              <div className="max-w-[1600px] mx-auto w-full">
-                {children}
-              </div>
-            </main>
+            <AppShell>{children}</AppShell>
           </ProjectProvider>
         </ToastProvider>
       </body>

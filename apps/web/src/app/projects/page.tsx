@@ -18,13 +18,21 @@ import {
   Trash2,
 } from "lucide-react";
 
+function normalizeEngagementStatus(status?: string): "PLANNING" | "ACTIVE" | "COMPLETED" {
+  const s = status?.toUpperCase();
+  if (s === "ACTIVE" || s === "IN_PROGRESS" || s === "RUNNING") return "ACTIVE";
+  if (s === "COMPLETED" || s === "ARCHIVED" || s === "FINISHED") return "COMPLETED";
+  return "PLANNING";
+}
+
 export default function ProjectsPage() {
   const router = useRouter();
-  const { currentProject, projects, setCurrentProject, refreshProjects, loading } = useProject();
+  const { currentProject, projects, setCurrentProject, refreshProjects, loading, currentUser } = useProject();
   const { toast, confirmDialog } = useToast();
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "PLANNING" | "ACTIVE" | "COMPLETED">("ALL");
+  const [scopeFilter, setScopeFilter] = useState<"ALL" | "MINE">("ALL");
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -119,8 +127,20 @@ export default function ProjectsPage() {
     }
   };
 
+  const counts = {
+    ALL: projects.length,
+    PLANNING: projects.filter((p) => normalizeEngagementStatus(p.status) === "PLANNING").length,
+    ACTIVE: projects.filter((p) => normalizeEngagementStatus(p.status) === "ACTIVE").length,
+    COMPLETED: projects.filter((p) => normalizeEngagementStatus(p.status) === "COMPLETED").length,
+  };
+
   const filteredProjects = projects.filter((p) => {
-    if (statusFilter !== "ALL" && p.status?.toUpperCase() !== statusFilter.toUpperCase()) {
+    if (scopeFilter === "MINE" && currentUser?.id) {
+      const isOwner = (p as any).created_by === currentUser.id;
+      const isMember = (p as any).members?.some((m: any) => m.user_id === currentUser.id);
+      if (!isOwner && !isMember) return false;
+    }
+    if (statusFilter !== "ALL" && normalizeEngagementStatus(p.status) !== statusFilter) {
       return false;
     }
     if (searchQuery.trim()) {
@@ -134,20 +154,12 @@ export default function ProjectsPage() {
   });
 
   const getStatusBadge = (status: string) => {
-    const s = status?.toUpperCase();
-    if (s === "ACTIVE" || s === "IN_PROGRESS") {
+    const s = normalizeEngagementStatus(status);
+    if (s === "ACTIVE") {
       return (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[11px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
           ACTIVE ENGAGEMENT
-        </span>
-      );
-    }
-    if (s === "PLANNING") {
-      return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[11px] font-mono font-bold bg-blue-50 text-blue-800 border border-blue-200">
-          <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />
-          PLANNING
         </span>
       );
     }
@@ -160,8 +172,9 @@ export default function ProjectsPage() {
       );
     }
     return (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">
-        {status || "UNKNOWN"}
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[11px] font-mono font-bold bg-blue-50 text-blue-800 border border-blue-200">
+        <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />
+        PLANNING
       </span>
     );
   };
@@ -205,30 +218,65 @@ export default function ProjectsPage() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
-        <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search engagement, domain, client..."
-            className="w-full bg-slate-50 pl-9 pr-3 py-1.5 rounded-md text-xs text-slate-900 border border-slate-200 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 placeholder:text-slate-400 font-sans transition-all"
-          />
+      <div className="flex flex-col md:flex-row gap-3 items-center justify-between bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
+        <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full md:w-auto">
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search engagement, domain, client..."
+              className="w-full bg-slate-50 pl-9 pr-3 py-1.5 rounded-md text-xs text-slate-900 border border-slate-200 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 placeholder:text-slate-400 font-sans transition-all"
+            />
+          </div>
+
+          {/* Scope Selector: All vs Assigned */}
+          <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs font-semibold w-full sm:w-auto shrink-0">
+            <button
+              onClick={() => setScopeFilter("ALL")}
+              className={`flex-1 sm:flex-none px-2.5 py-1 rounded-md transition-colors ${
+                scopeFilter === "ALL"
+                  ? "bg-white text-slate-900 shadow-xs font-bold"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setScopeFilter("MINE")}
+              className={`flex-1 sm:flex-none px-2.5 py-1 rounded-md transition-colors ${
+                scopeFilter === "MINE"
+                  ? "bg-white text-slate-900 shadow-xs font-bold"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              My Engagements
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-1.5 w-full sm:w-auto">
-          {["ALL", "PLANNING", "ACTIVE", "COMPLETED"].map((tab) => (
+        <div className="flex items-center gap-1.5 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+          {(["ALL", "PLANNING", "ACTIVE", "COMPLETED"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setStatusFilter(tab)}
-              className={`px-3 py-1.5 rounded-md text-xs font-mono font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-md text-xs font-mono font-medium transition-colors flex items-center gap-1.5 shrink-0 ${
                 statusFilter === tab
                   ? "bg-blue-900 text-white font-bold shadow-xs"
                   : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
               }`}
             >
-              {tab}
+              <span>{tab}</span>
+              <span
+                className={`text-[10px] px-1.5 py-0.2 rounded-full font-semibold ${
+                  statusFilter === tab
+                    ? "bg-blue-800 text-white"
+                    : "bg-slate-200 text-slate-700"
+                }`}
+              >
+                {counts[tab]}
+              </span>
             </button>
           ))}
         </div>
@@ -256,20 +304,11 @@ export default function ProjectsPage() {
               <div
                 key={proj.id}
                 onClick={() => handleOpenEngagement(proj)}
-                className={`p-5 rounded-xl border transition-all flex flex-col justify-between space-y-4 shadow-xs cursor-pointer group ${
-                  isSelected
-                    ? "bg-blue-50/20 border-blue-600 ring-2 ring-blue-600/20 hover:border-blue-700"
-                    : "bg-white border-slate-200 hover:border-blue-400 hover:shadow-md"
-                }`}
+                className="p-5 rounded-xl border border-slate-200 bg-white hover:border-blue-400 hover:shadow-md transition-all flex flex-col justify-between space-y-4 shadow-xs cursor-pointer group"
               >
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     {getStatusBadge(proj.status)}
-                    {isSelected && (
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-50 text-blue-900 border border-blue-200 font-bold">
-                        ACTIVE CONTEXT
-                      </span>
-                    )}
                   </div>
 
                   <div>

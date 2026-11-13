@@ -38,15 +38,10 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("pentesa_secret_key", "secret_key"),
         description="JWT signature HMAC secret key"
     )
-    master_key: str = Field(
-        default="pentesa-master-key-32-bytes-long-change-in-prod!",
-        validation_alias=AliasChoices("pentesa_master_key", "master_key"),
-        description="Master encryption key for credential vault"
-    )
     encryption_key: str = Field(
         default="",
         validation_alias=AliasChoices("pentesa_encryption_key", "encryption_key"),
-        description="AES-256-GCM master encryption key for credentials at rest"
+        description="AES-256-GCM master encryption key for credentials at rest (must be >= 32 bytes)"
     )
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60

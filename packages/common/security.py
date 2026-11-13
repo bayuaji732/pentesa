@@ -114,18 +114,20 @@ def constant_time_compare(val1: str, val2: str) -> bool:
 
 
 def derive_aes_key(key: Optional[Union[bytes, str]] = None) -> bytes:
-    """Derive a 32-byte (256-bit) cryptographic key for AES-256-GCM."""
+    """Derive a 32-byte (256-bit) cryptographic key for AES-256-GCM (SEC-KEY-01)."""
     if key is None:
         key = (
             os.environ.get("PENTESA_ENCRYPTION_KEY")
             or getattr(settings, "encryption_key", "")
-            or getattr(settings, "master_key", "")
         )
     if not key:
         raise ValueError("Encryption key not configured. Set PENTESA_ENCRYPTION_KEY environment variable.")
 
     if isinstance(key, str):
         key = key.encode("utf-8")
+
+    if len(key) < 32:
+        raise ValueError(f"Encryption key must be at least 32 bytes (got {len(key)} bytes).")
 
     if len(key) == 32:
         return key

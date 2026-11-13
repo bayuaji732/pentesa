@@ -1,6 +1,7 @@
 """FastAPI application entry point."""
 
 import logging
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -35,9 +36,48 @@ from packages.common.exceptions import (
 )
 
 
+KNOWN_INSECURE_KEYS = {
+    "pentesa-master-key-32-bytes-long-change-in-prod!",
+    "pentesa-super-secret-default-key-change-in-production-1234567890",
+    "default-insecure-master-key-32b!",
+    "change-me-in-production-use-a-strong-secret-key",
+    "00000000000000000000000000000000",
+    "11111111111111111111111111111111",
+    "12345678901234567890123456789012",
+}
+
+
+def validate_encryption_key_startup():
+    """SEC-KEY-01: Ensure platform fails closed unless PENTESA_ENCRYPTION_KEY is configured and secure."""
+    key = os.environ.get("PENTESA_ENCRYPTION_KEY") or getattr(settings, "encryption_key", "")
+    if not key:
+        raise RuntimeError(
+            "CRITICAL SECURITY CONFIGURATION ERROR: PENTESA_ENCRYPTION_KEY is not set. "
+            "Pentesa refuses to start without an explicit AES-256 master encryption key."
+        )
+
+    raw_bytes = key.encode("utf-8") if isinstance(key, str) else key
+    if len(raw_bytes) < 32:
+        raise RuntimeError(
+            f"CRITICAL SECURITY CONFIGURATION ERROR: PENTESA_ENCRYPTION_KEY must be >= 32 bytes (got {len(raw_bytes)})."
+        )
+
+    key_str = str(key).strip().lower()
+    if (settings.env or "").lower() not in ("test",) and (
+        key in KNOWN_INSECURE_KEYS or "change-in-prod" in key_str or "change-me" in key_str
+    ):
+        raise RuntimeError(
+            "CRITICAL SECURITY CONFIGURATION ERROR: PENTESA_ENCRYPTION_KEY is set to a known repository default "
+            "or insecure placeholder string. Provide a unique cryptographically generated key in non-test environments."
+        )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Lifecycle events: initialize database schema, configure logging security filters, and seed data."""
+    """Lifecycle events: validate configuration, initialize database, and seed data."""
+    # 0. Fail-closed startup security validation
+    validate_encryption_key_startup()
+
     # Ensure all root and uvicorn log handlers redact sensitive credentials
     redacting_filter = SensitiveDataLoggingFilter()
     for handler in logging.root.handlers:

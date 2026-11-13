@@ -3,7 +3,11 @@ FROM python:3.12-slim-bookworm
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PYTHONPATH="/app"
+    PYTHONPATH="/app" \
+    FFUF_VERSION="2.1.0" \
+    FFUF_SHA256="fc2c82736c14dcbea4daf3d3cf3878c1c4773008ba45c2bc0fceba7d17b40bb5" \
+    NUCLEI_VERSION="3.3.7" \
+    NUCLEI_SHA256="725ef892fcffd1b03ad4f0874942fc4b623c0419b6b6c6c91fe4a5a65671f77c"
 
 WORKDIR /app
 
@@ -16,7 +20,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     dnsutils \
     iputils-ping \
-    && rm -rf /var/lib/apt/lists/*
+    unzip \
+    tar \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl -fsSL -o /tmp/ffuf.tar.gz "https://github.com/ffuf/ffuf/releases/download/v${FFUF_VERSION}/ffuf_${FFUF_VERSION}_linux_amd64.tar.gz" \
+    && echo "${FFUF_SHA256}  /tmp/ffuf.tar.gz" | sha256sum -c - \
+    && tar -xzf /tmp/ffuf.tar.gz -C /usr/local/bin ffuf \
+    && chmod 755 /usr/local/bin/ffuf \
+    && rm -f /tmp/ffuf.tar.gz \
+    && curl -fsSL -o /tmp/nuclei.zip "https://github.com/projectdiscovery/nuclei/releases/download/v${NUCLEI_VERSION}/nuclei_${NUCLEI_VERSION}_linux_amd64.zip" \
+    && echo "${NUCLEI_SHA256}  /tmp/nuclei.zip" | sha256sum -c - \
+    && unzip /tmp/nuclei.zip nuclei -d /usr/local/bin \
+    && chmod 755 /usr/local/bin/nuclei \
+    && rm -f /tmp/nuclei.zip
 
 # Install uv for fast dependency resolution
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
@@ -33,6 +49,9 @@ COPY agents/ ./agents/
 COPY integrations/ ./integrations/
 COPY apps/ ./apps/
 COPY scripts/ ./scripts/
+
+# Startup check verifying pinned security tools are executable
+RUN python scripts/check_security_tools.py
 
 # Create persistent storage mount points and unprivileged service user
 RUN mkdir -p /app/data/reports /app/data/evidence && \

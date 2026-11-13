@@ -16,6 +16,7 @@ import {
   Radio,
   Sliders,
   CheckCircle2,
+  Trash2,
 } from "lucide-react";
 
 export interface DecisionLog {
@@ -113,6 +114,7 @@ export function AgentTerminal({
   approvals = [],
   selectedAgentId = null,
   onApprovalDecision,
+  onClearLogs,
   className = "",
 }: AgentTerminalProps) {
   const [filterType, setFilterType] = useState<"all" | "thoughts" | "tools" | "approvals">("all");
@@ -350,6 +352,17 @@ export function AgentTerminal({
             <ArrowDown className={`w-3 h-3 ${autoScroll ? "animate-bounce" : ""}`} />
             <span className="hidden sm:inline">{autoScroll ? "Follow" : "Paused"}</span>
           </button>
+
+          {/* Clear Console */}
+          {onClearLogs && (
+            <button
+              onClick={onClearLogs}
+              title="Clear visible terminal console"
+              className="p-1.5 rounded bg-slate-900 border border-slate-800 text-slate-400 hover:text-rose-400 transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
 
           {/* Copy Logs */}
           <button

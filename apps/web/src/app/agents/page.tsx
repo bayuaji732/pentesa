@@ -149,6 +149,8 @@ function AgentsContent() {
     if (!currentProject) return;
     setActionLoading(true);
     setBanner(null);
+    setDecisions([]);
+    setToolCalls([]);
     try {
       if (currentProject.status !== "ACTIVE" && currentProject.status !== "COMPLETED") {
         try {
@@ -178,12 +180,15 @@ function AgentsContent() {
     setBanner(null);
     try {
       const res = await api.resetWorkflow(currentProject.id);
+      setDecisions([]);
+      setToolCalls([]);
+      setApprovals([]);
       if (res && Array.isArray(res.active_agents) && res.active_agents.length > 0) {
         setWorkflow(res);
       } else {
         await loadData(false);
       }
-      setBanner({ type: "info", text: "Workflow state reset cleanly. Ready for new launch." });
+      setBanner({ type: "info", text: "Workflow state reset to standby. Ready for new launch." });
     } catch (err: any) {
       setBanner({ type: "error", text: `Reset failed: ${err.message}` });
     } finally {
@@ -461,10 +466,10 @@ function AgentsContent() {
               <button
                 onClick={handleReset}
                 disabled={actionLoading}
-                title="Reset workflow to standby state"
+                title="Reset workflow execution state back to standby"
                 className="px-2.5 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors disabled:opacity-50 shadow-xs cursor-pointer"
               >
-                <RotateCcw className="h-3 w-3 text-slate-500" /> Reset
+                <RotateCcw className="h-3 w-3 text-slate-500" /> Reset State
               </button>
             )}
 
@@ -635,6 +640,10 @@ function AgentsContent() {
           approvals={approvals}
           selectedAgentId={selectedAgentFilter}
           onApprovalDecision={handleApprovalDecision}
+          onClearLogs={() => {
+            setDecisions([]);
+            setToolCalls([]);
+          }}
         />
       </div>
 

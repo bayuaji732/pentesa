@@ -18,11 +18,10 @@ import {
   Trash2,
 } from "lucide-react";
 
-function normalizeEngagementStatus(status?: string): "PLANNING" | "ACTIVE" | "COMPLETED" {
+function normalizeEngagementStatus(status?: string): "IN_PROGRESS" | "COMPLETED" {
   const s = status?.toUpperCase();
-  if (s === "ACTIVE" || s === "IN_PROGRESS" || s === "RUNNING") return "ACTIVE";
   if (s === "COMPLETED" || s === "ARCHIVED" || s === "FINISHED") return "COMPLETED";
-  return "PLANNING";
+  return "IN_PROGRESS";
 }
 
 export default function ProjectsPage() {
@@ -31,7 +30,7 @@ export default function ProjectsPage() {
   const { toast, confirmDialog } = useToast();
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"ALL" | "PLANNING" | "ACTIVE" | "COMPLETED">("ALL");
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "IN_PROGRESS" | "COMPLETED">("ALL");
   const [scopeFilter, setScopeFilter] = useState<"ALL" | "MINE">("ALL");
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -129,8 +128,7 @@ export default function ProjectsPage() {
 
   const counts = {
     ALL: projects.length,
-    PLANNING: projects.filter((p) => normalizeEngagementStatus(p.status) === "PLANNING").length,
-    ACTIVE: projects.filter((p) => normalizeEngagementStatus(p.status) === "ACTIVE").length,
+    IN_PROGRESS: projects.filter((p) => normalizeEngagementStatus(p.status) === "IN_PROGRESS").length,
     COMPLETED: projects.filter((p) => normalizeEngagementStatus(p.status) === "COMPLETED").length,
   };
 
@@ -154,16 +152,16 @@ export default function ProjectsPage() {
   });
 
   const getStatusBadge = (status: string) => {
-    const s = normalizeEngagementStatus(status);
-    if (s === "ACTIVE") {
+    const raw = status?.toUpperCase();
+    if (raw === "ACTIVE" || raw === "RUNNING") {
       return (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[11px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          ACTIVE ENGAGEMENT
+          ACTIVE SCAN
         </span>
       );
     }
-    if (s === "COMPLETED") {
+    if (raw === "COMPLETED" || raw === "ARCHIVED" || raw === "FINISHED") {
       return (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[11px] font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">
           <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />
@@ -174,7 +172,7 @@ export default function ProjectsPage() {
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[11px] font-mono font-bold bg-blue-50 text-blue-800 border border-blue-200">
         <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />
-        PLANNING
+        IN PROGRESS
       </span>
     );
   };
@@ -257,7 +255,7 @@ export default function ProjectsPage() {
         </div>
 
         <div className="flex items-center gap-1.5 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
-          {(["ALL", "PLANNING", "ACTIVE", "COMPLETED"] as const).map((tab) => (
+          {(["ALL", "IN_PROGRESS", "COMPLETED"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setStatusFilter(tab)}
@@ -267,7 +265,7 @@ export default function ProjectsPage() {
                   : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
               }`}
             >
-              <span>{tab}</span>
+              <span>{tab === "IN_PROGRESS" ? "IN PROGRESS" : tab}</span>
               <span
                 className={`text-[10px] px-1.5 py-0.2 rounded-full font-semibold ${
                   statusFilter === tab

@@ -111,7 +111,7 @@ export const TopNav: React.FC = () => {
                 SOC v1.0
               </span>
             </div>
-            <p className="text-[10px] text-slate-500 font-mono -mt-0.5">Autonomous Security Platform</p>
+            <p className="text-[10px] text-slate-500 font-mono -mt-0.5">Autonomous Penetration Testing Platform</p>
           </div>
         </Link>
 
@@ -130,7 +130,15 @@ export const TopNav: React.FC = () => {
             <span>Engagements</span>
           </Link>
 
-          {pathname !== "/projects" && (
+          {pathname === "/audit-logs" ? (
+            <>
+              <ChevronRight className="h-3 w-3 text-slate-300" />
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800">
+                <Lock className="h-3.5 w-3.5 text-blue-900" />
+                <span>Platform Audit Trail</span>
+              </div>
+            </>
+          ) : pathname !== "/projects" && (
             <>
               <ChevronRight className="h-3 w-3 text-slate-300" />
 
@@ -178,14 +186,18 @@ export const TopNav: React.FC = () => {
         {/* Audit Hash Chain Shortcut */}
         <Link
           href="/audit-logs"
-          className="p-1.5 rounded-md hover:bg-slate-100 text-slate-500 hover:text-slate-900 border border-transparent hover:border-slate-200 transition-colors"
-          title="Inspect Cryptographic Audit Hash Chain"
+          className={`p-1.5 rounded-md transition-colors ${
+            pathname === "/audit-logs"
+              ? "bg-blue-50 text-blue-900 border border-blue-200 shadow-2xs"
+              : "hover:bg-slate-100 text-slate-500 hover:text-slate-900 border border-transparent hover:border-slate-200"
+          }`}
+          title="Inspect Cryptographic Audit Trail (Platform Governance)"
         >
-          <Lock className="h-3.5 w-3.5 text-slate-600" />
+          <Lock className="h-3.5 w-3.5" />
         </Link>
 
         {/* Multi-Agent DAG Status Pill (State-Aware Gated) */}
-        {pathname !== "/projects" && currentProject && (() => {
+        {pathname !== "/projects" && pathname !== "/audit-logs" && currentProject && (() => {
           const isAgentsUnlocked =
             getUnlockedStep(currentProject) >= 4 ||
             currentProject.status === "COMPLETED" ||

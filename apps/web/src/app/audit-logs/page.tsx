@@ -15,10 +15,12 @@ import {
   Database,
   ArrowRight,
   CheckCircle2,
+  Layers,
 } from "lucide-react";
 
 export default function AuditLogsPage() {
-  const { currentProject } = useProject();
+  const { projects } = useProject();
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("ALL");
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,11 +47,12 @@ export default function AuditLogsPage() {
     };
   }, []);
 
-  const fetchLogs = async (silent = false) => {
+  const fetchLogs = async (silent = false, projectIdToFetch?: string) => {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const data: any = await api.listAuditLogs(currentProject?.id, 100);
+      const pid = projectIdToFetch !== undefined ? projectIdToFetch : selectedProjectId;
+      const data: any = await api.listAuditLogs(pid === "ALL" ? undefined : pid, 100);
       setLogs(Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : []);
     } catch (err: any) {
       console.error(err);
@@ -100,9 +103,9 @@ export default function AuditLogsPage() {
   };
 
   useEffect(() => {
-    fetchLogs(false);
+    fetchLogs(false, selectedProjectId);
     handleVerifyChain(false);
-  }, [currentProject?.id]);
+  }, [selectedProjectId]);
 
   const handleExportJson = () => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(logs, null, 2));
@@ -168,13 +171,16 @@ export default function AuditLogsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">Cryptographic Audit Hash Chain</h1>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">Cryptographic Audit Trail</h1>
+            <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-900 border border-blue-200">
+              Platform Ledger
+            </span>
             <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
               {logs.length} Blocks
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
-            Tamper-evident, forward-secure SHA-256 Merkle chain recording every security action, rule change, and finding.
+            Tamper-evident, forward-secure SHA-256 Merkle hash chain recording every authentication event, scope modification, autonomous agent action, and finding.
           </p>
         </div>
 
@@ -270,8 +276,8 @@ export default function AuditLogsPage() {
       )}
 
       {/* Filtering Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
-        <div className="relative w-full sm:w-80">
+      <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
+        <div className="relative w-full lg:w-72">
           <Search className="absolute left-3 top-3 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
           <input
             type="text"
@@ -282,15 +288,35 @@ export default function AuditLogsPage() {
           />
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <span className="text-[11px] font-mono text-slate-500 font-semibold flex items-center gap-1">
-            <Filter className="h-3 w-3" /> Action:
-          </span>
-          <select
-            value={filterAction}
-            onChange={(e) => setFilterAction(e.target.value)}
-            className="bg-white text-xs text-slate-900 border border-slate-300 rounded-md px-3 py-1.5 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 font-mono"
-          >
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Scope Selector: Global vs Project */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-mono text-slate-500 font-semibold flex items-center gap-1">
+              <Layers className="h-3 w-3 text-slate-400" /> Scope:
+            </span>
+            <select
+              value={selectedProjectId}
+              onChange={(e) => setSelectedProjectId(e.target.value)}
+              className="bg-white text-xs text-slate-900 border border-slate-300 rounded-md px-2.5 py-1.5 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 font-sans max-w-[220px]"
+            >
+              <option value="ALL">All Engagements (Global)</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-mono text-slate-500 font-semibold flex items-center gap-1">
+              <Filter className="h-3 w-3 text-slate-400" /> Action:
+            </span>
+            <select
+              value={filterAction}
+              onChange={(e) => setFilterAction(e.target.value)}
+              className="bg-white text-xs text-slate-900 border border-slate-300 rounded-md px-3 py-1.5 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 font-mono"
+            >
             <option value="ALL">All Actions</option>
             <option value="LOGIN_SUCCESS">LOGIN_SUCCESS</option>
             <option value="LOGIN_FAILED">LOGIN_FAILED</option>
@@ -315,6 +341,7 @@ export default function AuditLogsPage() {
           </select>
         </div>
       </div>
+    </div>
 
       {/* Audit Log Table */}
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">

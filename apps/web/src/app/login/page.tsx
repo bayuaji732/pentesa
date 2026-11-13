@@ -55,7 +55,7 @@ export default function LoginPage() {
           PENTESA SOC CONSOLE
         </h1>
         <p className="text-xs text-slate-500 font-medium">
-          Autonomous Web Application Penetration Testing Platform
+          Autonomous Penetration Testing Platform
         </p>
       </div>
 

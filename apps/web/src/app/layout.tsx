@@ -6,7 +6,7 @@ import { ToastProvider } from "@/lib/ToastContext";
 import { AppShell } from "@/components/AppShell";
 
 export const metadata: Metadata = {
-  title: "Pentesa — Autonomous Pentest Engine",
+  title: "Pentesa — Autonomous Penetration Testing Platform",
   description: "Enterprise Autonomous Web Application Penetration Testing Platform",
 };
 

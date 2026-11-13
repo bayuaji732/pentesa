@@ -9,6 +9,7 @@ from sqlalchemy.orm import selectinload
 
 from database.models.discovery import Cookie, DiscoveredDomain, Endpoint, Technology
 from database.models.project import Project
+from database.models.scope import ScopeRule
 from packages.schemas.discovery import (
     AttackSurfaceGraphResponse,
     CrawlRequest,

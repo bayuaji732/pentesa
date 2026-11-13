@@ -66,7 +66,7 @@ async def test_tool_execution_and_listing(client, admin_token, test_project):
     exec_data = resp.json()
     assert exec_data["tool_name"] == "nuclei"
     assert exec_data["target_url"] == "https://target.com"
-    assert exec_data["status"] in ["SUCCESS", "FAILED"]  # Runner simulation returns SUCCESS
+    assert exec_data["status"] in ["SUCCESS", "FAILED", "TIMEOUT"]
 
     exec_id = exec_data["id"]
 

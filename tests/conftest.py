@@ -23,7 +23,7 @@ from packages.common.security import create_access_token, hash_password
 
 # Use dedicated test database
 TEST_DB_FILE = "./test_pentesa.db"
-TEST_DATABASE_URL = f"sqlite+aiosqlite:///{TEST_DB_FILE}"
+TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL", f"sqlite+aiosqlite:///{TEST_DB_FILE}")
 
 test_engine = create_async_engine(TEST_DATABASE_URL, echo=False)
 TestSessionLocal = async_sessionmaker(bind=test_engine, class_=AsyncSession, expire_on_commit=False)

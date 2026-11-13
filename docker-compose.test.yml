@@ -1,0 +1,11 @@
+services:
+  test-runner:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.test
+    container_name: pentesa-test-runner
+    environment:
+      - PENTESA_ENV=test
+      - PENTESA_LLM_PROVIDER=mock
+      - PENTESA_ENCRYPTION_KEY=preflight_test_master_encryption_key_32b_hex!
+    command: ["pytest", "tests/", "-v", "--tb=short"]

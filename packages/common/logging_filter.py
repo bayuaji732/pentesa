@@ -44,3 +44,4 @@ class SensitiveDataLoggingFilter(logging.Filter):
                 )
 
         return True
+

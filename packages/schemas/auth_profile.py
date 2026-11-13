@@ -39,3 +39,4 @@ class AuthProfileResponse(AuthProfileBase):
     masked_credentials: Dict[str, str] = Field(default_factory=dict)
     created_at: datetime
     updated_at: datetime
+

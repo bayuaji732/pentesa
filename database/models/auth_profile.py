@@ -68,3 +68,4 @@ class AuthProfile(Base, UUIDPrimaryKeyMixin, TimestampMixin):
             else:
                 masked[k] = f"{str_val[:3]}...[REDACTED]...{str_val[-2:]}"
         return masked
+

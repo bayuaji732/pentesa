@@ -17,7 +17,7 @@ class FfufRunner(BaseToolWrapper):
         if not url_template:
             url_template = f"{target_url.rstrip('/')}/FUZZ"
 
-        wordlist = options.get("wordlist_path", "common_paths.txt")
+        wordlist = options.get("wordlist_path") or "common_paths.txt"
         rate_limit = min(options.get("rate_limit", 20), 50)  # Capped at 50 rps max
 
         argv = [

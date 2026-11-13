@@ -144,6 +144,25 @@ class BaseAgent(abc.ABC):
             raise RuntimeError("Cannot log tool call without an active AgentExecution.")
 
         if tool_name not in self.allowed_tools:
+            try:
+                from packages.common.audit_writer import record_audit_log
+                await record_audit_log(
+                    session=self.session,
+                    action="AGENT_TOOL_CALL_BLOCKED",
+                    resource_type="AgentToolCall",
+                    resource_id=str(self.current_execution.id),
+                    details={
+                        "agent_id": self.agent_id,
+                        "agent_name": self.agent_name,
+                        "unauthorized_tool": tool_name,
+                        "allowed_tools": self.allowed_tools,
+                        "reason": "Tool invocation not in agent allowlist"
+                    },
+                    project_id=self.current_execution.project_id
+                )
+            except Exception as e:
+                logger.error(f"Error logging blocked tool call: {e}")
+
             raise PermissionError(
                 f"Agent {self.agent_id} ({self.agent_name}) is unauthorized to invoke tool '{tool_name}'. "
                 f"Allowed tools: {self.allowed_tools}"

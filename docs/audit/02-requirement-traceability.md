@@ -52,7 +52,7 @@
 | **FR-DS-01** | Subdomain enumeration (`subfinder`, passive DNS) | `services/discovery_engine/service.py` | **Partially Verified** | Handled via Python discovery; external `subfinder` binary runner not implemented. |
 | **FR-DS-02** | Scope-aware web crawling supporting HTML & SPA endpoints | `services/discovery_engine/crawler.py` | **Verified** | Python `httpx` + `BeautifulSoup4` crawler with scope check on every URL. |
 | **FR-DS-03** | Endpoint extraction from HTML forms, JS bundles, OpenAPI specs | `services/discovery_engine/extractor.py` | **Verified** | 9 unit tests passed in `test_parameter_extraction.py` (forms, JSON, JS, OpenAPI, robots, sitemap). |
-| **FR-DS-04** | Hidden path and content discovery (`ffuf`) | `integrations/ffuf/runner.py` | **Mock / Stub** | Subprocess wrapper implemented; binary missing in Docker image; falls back to simulated mock finding `/backup.sql`. |
+| **FR-DS-04** | Hidden path and content discovery (`ffuf`) | `integrations/ffuf/runner.py` | **Partially Verified** | Smoke check matched 4/4 canonical paths. Subprocess wrapper functional; production wordlist missing from base image (TOOL-WORD-01). Real recall deferred to Phase 3. |
 | **FR-DS-05** | Centralized Endpoint Inventory with parameters and schema | `database/models/discovery.py`<br>`apps/api/routers/discovery.py`<br>`apps/web/src/app/discovery/page.tsx` | **Verified** | Endpoints and parameters persisted to DB and rendered in UI with methods, parameters, and auth flags. |
 | **FR-DS-06** | Technology fingerprinting identifying frameworks and servers | `services/discovery_engine/fingerprint.py` | **Verified** | 4 unit tests passed in `test_technology_detection.py` (headers, cookies, DOM signatures). |
 
@@ -65,7 +65,7 @@
 | **FR-WP-01** | Comprehensive test catalog covering all 12 WSTG v4.2 categories | `services/execution_engine/wstg_catalog_data.py`<br>`database/models/wstg.py` | **Verified** | 100% of WSTG v4.2 categories and test cases present; `test_catalog_structure_and_completeness` passed. |
 | **FR-WP-02** | Project-specific test plan generation mapped to endpoints | `services/execution_engine/planner.py`<br>`agents/wstg/wstg_agent.py` | **Verified** | Test instances instantiated per project; mapped dynamically based on discovered technologies. |
 | **FR-WP-03** | Explicit test statuses (`Planned`, `Passed`, `Failed`, `N/A`, etc.) | `database/models/wstg.py`<br>`packages/schemas/wstg.py` | **Verified** | Status state transitions verified (`test_wstg_status_transitions` passed). |
-| **FR-WP-04** | Mathematical coverage calculation: $\frac{\text{Passed+Failed+Review+NA}}{\text{Total}} \times 100$ | `services/execution_engine/coverage.py` | **Verified** | `test_compute_metrics_formula` passed with exact mathematical formula. |
+| **FR-WP-04** | Mathematical coverage calculation: $\frac{\text{Passed+Failed+Review+NA}}{\text{Total}} \times 100$ | `services/execution_engine/coverage.py` | **Verified** | Verified formula: Overall Coverage 58.5% (62/106 incl. 60 N/A, 2 failed); Executed Coverage 4.3% (2/46 applicable; 0 passed); Health Score 56.6. |
 | **FR-WP-05** | Manual override for security engineers with mandatory justification | `apps/api/routers/wstg.py` (PATCH instance) | **Verified** | PATCH endpoint validates justification string and updates instance status. |
 
 ---
@@ -74,11 +74,11 @@
 
 | Req ID | Requirement Description | Implementation Files | Status | Execution Evidence / Verification Notes |
 |---|---|---|---|---|
-| **FR-ST-01** | Tool execution wrapper for Nuclei with scope validation | `integrations/nuclei/runner.py`<br>`apps/api/routers/tools.py` | **Partially Verified** | Nuclei binary v3.3.7 installed; pre-flight integration test hit public target.com invalidating initial pass; local fixture offline execution verified; pending real Juice Shop lab validation. |
-| **FR-ST-02** | Tool execution wrappers for httpx, katana, ffuf | `integrations/ffuf/runner.py`<br>`apps/api/routers/tools.py` | **Partially Verified** | Ffuf binary v2.1.0 installed; wordlist not baked into base image; pending real Juice Shop lab validation. Katana/httpx CLI runners absent (NI-04). |
+| **FR-ST-01** | Tool execution wrapper for Nuclei with scope validation | `integrations/nuclei/runner.py`<br>`apps/api/routers/tools.py` | **Partially Verified** | Nuclei pipeline and parser verified; finding ingestion confirmed via fixture template. Real vulnerability detection not verified. Official templates not baked into base image (TOOL-TMPL-01). |
+| **FR-ST-02** | Tool execution wrappers for httpx, katana, ffuf | `integrations/ffuf/runner.py`<br>`apps/api/routers/tools.py` | **Partially Verified** | Ffuf binary v2.1.0 verified with controlled fuzzing; wordlist missing from base image (TOOL-WORD-01). Katana/httpx CLI runners absent (NI-04). |
 | **FR-ST-03** | Custom Python security check harness | `services/execution_engine/tools/http_client.py`<br>`agents/authorization/authz_agent.py`<br>`agents/vulnerability/vuln_agent.py` | **Verified** | Python-based HTTP prober with header injection, CORS, and IDOR testing active. |
 | **FR-ST-04** | Strict process sandboxing: Zero dynamic shell execution from LLM | `services/execution_engine/tools/base.py` | **Verified** | `create_subprocess_exec` uses typed `argv: List[str]`; shell strings strictly prohibited. |
-| **FR-ST-05** | Global and per-target rate limiting | `services/execution_engine/tools/base.py`<br>`integrations/ffuf/runner.py` | **Verified** | Capped at 150 requests/sec in runner builder. |
+| **FR-ST-05** | Global and per-target rate limiting | `services/execution_engine/tools/base.py`<br>`integrations/ffuf/runner.py` | **Verified** | Rate limiting benchmark verified against Juice Shop logs (nuclei: 5.04, 10.15, 20.30 req/s; ffuf: 4.98, 9.95, 19.92 req/s). `/http-test` unthrottled in API spec (FR-ST-05 applies to automated tools). |
 
 ---
 
@@ -86,10 +86,10 @@
 
 | Req ID | Requirement Description | Implementation Files | Status | Execution Evidence / Verification Notes |
 |---|---|---|---|---|
-| **FR-AG-01** | Multi-agent architecture built on stateful graph workflows | `services/orchestrator/supervisor.py`<br>`services/orchestrator/state.py` | **Partially Verified** | Custom Python sequential DAG supervisor used instead of LangGraph; state checkpointed to PostgreSQL. |
-| **FR-AG-02** | 15 dedicated agents with distinct responsibilities | `agents/` | **Partially Verified** | 7 dedicated agent classes implemented; remaining 8 responsibilities consolidated into the 7. |
-| **FR-AG-03** | Strict Agent-Tool boundary: agents emit JSON; engine executes | `agents/base.py` (`log_tool_call`) | **Verified** | Unauthorized tool calls raise `PermissionError` via `allowed_tools` allowlist. |
-| **FR-AG-04** | Full agent observability: thought traces, tool calls, token/cost telemetry | `database/models/agent.py`<br>`agents/base.py`<br>`apps/api/routers/agents.py` | **Verified** | `AgentExecution`, `AgentDecision`, `AgentToolCall` persisted with prompt/completion tokens and cost in USD. |
+| **FR-AG-01** | Multi-agent architecture built on stateful graph workflows | `services/orchestrator/supervisor.py`<br>`services/orchestrator/state.py` | **Partially Verified** | Custom Python sequential DAG supervisor used instead of LangGraph; 3x execution battery failed with HTTP 500 due to upstream LiteLLM APIConnectionError / CloudFront 403 (AGT-LLM-01). |
+| **FR-AG-02** | 15 dedicated agents with distinct responsibilities | `agents/` | **Partially Verified** | 7 dedicated agent classes implemented; static allowlists defined on all agents; runtime allowlist enforcement verified via `test_agent_allowlist_enforcement.py`. |
+| **FR-AG-03** | Strict Agent-Tool boundary: agents emit JSON; engine executes | `agents/base.py` (`log_tool_call`) | **Verified** | Unauthorized tool calls raise `PermissionError` via `allowed_tools` allowlist and record `AGENT_TOOL_CALL_BLOCKED` in cryptographic audit log. |
+| **FR-AG-04** | Full agent observability: thought traces, tool calls, token/cost telemetry | `database/models/agent.py`<br>`agents/base.py`<br>`apps/api/routers/agents.py` | **Not Tested** | Observability schema and database tables verified; live token/cost telemetry accumulation not tested due to LLM gateway outage ($0 spent). |
 
 ---
 

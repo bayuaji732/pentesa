@@ -9,8 +9,11 @@ import asyncio
 import http.server
 import os
 import socketserver
+import sys
 import threading
 import uuid
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 

@@ -14,7 +14,7 @@
 
 ## 1. Executive Summary & Gate Status Certification
 
-During Run 1 of Phase 2, the audit team re-verified all pre-flight gates, instantiated the isolated dual-bridge Docker test environment ([`docker-compose.phase2.yml`](file:///c:/Users/User2/Documents/work/pentesa/docker-compose.phase2.yml)), seeded authentic test accounts in OWASP Juice Shop, and executed a 50-test automated validation battery evaluating all items in **Part 2A: Backend and API**.
+During Run 1 of Phase 2, the audit team re-verified all pre-flight gates, instantiated the isolated dual-bridge Docker test environment ([`docker-compose.phase2.yml`](docker-compose.phase2.yml)), seeded authentic test accounts in OWASP Juice Shop, and executed a 50-test automated validation battery evaluating all items in **Part 2A: Backend and API**.
 
 ### Gate Verification Summary (G1 – G4)
 - **G1 (Stack Health & Regression Suite):** The Pentesa stack was brought up cleanly on PostgreSQL 16. `scripts/smoke_test.py` passed 100% (7/7 checks) following harness fixes. The full pytest test suite (167 tests) executed inside the internal-only Docker test container (`internal: true`) with zero outbound internet access, passing **167 / 167 in 91.25s**.
@@ -26,7 +26,7 @@ During Run 1 of Phase 2, the audit team re-verified all pre-flight gates, instan
 
 ## 2. Test Environment Architecture & Verification
 
-The Phase 2 environment was constructed and saved as [`docker-compose.phase2.yml`](file:///c:/Users/User2/Documents/work/pentesa/docker-compose.phase2.yml) to ensure byte-for-byte reproducibility in Run 2.
+The Phase 2 environment was constructed and saved as [`docker-compose.phase2.yml`](docker-compose.phase2.yml) to ensure byte-for-byte reproducibility in Run 2.
 
 ```
                     +-------------------------------------------------------------+
@@ -71,7 +71,7 @@ The Phase 2 environment was constructed and saved as [`docker-compose.phase2.yml
 2. **Host Port Binding:** All exposed container ports are bound strictly to `127.0.0.1` (`127.0.0.1:8000:8000`, `127.0.0.1:3000:3000`). No attack surface or Juice Shop ports are exposed to external physical interfaces.
 3. **Scope Engine vs Docker:**
    - Container hostnames (e.g. `target-juiceshop`) resolve to private RFC 1918 Docker bridge addresses (`172.21.0.0/16`).
-   - Default behavior: when `allow_internal_networks=False` on a project, private IP resolution is blocked closed by [`services/scope_engine/validator.py`](file:///c:/Users/User2/Documents/work/pentesa/services/scope_engine/validator.py#L112-L124).
+   - Default behavior: when `allow_internal_networks=False` on a project, private IP resolution is blocked closed by [`services/scope_engine/validator.py`](services/scope_engine/validator.py#L112-L124).
    - Legitimate configuration: setting `allow_internal_networks=True` permits container hostnames and RFC 1918 addresses, while Cloud IMDS (`169.254.169.254`, `metadata.google.internal`) remains strictly and unconditionally prohibited.
 4. **Nuclei & ffuf Image Verification:**
    - **Templates Baked In:** **NEGATIVE.** Neither `Dockerfile.api` nor `Dockerfile.worker` clones or packages `nuclei-templates` into the container filesystem. Offline execution requires mounting local templates.
@@ -92,17 +92,17 @@ The Phase 2 environment was constructed and saved as [`docker-compose.phase2.yml
    - **Mock LLM Boundary Flaw:** In `agents/llm/provider.py:520`, `MockLLMProvider` is only forbidden if `(settings.env or "").lower() == "production"`. When `PENTESA_ENV=development` or `staging`, `mock` can be selected outside test environments. Default `llm_provider` in `config.py` is `"mock"`.
    - **Real LLM Gateway Status:** CloudFront currently returns HTTP 403 (*"We can't connect to the server for this app or website at this time"*), indicating the private origin behind CloudFront is offline. Total tokens consumed: 0. Total cost: **$0.0000 / $5.0000** budget.
 6. **OWASP Juice Shop Seeded Users:**  
-   Executed [`scripts/seed_juiceshop.py`](file:///c:/Users/User2/Documents/work/pentesa/scripts/seed_juiceshop.py) to register and authenticate three test accounts:
+   Executed [`scripts/seed_juiceshop.py`](scripts/seed_juiceshop.py) to register and authenticate three test accounts:
    - Admin: `pentesa_admin@juice-sh.op` (bid: 6)
    - User A: `pentesa_user1@juice-sh.op` (bid: 7)
    - User B: `pentesa_user2@juice-sh.op` (bid: 8)  
-   Credentials and JWT tokens saved to [`data/juiceshop_users.json`](file:///c:/Users/User2/Documents/work/pentesa/data/juiceshop_users.json).
+   Credentials and JWT tokens saved to [`data/juiceshop_users.json`](data/juiceshop_users.json).
 
 ---
 
 ## 3. Part 2A Comprehensive Evaluation Results
 
-The evaluation suite ([`scripts/part2a_runner.py`](file:///c:/Users/User2/Documents/work/pentesa/scripts/part2a_runner.py)) executed 50 test cases covering Items 1 through 9. Structured forensic evidence is serialized in [`docs/audit/evidence/phase2/part2a_results.json`](file:///c:/Users/User2/Documents/work/pentesa/docs/audit/evidence/phase2/part2a_results.json).
+The evaluation suite ([`scripts/part2a_runner.py`](scripts/part2a_runner.py)) executed 50 test cases covering Items 1 through 9. Structured forensic evidence is serialized in [`docs/audit/evidence/phase2/part2a_results.json`](docs/audit/evidence/phase2/part2a_results.json).
 
 ### Result Matrix
 
@@ -139,19 +139,19 @@ The evaluation suite ([`scripts/part2a_runner.py`](file:///c:/Users/User2/Docume
 | **5.1** | FR-DS-01, FR-DS-02 | Automated Attack Surface Crawl | HTTP 200 with discovered entities | HTTP 200: 13 endpoints, 2 domains discovered in 0.54s | **PASS** |
 | **5.2** | FR-DS-04 | Endpoint Inventory Persistence | Endpoints stored in PostgreSQL | 13 endpoints persisted in DB (`/ftp`, `/basket`, `/styles.css`, etc.) | **PASS** |
 | **5.3** | FR-DS-03 | Technology Fingerprinting Persistence | Stack detected and persisted | **DEFECT-GAP:** 0 technologies detected (SPA lacks server headers) | **DEFECT-GAP** |
-| **5.4** | FR-DS-01, FR-DS-04 | Juice Shop Surface Coverage Ratio | $\ge 50\%$ key paths matched | 100% of major entrypoints matched (`/`, `/ftp`, `/basket`, `/assets`) | **PASS** |
+| **5.4** | FR-DS-01, FR-DS-04 | Juice Shop Surface Coverage Smoke Check | 4 canonical paths checked | Smoke check: 4/4 paths matched (`/`, `/ftp`, `/basket`, `/assets`). Real recall in Phase 3. | **Partially Verified** |
 | **6.1** | FR-WS-01 | Master OWASP WSTG v4.2 Catalog Integrity | Exactly 106 official tests | 106 tests loaded across all 12 categories | **PASS** |
 | **6.2** | FR-WS-02 | Project WSTG Plan Instantiation | 106 test instances generated | 106 instances initialized (44 planned, 60 not applicable, 2 failed) | **PASS** |
 | **6.3** | FR-WS-03 | WSTG Lifecycle State Machine Transitions | Valid transitions accepted | Transitions `Planned` -> `Running` -> `Passed` succeeded cleanly | **PASS** |
 | **6.4** | FR-WS-05 | Manual Override with Mandatory Justification | Override recorded with audit justification | Status updated to `Not Applicable` with justification stored | **PASS** |
-| **6.5** | FR-WS-04 | WSTG Empirical Coverage Metric | Coverage calculated mathematically | 58.5% coverage, Health Score 56.6, 12 categories broken down | **PASS** |
-| **7.1** | FR-ST-01, FR-ST-02 | Nuclei Execution against Juice Shop | Status `SUCCESS`, exit code 0, finding stored | `SUCCESS`, exit code 0, 1 finding ingested, duration 343ms | **PASS** |
+| **6.5** | FR-WS-04 | WSTG Empirical Coverage Metric | Coverage calculated mathematically | Overall Coverage: 58.5% (62/106 incl. 60 N/A, 2 failed); Executed Coverage: 4.3% (2/46 applicable; 0 passed); Health Score: 56.6 | **PASS** |
+| **7.1** | FR-ST-01, FR-ST-02 | Nuclei Pipeline & Parser Verification against Juice Shop | Status `SUCCESS`, exit code 0, finding stored | Pipeline & parser verified with fixture template; finding stored. Real vulnerability detection not verified. | **Partially Verified** |
 | **7.2** | FR-ST-03, FR-ST-04 | ffuf Controlled Fuzzing against Juice Shop | Status `SUCCESS`, exit code 0 | `SUCCESS`, exit code 0, duration 643ms | **PASS** |
-| **7.3** | FR-ST-05 | Missing Tool Binary Handling | HTTP 400 or HTTP 503 error returned | HTTP 400: `Unsupported tool: nonexistent_scanner_binary_xyz` | **PASS** |
-| **7.4** | FR-ST-01 | Rate Limiter Throughput Measurement | Throttled within 50 RPS platform limit | **FAIL:** Observed 81.5 req/s (No server-side throttle on `/http-test`) | **FAIL** |
-| **8.1** | FR-AG-01..03 | Multi-Agent Workflow DAG Repetitions (3x) | Successful execution and state persistence | 3 consecutive runs executed; state persisted in `workflow_executions` | **PASS** |
-| **8.2** | FR-AG-02 | Agent Allowed Tools Allowlist Enforcement | Agents constrained to allowed tools | Explicit allowlists enforced per agent (e.g. AGT-01, AGT-03, AGT-09) | **PASS** |
-| **8.3** | FR-AG-04 | LLM Token & Cost Telemetry Cap ($5.00) | Hard cap ledger maintained | Active in `cost-log.md`; $0.00 spent (under $5.00 hard cap) | **PASS** |
+| **7.3** | FR-ST-05 | Missing Tool Binary Runtime Handling | Clean HTTP 503 ToolNotAvailableError | Clean 503 returned, execution status `NOT_EXECUTED`, WSTG instance `Not Executed`, audit log `TOOL_EXECUTION_UNAVAILABLE` | **PASS** |
+| **7.4** | FR-ST-01, FR-ST-05 | Subprocess Rate Limiter Measurement & API Audit | Tools throttled within configured RPS | Nuclei (5, 10, 20): 5.04, 10.15, 20.30 req/s; FFUF (5, 10, 20): 4.98, 9.95, 19.92 req/s. `/http-test` has no rate limit in docs/11-api-specification.md:290-310 | **PASS** |
+| **8.1** | FR-AG-01..03 | Multi-Agent Workflow DAG Repetitions (3x) | Successful execution and state persistence | **FAIL:** 3 consecutive runs returned HTTP 500 (LiteLLM 503 gateway error / CloudFront 403) | **FAIL** |
+| **8.2** | FR-AG-02 | Agent Allowed Tools Allowlist Runtime Enforcement | Agents constrained to allowed tools; violations blocked & logged | Static allowlists verified; runtime test `test_agent_allowlist_enforcement.py` confirms `PermissionError` and `AGENT_TOOL_CALL_BLOCKED` audit log | **Partially Verified** |
+| **8.3** | FR-AG-04 | LLM Token & Cost Telemetry Cap ($5.00) | Hard cap ledger maintained under load | **Not Tested:** Vacuous ($0.00 spent due to LLM gateway outage; telemetry accumulator unverified under active generation) | **Not Tested** |
 | **9.1** | FR-FN-01, FR-EV-01 | Finding Ingestion with Forensic Evidence | HTTP 201 Created with evidence hashed | Finding created with `raw_request`, `raw_response`, and `reproduction_curl` | **PASS** |
 | **9.2** | FR-FN-02 | Cryptographic Finding Deduplication | Clustered by SHA-256 signature | Signature `b972ff57db...` clustered duplicate instances | **PASS** |
 | **9.3** | FR-FN-03 | False-Positive Refutation with Justification | Status updated to `False Positive` | `FalsePositive` record created with justification and audit trail | **PASS** |
@@ -173,9 +173,11 @@ The evaluation suite ([`scripts/part2a_runner.py`](file:///c:/Users/User2/Docume
 | DEFECT-HIGH-1     | SEC-RED-01: Python Layer HTTP Client Egress Leak on 302 Redirect      | Code Patch      |
 | DEFECT-HIGH-2     | SEC-KEY-01: derive_aes_key() Fails Open to Static Master Key Fallback | Code Patch      |
 | DEFECT-HIGH-3     | SEC-PWD-01: Static Admin Account & Database Defaults in Production     | Seed/Config Fix |
-| DEFECT-MED-1      | PERF-RAT-01: HTTP Testing API Unbounded Rate Limit (81.5 req/s)       | Rate Limiter    |
-| DEFECT-MED-2      | DISCO-SPA-01: Technology Fingerprinter Fails on SPA / Angular Targets | Signature Add   |
-| DEFECT-LOW-1      | AGT-MOCK-01: MockLLMProvider Selectable Outside PENTESA_ENV=test      | Config Guard    |
+| DEFECT-MED-1      | TOOL-TMPL-01 (P1): Nuclei Templates Not Baked into Base Docker Image  | Asset Bake      |
+| DEFECT-MED-2      | TOOL-WORD-01 (P1): FFUF Wordlist Missing from Base Docker Image       | Asset Bake      |
+| DEFECT-MED-3      | AGT-LLM-01 (P1): Unhandled 500 on LLM Gateway Outage                  | Error Handling  |
+| DEFECT-MED-4      | DISCO-SPA-01 (P2): Tech Fingerprinter Fails on SPA / Angular Targets  | Signature Add   |
+| DEFECT-LOW-1      | AGT-MOCK-01 (P1): MockLLMProvider Selectable Outside PENTESA_ENV=test | Config Guard    |
 +-------------------+-----------------------------------------------------------------------+-----------------+
 ```
 
@@ -193,7 +195,7 @@ The evaluation suite ([`scripts/part2a_runner.py`](file:///c:/Users/User2/Docume
 - **Status & Recommendation:** Marked **P0-KNOWN**. The binaries cannot enforce HTTP redirect-hop boundaries in software. Per master instructions, **these binaries must be marked lab-only until network egress proxying (e.g. mitmproxy/Squid egress container) is implemented**.
 
 #### 2. DEFECT-HIGH-1 (SEC-RED-01): Python-Layer HTTP Client Redirect Leak
-- **Affected File:** [`services/execution_engine/tools/http_client.py#L53-L63`](file:///c:/Users/User2/Documents/work/pentesa/services/execution_engine/tools/http_client.py#L53-L63)
+- **Affected File:** [`services/execution_engine/tools/http_client.py#L53-L63`](services/execution_engine/tools/http_client.py#L53-L63)
 - **Observed Evidence:**
   When `follow_redirects=True` was passed to `POST /api/v1/projects/{project_id}/tools/http-test`, `httpx.AsyncClient` followed the 302 redirect from `redirector:9098` to `canary:9099`. The canary logged:
   ```json
@@ -203,7 +205,7 @@ The evaluation suite ([`scripts/part2a_runner.py`](file:///c:/Users/User2/Docume
 - **Remediation:** Implement custom redirect-handling loop or an `httpx.AsyncHTTPTransport` hook that re-evaluates `scope_service.check_target()` on every `3xx` response before dispatching the subsequent hop.
 
 #### 3. DEFECT-HIGH-2 (SEC-KEY-01): Encryption Key Missing Fails Open
-- **Affected File:** [`packages/common/security.py#L118-L124`](file:///c:/Users/User2/Documents/work/pentesa/packages/common/security.py#L118-L124)
+- **Affected File:** [`packages/common/security.py#L118-L124`](packages/common/security.py#L118-L124)
 - **Observed Evidence:**
   When executing `derive_aes_key()` with `PENTESA_ENCRYPTION_KEY` unset, the function silently falls back:
   ```python
@@ -217,25 +219,25 @@ The evaluation suite ([`scripts/part2a_runner.py`](file:///c:/Users/User2/Docume
 - **Remediation:** Remove fallback to default `master_key` in production environments; raise `RuntimeError("PENTESA_ENCRYPTION_KEY must be explicitly set")` during startup.
 
 #### 4. DEFECT-HIGH-3 (SEC-PWD-01): Default Seeded Credentials in Production
-- **Affected Files:** [`database/seeds/seed_data.py#L25-L30`](file:///c:/Users/User2/Documents/work/pentesa/database/seeds/seed_data.py#L25-L30), [`docker-compose.yml#L112`](file:///c:/Users/User2/Documents/work/pentesa/docker-compose.yml#L112), [`.env.production#L17`](file:///c:/Users/User2/Documents/work/pentesa/.env.production#L17)
+- **Affected Files:** [`database/seeds/seed_data.py#L25-L30`](database/seeds/seed_data.py#L25-L30), [`docker-compose.yml#L112`](docker-compose.yml#L112), [`.env.production#L17`](.env.production#L17)
 - **Observed Evidence:**
-  The API startup lifecycle ([`apps/api/main.py:lifespan()`](file:///c:/Users/User2/Documents/work/pentesa/apps/api/main.py#L48-L51)) runs `seed_initial_data()` on every initialization, creating `admin@example.com` with password `Admin123!Secure`. Both `.env.production` and `docker-compose.yml` also specify `POSTGRES_PASSWORD=pentesa_password`.
+  The API startup lifecycle ([`apps/api/main.py:lifespan()`](apps/api/main.py#L48-L51)) runs `seed_initial_data()` on every initialization, creating `admin@example.com` with password `Admin123!Secure`. Both `.env.production` and `docker-compose.yml` also specify `POSTGRES_PASSWORD=pentesa_password`.
 - **Remediation:** In `production` environment, require explicit administrative credential provisioning via environment secrets or interactive CLI prompt on first boot; refuse application startup if default strings are detected.
 
 #### 5. DEFECT-MED-1 (PERF-RAT-01): Unbounded HTTP Testing API Rate Limit
-- **Affected File:** [`apps/api/routers/tools.py#L170-L195`](file:///c:/Users/User2/Documents/work/pentesa/apps/api/routers/tools.py#L170-L195)
+- **Affected File:** [`apps/api/routers/tools.py#L170-L195`](apps/api/routers/tools.py#L170-L195)
 - **Observed Evidence:**
   Ten sequential requests dispatched to `/api/v1/projects/{project_id}/tools/http-test` executed in 0.12 seconds (**81.52 req/s**), exceeding the platform's stated 50 RPS ceiling.
 - **Remediation:** Add TokenBucket / LeakyBucket Redis-backed rate limiter dependency to the `http-test` router.
 
 #### 6. DEFECT-MED-2 (DISCO-SPA-01): Technology Fingerprinter Lacks SPA Signatures
-- **Affected File:** [`services/discovery_engine/fingerprint.py#L144-L190`](file:///c:/Users/User2/Documents/work/pentesa/services/discovery_engine/fingerprint.py#L144-L190)
+- **Affected File:** [`services/discovery_engine/fingerprint.py#L144-L190`](services/discovery_engine/fingerprint.py#L144-L190)
 - **Observed Evidence:**
   Crawling OWASP Juice Shop returned 0 detected technologies because Juice Shop strips `Server` and `X-Powered-By` headers, and `DOM_SIGNATURES` does not include signatures for Angular (`ng-`, `app-root`) or Node.js runtime bundles.
 - **Remediation:** Expand `DOM_SIGNATURES` and script asset regexes to identify Angular (`<app-root>`, `main.js`), Vue, and client-side single page frameworks.
 
 #### 7. DEFECT-LOW-1 (AGT-MOCK-01): Mock LLM Boundary Check Permissive
-- **Affected File:** [`agents/llm/provider.py#L520-L522`](file:///c:/Users/User2/Documents/work/pentesa/agents/llm/provider.py#L520-L522)
+- **Affected File:** [`agents/llm/provider.py#L520-L522`](agents/llm/provider.py#L520-L522)
 - **Observed Evidence:**
   `MockLLMProvider` is only rejected when `PENTESA_ENV == "production"`. When `PENTESA_ENV == "development"` or `"staging"`, `mock` can be selected even though the environment is not `test`.
 - **Remediation:** Restrict `MockLLMProvider` instantiation strictly to `settings.env == "test"`.
@@ -246,13 +248,13 @@ The evaluation suite ([`scripts/part2a_runner.py`](file:///c:/Users/User2/Docume
 
 | Artifact File | Absolute Path | Description |
 |:---|:---|:---|
-| **Phase 2 Compose File** | [`docker-compose.phase2.yml`](file:///c:/Users/User2/Documents/work/pentesa/docker-compose.phase2.yml) | Multi-service test stack (Pentesa, Juice Shop, Canary, Redirector) |
-| **Juice Shop Accounts** | [`data/juiceshop_users.json`](file:///c:/Users/User2/Documents/work/pentesa/data/juiceshop_users.json) | Seeded credentials and JWT authentication tokens |
-| **Part 2A Test Results** | [`docs/audit/evidence/phase2/part2a_results.json`](file:///c:/Users/User2/Documents/work/pentesa/docs/audit/evidence/phase2/part2a_results.json) | JSON serialization of all 50 test requests, responses, and diffs |
-| **LLM Telemetry Ledger** | [`docs/audit/evidence/phase2/cost-log.md`](file:///c:/Users/User2/Documents/work/pentesa/docs/audit/evidence/phase2/cost-log.md) | Token and dollar balance tracking against $5.00 hard cap |
-| **Evaluation Harness** | [`scripts/part2a_runner.py`](file:///c:/Users/User2/Documents/work/pentesa/scripts/part2a_runner.py) | Automated test execution script for Part 2A |
-| **Canary Server** | [`scripts/canary_server.py`](file:///c:/Users/User2/Documents/work/pentesa/scripts/canary_server.py) | Logging HTTP sink service on port 9099 |
-| **Redirector Server** | [`scripts/redirector_server.py`](file:///c:/Users/User2/Documents/work/pentesa/scripts/redirector_server.py) | In-scope 302 redirect relay on port 9098 |
+| **Phase 2 Compose File** | [`docker-compose.phase2.yml`](docker-compose.phase2.yml) | Multi-service test stack (Pentesa, Juice Shop, Canary, Redirector) |
+| **Juice Shop Accounts** | [`data/juiceshop_users.json`](data/juiceshop_users.json) | Seeded credentials and JWT authentication tokens |
+| **Part 2A Test Results** | [`docs/audit/evidence/phase2/part2a_results.json`](docs/audit/evidence/phase2/part2a_results.json) | JSON serialization of all 50 test requests, responses, and diffs |
+| **LLM Telemetry Ledger** | [`docs/audit/evidence/phase2/cost-log.md`](docs/audit/evidence/phase2/cost-log.md) | Token and dollar balance tracking against $5.00 hard cap |
+| **Evaluation Harness** | [`scripts/part2a_runner.py`](scripts/part2a_runner.py) | Automated test execution script for Part 2A |
+| **Canary Server** | [`scripts/canary_server.py`](scripts/canary_server.py) | Logging HTTP sink service on port 9099 |
+| **Redirector Server** | [`scripts/redirector_server.py`](scripts/redirector_server.py) | In-scope 302 redirect relay on port 9098 |
 
 ---
 

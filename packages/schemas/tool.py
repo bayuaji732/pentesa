@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ToolInfoResponse(BaseModel):
@@ -35,7 +35,7 @@ class ToolExecutionResponse(BaseModel):
     project_id: uuid.UUID
     tool_name: str
     target_url: str
-    argv: List[str]
+    argv: List[str] = Field(default_factory=list)
     status: str
     duration_ms: Optional[int] = None
     exit_code: Optional[int] = None
@@ -43,6 +43,13 @@ class ToolExecutionResponse(BaseModel):
     stderr_summary: Optional[str] = None
     findings_count: int = 0
     created_at: datetime
+
+    @field_validator("argv", mode="before")
+    @classmethod
+    def sanitize_argv(cls, v: Any) -> List[str]:
+        if isinstance(v, list):
+            return [str(x) for x in v if x is not None]
+        return []
 
 
 class ToolConfigUpdate(BaseModel):

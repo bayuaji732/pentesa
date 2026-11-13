@@ -95,7 +95,8 @@ class ToolService:
         }
 
         # 3. Create execution record in QUEUED status
-        argv = runner.build_argv(payload.target_url, opts)
+        raw_argv = runner.build_argv(payload.target_url, opts)
+        argv = [str(a) for a in raw_argv if a is not None]
         execution = ToolExecution(
             project_id=project_id,
             tool_name=payload.tool_name,
@@ -139,6 +140,22 @@ class ToolService:
             execution.status = "NOT_EXECUTED"
             execution.error_message = str(exc)
             execution.stderr_summary = f"[ToolNotAvailableError] {str(exc)}"
+            await record_audit_log(
+                session=self.session,
+                action="TOOL_EXECUTION_UNAVAILABLE",
+                resource_type="ToolExecution",
+                resource_id=str(execution.id),
+                details={
+                    "tool_name": payload.tool_name,
+                    "target_url": payload.target_url,
+                    "error": str(exc),
+                    "status": "NOT_EXECUTED"
+                },
+                project_id=project_id,
+                user_id=user_id,
+                ip_address=ip_address,
+                user_agent=user_agent
+            )
             await self.session.commit()
             await self._mark_wstg_tool_not_executed(project_id, payload.tool_name, str(exc))
             raise exc

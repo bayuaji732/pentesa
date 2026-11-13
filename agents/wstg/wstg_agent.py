@@ -14,6 +14,7 @@ from agents.base import BaseAgent
 from agents.llm.provider import BaseLLMProvider
 from database.models.discovery import Endpoint
 from database.models.wstg import WSTGTestCatalog, WSTGTestInstance
+from packages.common.http_client import safe_request
 from packages.schemas.wstg import TestExecutionCreate
 from services.execution_engine.coverage import WSTGCoverageService
 from services.execution_engine.planner import recalculate_project_test_plan
@@ -168,10 +169,17 @@ class WSTGAssessmentAgent(BaseAgent):
                     async with httpx.AsyncClient(
                         timeout=httpx.Timeout(5.0, connect=3.0),
                         verify=False,
-                        follow_redirects=True,
                         transport=self.get_http_transport(),
                     ) as client:
-                        resp = await asyncio.wait_for(client.get(target_url), timeout=4.0)
+                        resp, _ = await safe_request(
+                            client=client,
+                            method="GET",
+                            url=target_url,
+                            project_id=state.project_id,
+                            session=self.session,
+                            follow_redirects=True,
+                            resolve_dns=True,
+                        )
 
                     lower_headers = {k.lower(): v for k, v in resp.headers.items()}
                     missing_headers: List[str] = [

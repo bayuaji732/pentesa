@@ -25,6 +25,7 @@ from database.models.finding import (
 from database.models.project import Project
 from database.models.scope import ScopeRule
 from packages.common.exceptions import BadRequestError, ConflictError, ResourceNotFoundError
+from packages.common.http_client import safe_request
 from packages.schemas.finding import (
     FalsePositiveCreate,
     FindingBatchUpdate,
@@ -731,13 +732,20 @@ class FindingService:
             async with httpx.AsyncClient(
                 timeout=httpx.Timeout(5.0, connect=2.0),
                 verify=False,
-                follow_redirects=True,
                 transport=effective_transport,
             ) as client:
-                req_kwargs: Dict[str, Any] = {"headers": req_headers}
-                if req_body and method in ("POST", "PUT", "PATCH", "DELETE"):
-                    req_kwargs["content"] = req_body
-                resp = await asyncio.wait_for(client.request(method, target_url, **req_kwargs), timeout=6.0)
+                body_bytes = req_body.encode("utf-8") if isinstance(req_body, str) else req_body
+                resp, _ = await safe_request(
+                    client=client,
+                    method=method,
+                    url=target_url,
+                    project_id=finding.project_id,
+                    session=self.session,
+                    headers=req_headers,
+                    content=body_bytes,
+                    follow_redirects=True,
+                    resolve_dns=True,
+                )
 
             duration_ms = max(1, int((time.monotonic() - t0) * 1000))
             status_code = resp.status_code

@@ -266,7 +266,7 @@ class ScopeEnforcedCrawler:
             headers={"User-Agent": USER_AGENT},
             timeout=httpx.Timeout(8.0, connect=4.0),
             verify=False,
-            follow_redirects=True
+            follow_redirects=False
         )
 
         try:
@@ -291,6 +291,18 @@ class ScopeEnforcedCrawler:
                         err_detail = f"{type(e).__name__}: {e}" if str(e) else type(e).__name__
                         self.errors.append(f"Request failed for '{clean_url}': {err_detail}")
                         continue
+
+                # Handle redirects with per-hop scope verification (SEC-RED-01)
+                if resp.is_redirect:
+                    loc = resp.headers.get("location")
+                    if loc:
+                        red_target = str(httpx.URL(clean_url).join(loc))
+                        if self._is_url_in_scope(red_target):
+                            if red_target not in self.visited_urls and depth < config.max_depth:
+                                queue.append((red_target, depth + 1))
+                        else:
+                            self.errors.append(f"Redirect from '{clean_url}' to out-of-scope '{red_target}' blocked.")
+                    continue
 
                 # Record cookies and endpoint
                 self._capture_response_cookies(resp, clean_url, client)

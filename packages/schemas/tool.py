@@ -79,4 +79,5 @@ class HttpTestResponse(BaseModel):
     request_hash_sha256: str
     response_hash_sha256: str
     reproduction_curl: str
+    redirect_note: Optional[str] = None
 

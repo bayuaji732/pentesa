@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from agents.base import BaseAgent
 from agents.llm.provider import BaseLLMProvider
+from packages.common.http_client import safe_request
 from packages.schemas.finding import FalsePositiveCreate, FindingCreate
 from services.evidence_engine.finding_service import FindingService
 from services.execution_engine.planner import sync_wstg_instance_for_finding
@@ -86,10 +87,17 @@ class ValidationAgent(BaseAgent):
                     async with httpx.AsyncClient(
                         timeout=httpx.Timeout(3.0, connect=1.5),
                         verify=False,
-                        follow_redirects=True,
                         transport=self.get_http_transport(),
                     ) as client:
-                        r_live = await asyncio.wait_for(client.get(matched_at), timeout=4.0)
+                        r_live, _ = await safe_request(
+                            client=client,
+                            method="GET",
+                            url=matched_at,
+                            project_id=state.project_id,
+                            session=self.session,
+                            follow_redirects=True,
+                            resolve_dns=True,
+                        )
                     repro_status_code = r_live.status_code
                     repro_duration_ms = max(1, int((time.time() - t_start) * 1000))
                     raw_hdrs = "\r\n".join(f"{k}: {v}" for k, v in list(r_live.headers.items())[:15])

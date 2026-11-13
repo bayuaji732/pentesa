@@ -126,7 +126,7 @@ class ReconnaissanceAgent(BaseAgent):
                             transport=effective_transport,
                             timeout=httpx.Timeout(4.0, connect=1.5),
                             verify=False,
-                            follow_redirects=True,
+                            follow_redirects=False,
                         )
                     crawl_summary = await discovery_service.execute_crawl(
                         session=self.session,

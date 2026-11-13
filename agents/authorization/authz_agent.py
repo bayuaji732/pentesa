@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from agents.base import BaseAgent
 from agents.llm.provider import BaseLLMProvider
+from packages.common.http_client import safe_request
 from services.orchestrator.state import PentestWorkflowState
 
 
@@ -142,15 +143,29 @@ class AuthorizationAgent(BaseAgent):
             async with httpx.AsyncClient(
                 timeout=httpx.Timeout(5.0, connect=3.0),
                 verify=False,
-                follow_redirects=True,
                 transport=self.get_http_transport(),
             ) as client:
-                r1 = await asyncio.wait_for(client.get(sample_route), timeout=4.0)
-                r2 = (
-                    await asyncio.wait_for(client.get(sibling_route), timeout=4.0)
-                    if await self.check_scope(state.project_id, sibling_route)
-                    else r1
+                r1, _ = await safe_request(
+                    client=client,
+                    method="GET",
+                    url=sample_route,
+                    project_id=state.project_id,
+                    session=self.session,
+                    follow_redirects=True,
+                    resolve_dns=True,
                 )
+                if await self.check_scope(state.project_id, sibling_route):
+                    r2, _ = await safe_request(
+                        client=client,
+                        method="GET",
+                        url=sibling_route,
+                        project_id=state.project_id,
+                        session=self.session,
+                        follow_redirects=True,
+                        resolve_dns=True,
+                    )
+                else:
+                    r2 = r1
 
                 leaked_1 = self._is_sensitive_exposure(r1)
                 leaked_2 = self._is_sensitive_exposure(r2)

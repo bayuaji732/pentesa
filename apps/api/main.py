@@ -23,6 +23,7 @@ from apps.api.routers import (
 from database.session import AsyncSessionLocal, close_db, init_db
 from database.seeds.seed_data import seed_initial_data
 from packages.common.config import settings
+from packages.common.logging_filter import SensitiveDataLoggingFilter
 from packages.common.exceptions import (
     AuthenticationError,
     AuthorizationError,
@@ -36,7 +37,14 @@ from packages.common.exceptions import (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Lifecycle events: initialize database schema and seed initial data."""
+    """Lifecycle events: initialize database schema, configure logging security filters, and seed data."""
+    # Ensure all root and uvicorn log handlers redact sensitive credentials
+    redacting_filter = SensitiveDataLoggingFilter()
+    for handler in logging.root.handlers:
+        handler.addFilter(redacting_filter)
+    logging.getLogger("uvicorn").addFilter(redacting_filter)
+    logging.getLogger("pentesa").addFilter(redacting_filter)
+
     await init_db()
     async with AsyncSessionLocal() as session:
         await seed_initial_data(session)

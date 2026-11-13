@@ -7,6 +7,11 @@ from packages.schemas.auth import (
     TokenPayload,
     TokenResponse
 )
+from packages.schemas.auth_profile import (
+    AuthProfileCreate,
+    AuthProfileResponse,
+    AuthProfileUpdate
+)
 from packages.schemas.discovery import (
     AttackSurfaceGraphResponse,
     CookieResponse,

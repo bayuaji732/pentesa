@@ -2,6 +2,7 @@
 
 from database.models.user import User
 from database.models.project import Project, ProjectMember
+from database.models.auth_profile import AuthProfile
 from database.models.scope import ScopeRule
 from database.models.audit import AuditLog
 from database.models.discovery import (
@@ -44,6 +45,7 @@ __all__ = [
     "User",
     "Project",
     "ProjectMember",
+    "AuthProfile",
     "ScopeRule",
     "AuditLog",
     "DiscoveredDomain",

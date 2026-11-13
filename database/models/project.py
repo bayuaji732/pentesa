@@ -39,6 +39,11 @@ class Project(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         back_populates="project",
         cascade="all, delete-orphan"
     )
+    auth_profiles: Mapped[List["AuthProfile"]] = relationship(
+        "AuthProfile",
+        back_populates="project",
+        cascade="all, delete-orphan"
+    )
 
 
 class ProjectMember(Base, UUIDPrimaryKeyMixin):

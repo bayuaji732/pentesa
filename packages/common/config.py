@@ -43,6 +43,11 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("pentesa_master_key", "master_key"),
         description="Master encryption key for credential vault"
     )
+    encryption_key: str = Field(
+        default="",
+        validation_alias=AliasChoices("pentesa_encryption_key", "encryption_key"),
+        description="AES-256-GCM master encryption key for credentials at rest"
+    )
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
     refresh_token_expire_days: int = 7

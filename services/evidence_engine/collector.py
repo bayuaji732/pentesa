@@ -1,7 +1,7 @@
 """Forensic evidence serialization and collector engine."""
 
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
 from database.models.finding import FindingEvidence
@@ -67,7 +67,8 @@ def build_forensic_evidence(
     response_status: int = 200,
     response_headers: Optional[Dict[str, str]] = None,
     response_body: Optional[str] = None,
-    screenshot_path: Optional[str] = None
+    screenshot_path: Optional[str] = None,
+    custom_secrets: Optional[List[str]] = None
 ) -> Dict[str, Any]:
     """Compile, sanitize, hash, and format raw request/response into forensic evidence."""
     # 1. Serialize raw wire streams
@@ -84,8 +85,8 @@ def build_forensic_evidence(
     )
 
     # 2. Apply sensitive redaction
-    sanitized_req = redact_raw_stream(raw_req_unredacted)
-    sanitized_resp = redact_raw_stream(raw_resp_unredacted)
+    sanitized_req = redact_raw_stream(raw_req_unredacted, custom_secrets=custom_secrets)
+    sanitized_resp = redact_raw_stream(raw_resp_unredacted, custom_secrets=custom_secrets)
 
     # 3. Compute SHA-256 cryptographic hashes
     req_hash = compute_stream_hash(sanitized_req)

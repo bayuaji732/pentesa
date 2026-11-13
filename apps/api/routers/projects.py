@@ -30,6 +30,7 @@ from database.models.finding import (
     FindingReproduction,
     FindingStatusHistory,
 )
+from database.models.auth_profile import AuthProfile
 from database.models.project import Project, ProjectMember
 from database.models.report import Report
 from database.models.scope import ScopeRule
@@ -37,6 +38,7 @@ from database.models.tool import ToolConfiguration, ToolExecution
 from database.models.user import User
 from database.models.wstg import TestExecution, TestExecutionLog, WSTGTestInstance
 from database.session import get_db
+from packages.schemas.auth_profile import AuthProfileCreate, AuthProfileResponse
 from packages.schemas.project import (
     ProjectCreate,
     ProjectMemberCreate,
@@ -411,4 +413,129 @@ async def remove_project_member(
         ip_address=client_ip
     )
     return None
+
+
+@router.post("/{project_id}/auth-profiles", response_model=AuthProfileResponse, status_code=status.HTTP_201_CREATED)
+async def create_auth_profile(
+    project_id: uuid.UUID,
+    payload: AuthProfileCreate,
+    request: Request,
+    session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Create an authentication profile with AES-256-GCM encrypted credentials at rest (LEAD or Admin)."""
+    project, _ = await verify_project_access(project_id, current_user, session, min_role="LEAD")
+
+    profile = AuthProfile(
+        id=uuid.uuid4(),
+        project_id=project.id,
+        name=payload.name,
+        auth_type=payload.auth_type,
+        headers=payload.headers,
+        is_active=payload.is_active,
+        description=payload.description
+    )
+    # Encrypt sensitive credentials payload at rest
+    profile.set_credentials(payload.credentials)
+
+    session.add(profile)
+    await session.flush()
+
+    client_ip = request.client.host if request.client else None
+    await record_audit_log(
+        session=session,
+        action="AUTH_PROFILE_CREATED",
+        resource_type="auth_profile",
+        resource_id=str(profile.id),
+        project_id=project.id,
+        user_id=current_user.id,
+        details={
+            "name": payload.name,
+            "auth_type": payload.auth_type,
+            "credential_keys": list(payload.credentials.keys())  # NEVER log credential values!
+        },
+        ip_address=client_ip
+    )
+
+    return AuthProfileResponse(
+        id=profile.id,
+        project_id=profile.project_id,
+        name=profile.name,
+        auth_type=profile.auth_type,
+        headers=profile.headers,
+        is_active=profile.is_active,
+        description=profile.description,
+        masked_credentials=profile.get_masked_credentials(),
+        created_at=profile.created_at,
+        updated_at=profile.updated_at
+    )
+
+
+@router.get("/{project_id}/auth-profiles", response_model=List[AuthProfileResponse])
+async def list_auth_profiles(
+    project_id: uuid.UUID,
+    session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """List authentication profiles for a project with masked credentials (TESTER, LEAD, or Admin)."""
+    project, _ = await verify_project_access(project_id, current_user, session, min_role="TESTER")
+
+    stmt = select(AuthProfile).where(AuthProfile.project_id == project.id).order_by(AuthProfile.created_at.asc())
+    profiles = (await session.execute(stmt)).scalars().all()
+
+    return [
+        AuthProfileResponse(
+            id=p.id,
+            project_id=p.project_id,
+            name=p.name,
+            auth_type=p.auth_type,
+            headers=p.headers,
+            is_active=p.is_active,
+            description=p.description,
+            masked_credentials=p.get_masked_credentials(),
+            created_at=p.created_at,
+            updated_at=p.updated_at
+        )
+        for p in profiles
+    ]
+
+
+@router.delete("/{project_id}/auth-profiles/{profile_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_auth_profile(
+    project_id: uuid.UUID,
+    profile_id: uuid.UUID,
+    request: Request,
+    session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Delete an authentication profile (LEAD or Admin)."""
+    project, _ = await verify_project_access(project_id, current_user, session, min_role="LEAD")
+
+    stmt = select(AuthProfile).where(
+        AuthProfile.id == profile_id,
+        AuthProfile.project_id == project.id
+    )
+    profile = (await session.execute(stmt)).scalar_one_or_none()
+    if not profile:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Authentication profile not found in this project"
+        )
+
+    await session.delete(profile)
+    await session.flush()
+
+    client_ip = request.client.host if request.client else None
+    await record_audit_log(
+        session=session,
+        action="AUTH_PROFILE_DELETED",
+        resource_type="auth_profile",
+        resource_id=str(profile.id),
+        project_id=project.id,
+        user_id=current_user.id,
+        details={"name": profile.name, "auth_type": profile.auth_type},
+        ip_address=client_ip
+    )
+    return None
+
 

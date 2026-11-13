@@ -5,7 +5,7 @@ preventing credentials, session keys, and sensitive customer PII from leaking.
 """
 
 import re
-from typing import Dict
+from typing import Dict, List, Optional
 
 # Regex patterns for sensitive tokens
 BEARER_TOKEN_REGEX = re.compile(r"(Authorization:\s*Bearer\s+)[A-Za-z0-9_\-\.]{15,}", re.IGNORECASE)
@@ -34,7 +34,21 @@ COOKIE_TOKEN_REGEX = re.compile(
 CREDIT_CARD_REGEX = re.compile(r"\b(?:\d{4}[-\s]?){3}\d{4}\b")
 
 
-def mask_sensitive_headers(headers: Dict[str, str]) -> Dict[str, str]:
+def redact_custom_secrets(text: str, secrets: Optional[List[str]] = None) -> str:
+    """Mask explicit strings (e.g. passwords, tokens from AuthProfile) in text."""
+    if not text or not secrets:
+        return text
+    sanitized = text
+    for secret in secrets:
+        if secret and len(secret) >= 4:
+            sanitized = sanitized.replace(secret, "[REDACTED_SECRET]")
+    return sanitized
+
+
+def mask_sensitive_headers(
+    headers: Dict[str, str],
+    custom_secrets: Optional[List[str]] = None
+) -> Dict[str, str]:
     """Return a copy of headers with sensitive values redacted."""
     sensitive_keys = {
         "authorization", "proxy-authorization", "x-api-key", "api-key",
@@ -50,11 +64,17 @@ def mask_sensitive_headers(headers: Dict[str, str]) -> Dict[str, str]:
             else:
                 sanitized[k] = "[REDACTED]"
         else:
-            sanitized[k] = v
+            if custom_secrets:
+                sanitized[k] = redact_custom_secrets(v, custom_secrets)
+            else:
+                sanitized[k] = v
     return sanitized
 
 
-def redact_raw_stream(raw_text: str) -> str:
+def redact_raw_stream(
+    raw_text: str,
+    custom_secrets: Optional[List[str]] = None
+) -> str:
     """Mask credentials, tokens, session cookies, and PII from a raw HTTP stream."""
     if not raw_text:
         return ""
@@ -77,6 +97,10 @@ def redact_raw_stream(raw_text: str) -> str:
 
     # Redact credit card numbers
     sanitized = CREDIT_CARD_REGEX.sub("[REDACTED_PAN]", sanitized)
+
+    # Redact custom secrets if provided
+    if custom_secrets:
+        sanitized = redact_custom_secrets(sanitized, custom_secrets)
 
     return sanitized
 

@@ -1,9 +1,13 @@
 """Pentesa security primitives: password hashing, JWT management, and constant-time checks."""
 
+import base64
+import hashlib
 import hmac
+import os
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 import bcrypt
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 import jwt
 
 from packages.common.config import settings
@@ -107,4 +111,76 @@ def verify_token(token: str, expected_type: str = "access") -> Dict[str, Any]:
 def constant_time_compare(val1: str, val2: str) -> bool:
     """Compare two strings in constant time to prevent timing side-channel attacks."""
     return hmac.compare_digest(val1.encode("utf-8"), val2.encode("utf-8"))
+
+
+def derive_aes_key(key: Optional[Union[bytes, str]] = None) -> bytes:
+    """Derive a 32-byte (256-bit) cryptographic key for AES-256-GCM."""
+    if key is None:
+        key = (
+            os.environ.get("PENTESA_ENCRYPTION_KEY")
+            or getattr(settings, "encryption_key", "")
+            or getattr(settings, "master_key", "")
+        )
+    if not key:
+        raise ValueError("Encryption key not configured. Set PENTESA_ENCRYPTION_KEY environment variable.")
+
+    if isinstance(key, str):
+        key = key.encode("utf-8")
+
+    if len(key) == 32:
+        return key
+    return hashlib.sha256(key).digest()
+
+
+def encrypt_secret(
+    plaintext: str,
+    key: Optional[Union[bytes, str]] = None,
+    associated_data: Optional[bytes] = None
+) -> str:
+    """Encrypt a plaintext string using AES-256-GCM.
+    
+    Returns base64-encoded string: nonce (12 bytes) + ciphertext + tag (16 bytes).
+    """
+    if not isinstance(plaintext, str):
+        raise TypeError("Plaintext must be a string")
+
+    derived_key = derive_aes_key(key)
+    aesgcm = AESGCM(derived_key)
+    nonce = os.urandom(12)  # NIST standard 96-bit nonce
+    ciphertext = aesgcm.encrypt(nonce, plaintext.encode("utf-8"), associated_data)
+    payload = nonce + ciphertext
+    return base64.b64encode(payload).decode("ascii")
+
+
+def decrypt_secret(
+    encrypted_token: str,
+    key: Optional[Union[bytes, str]] = None,
+    associated_data: Optional[bytes] = None
+) -> str:
+    """Decrypt an AES-256-GCM encrypted token.
+    
+    Raises ValueError on tampering, invalid format, or tag verification failure.
+    """
+    if not encrypted_token:
+        return ""
+
+    try:
+        raw = base64.b64decode(encrypted_token.encode("ascii"))
+    except Exception as exc:
+        raise ValueError(f"Invalid base64 payload: {exc}") from exc
+
+    if len(raw) < 28:  # 12-byte nonce + 16-byte tag minimum
+        raise ValueError("Invalid encrypted payload length: shorter than nonce + tag")
+
+    nonce = raw[:12]
+    ciphertext = raw[12:]
+    derived_key = derive_aes_key(key)
+    aesgcm = AESGCM(derived_key)
+
+    try:
+        decrypted_bytes = aesgcm.decrypt(nonce, ciphertext, associated_data)
+        return decrypted_bytes.decode("utf-8")
+    except Exception as exc:
+        raise ValueError(f"Decryption failed: integrity verification error ({exc})") from exc
+
 

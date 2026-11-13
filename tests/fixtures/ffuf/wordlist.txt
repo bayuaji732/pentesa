@@ -1,0 +1,11 @@
+rest
+api
+ftp
+admin
+assets
+login
+profile
+redirect
+canary-trap
+FUZZ
+

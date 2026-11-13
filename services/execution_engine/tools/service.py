@@ -88,6 +88,7 @@ class ToolService:
         opts = {
             "tags": payload.tags,
             "severity": payload.severity,
+            "template_path": payload.template_path,
             "wordlist_path": payload.wordlist,
             "rate_limit": payload.rate_limit,
             "timeout": payload.timeout_seconds

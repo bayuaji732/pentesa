@@ -37,6 +37,7 @@ def test_nuclei_build_argv():
     assert argv[argv.index("-timeout") + 1] == "10"
     assert "-jsonl" in argv
     assert "-no-interactsh" in argv
+    assert "-duc" in argv
 
 
 def test_nuclei_parse_output():

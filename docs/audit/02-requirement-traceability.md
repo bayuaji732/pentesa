@@ -74,8 +74,8 @@
 
 | Req ID | Requirement Description | Implementation Files | Status | Execution Evidence / Verification Notes |
 |---|---|---|---|---|
-| **FR-ST-01** | Tool execution wrapper for Nuclei with scope validation | `integrations/nuclei/runner.py` | **Mock / Stub** | Wrapper and argument builder verified (`test_nuclei_build_argv` passed); binary not installed; returns mock finding. |
-| **FR-ST-02** | Tool execution wrappers for httpx, katana, ffuf | `integrations/ffuf/runner.py` | **Mock / Stub** | Ffuf wrapper verified (`test_ffuf_build_argv_rate_limit_capping` passed); katana/httpx runners absent. |
+| **FR-ST-01** | Tool execution wrapper for Nuclei with scope validation | `integrations/nuclei/runner.py`<br>`apps/api/routers/tools.py` | **Partially Verified** | Nuclei binary v3.3.7 installed; pre-flight integration test hit public target.com invalidating initial pass; local fixture offline execution verified; pending real Juice Shop lab validation. |
+| **FR-ST-02** | Tool execution wrappers for httpx, katana, ffuf | `integrations/ffuf/runner.py`<br>`apps/api/routers/tools.py` | **Partially Verified** | Ffuf binary v2.1.0 installed; wordlist not baked into base image; pending real Juice Shop lab validation. Katana/httpx CLI runners absent (NI-04). |
 | **FR-ST-03** | Custom Python security check harness | `services/execution_engine/tools/http_client.py`<br>`agents/authorization/authz_agent.py`<br>`agents/vulnerability/vuln_agent.py` | **Verified** | Python-based HTTP prober with header injection, CORS, and IDOR testing active. |
 | **FR-ST-04** | Strict process sandboxing: Zero dynamic shell execution from LLM | `services/execution_engine/tools/base.py` | **Verified** | `create_subprocess_exec` uses typed `argv: List[str]`; shell strings strictly prohibited. |
 | **FR-ST-05** | Global and per-target rate limiting | `services/execution_engine/tools/base.py`<br>`integrations/ffuf/runner.py` | **Verified** | Capped at 150 requests/sec in runner builder. |

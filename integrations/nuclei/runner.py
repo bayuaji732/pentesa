@@ -19,8 +19,13 @@ class NucleiRunner(BaseToolWrapper):
             "-target", target_url,
             "-jsonl",
             "-no-interactsh",
-            "-silent"
+            "-silent",
+            "-duc"
         ]
+
+        template_path = options.get("template_path") or options.get("templates")
+        if template_path:
+            argv.extend(["-t", str(template_path)])
 
         tags = options.get("tags")
         if tags:

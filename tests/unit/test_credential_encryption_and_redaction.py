@@ -128,6 +128,7 @@ async def test_auth_profile_encrypted_at_rest_in_db(db_session: AsyncSession):
         is_active=True
     )
     db_session.add(user)
+    await db_session.flush()
     db_session.add(proj)
     await db_session.flush()
 

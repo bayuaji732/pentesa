@@ -11,7 +11,9 @@ from typing import AsyncGenerator
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
 from apps.api.main import app
 from database.base import Base
@@ -25,7 +27,11 @@ from packages.common.security import create_access_token, hash_password
 TEST_DB_FILE = "./test_pentesa.db"
 TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL", f"sqlite+aiosqlite:///{TEST_DB_FILE}")
 
-test_engine = create_async_engine(TEST_DATABASE_URL, echo=False)
+engine_kwargs = {"echo": False}
+if "postgresql" in TEST_DATABASE_URL:
+    engine_kwargs["poolclass"] = NullPool
+
+test_engine = create_async_engine(TEST_DATABASE_URL, **engine_kwargs)
 TestSessionLocal = async_sessionmaker(bind=test_engine, class_=AsyncSession, expire_on_commit=False)
 
 
@@ -34,9 +40,17 @@ async def setup_test_database():
     """Create test database schema before tests."""
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    async with TestSessionLocal() as session:
+        from services.execution_engine.planner import seed_wstg_catalog
+        await seed_wstg_catalog(session)
+        await session.commit()
     yield
     async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+        if "postgresql" in TEST_DATABASE_URL:
+            await conn.execute(text("DROP SCHEMA public CASCADE;"))
+            await conn.execute(text("CREATE SCHEMA public;"))
+        else:
+            await conn.run_sync(Base.metadata.drop_all)
 
 
 @pytest_asyncio.fixture
@@ -44,6 +58,8 @@ async def db_session(setup_test_database) -> AsyncGenerator[AsyncSession, None]:
     """Provide isolated async session for tests."""
     async with TestSessionLocal() as session:
         yield session
+        await session.rollback()
+        await session.close()
 
 
 @pytest_asyncio.fixture

@@ -4,10 +4,11 @@
 Validates:
 1. Core API server liveness (/healthz)
 2. Database connectivity & readiness (/readyz)
-3. External security tool availability (/api/v1/tools)
-4. Next.js Web Console accessibility (/login)
-5. User authentication flow (/api/v1/auth/login)
-6. Authenticated Project & User retrieval (/api/v1/projects, /api/v1/users/me)
+3. Next.js Web Console accessibility (/login)
+4. User authentication flow (/api/v1/auth/login)
+5. Security tool inventory with JWT (/api/v1/tools)
+6. Authenticated Project retrieval (/api/v1/projects)
+7. Current User profile retrieval (/api/v1/auth/me)
 """
 
 import os
@@ -19,8 +20,8 @@ import httpx
 
 API_BASE = os.environ.get("PENTESA_API_URL", "http://localhost:8000")
 WEB_BASE = os.environ.get("PENTESA_WEB_URL", "http://localhost:3000")
-DEFAULT_USER = os.environ.get("PENTESA_SMOKE_USER", "admin@pentesa.local")
-DEFAULT_PASS = os.environ.get("PENTESA_SMOKE_PASS", "AdminPass123!")
+DEFAULT_USER = os.environ.get("PENTESA_SMOKE_USER", "admin@example.com")
+DEFAULT_PASS = os.environ.get("PENTESA_SMOKE_PASS", "Admin123!Secure")
 
 
 def print_status(step: str, success: bool, message: str = ""):
@@ -67,24 +68,7 @@ def run_smoke_test(timeout_seconds: float = 30.0) -> bool:
             print_status("Database Readiness (/readyz)", False, str(e))
             all_passed = False
 
-        # Step 3: Tool Inventory Check
-        try:
-            r = client.get(f"{API_BASE}/api/v1/tools")
-            if r.status_code == 200:
-                tools = r.json()
-                nuclei_info = next((t for t in tools if t.get("name") == "nuclei"), {})
-                ffuf_info = next((t for t in tools if t.get("name") == "ffuf"), {})
-                print_status(
-                    "Security Tools (/api/v1/tools)",
-                    True,
-                    f"nuclei: {nuclei_info.get('status', 'unknown')}, ffuf: {ffuf_info.get('status', 'unknown')}"
-                )
-            else:
-                print_status("Security Tools (/api/v1/tools)", False, f"HTTP {r.status_code}")
-        except Exception as e:
-            print_status("Security Tools (/api/v1/tools)", False, str(e))
-
-        # Step 4: Web Console Accessibility
+        # Step 3: Web Console Accessibility
         try:
             r = client.get(f"{WEB_BASE}/login", follow_redirects=True)
             if r.status_code in (200, 307, 308):
@@ -96,7 +80,7 @@ def run_smoke_test(timeout_seconds: float = 30.0) -> bool:
             print_status("Web Console (/login)", False, f"Could not reach web server: {e}")
             all_passed = False
 
-        # Step 5: Authentication Flow
+        # Step 4: Authentication Flow
         access_token = None
         try:
             login_data = {"email": DEFAULT_USER, "password": DEFAULT_PASS}
@@ -112,11 +96,31 @@ def run_smoke_test(timeout_seconds: float = 30.0) -> bool:
             print_status("Authentication (/api/v1/auth/login)", False, str(e))
             all_passed = False
 
-        # Step 6: Authenticated Endpoints
+        # Step 5: Authenticated Endpoints
         if access_token:
             auth_headers = {"Authorization": f"Bearer {access_token}"}
+            
+            # Security Tools Inventory Check
             try:
-                # Projects
+                r = client.get(f"{API_BASE}/api/v1/tools", headers=auth_headers)
+                if r.status_code == 200:
+                    tools = r.json()
+                    nuclei_info = next((t for t in tools if t.get("name") == "nuclei"), {})
+                    ffuf_info = next((t for t in tools if t.get("name") == "ffuf"), {})
+                    print_status(
+                        "Security Tools (/api/v1/tools)",
+                        True,
+                        f"nuclei installed: {nuclei_info.get('installed', False)}, ffuf installed: {ffuf_info.get('installed', False)}"
+                    )
+                else:
+                    print_status("Security Tools (/api/v1/tools)", False, f"HTTP {r.status_code}")
+                    all_passed = False
+            except Exception as e:
+                print_status("Security Tools (/api/v1/tools)", False, str(e))
+                all_passed = False
+
+            # Projects API Check
+            try:
                 r = client.get(f"{API_BASE}/api/v1/projects", headers=auth_headers)
                 if r.status_code == 200:
                     projects = r.json()
@@ -124,18 +128,25 @@ def run_smoke_test(timeout_seconds: float = 30.0) -> bool:
                 else:
                     print_status("Projects API (/api/v1/projects)", False, f"HTTP {r.status_code}")
                     all_passed = False
+            except Exception as e:
+                print_status("Projects API (/api/v1/projects)", False, str(e))
+                all_passed = False
 
-                # Current User
-                r = client.get(f"{API_BASE}/api/v1/users/me", headers=auth_headers)
+            # Current User Profile Check (/api/v1/auth/me)
+            try:
+                r = client.get(f"{API_BASE}/api/v1/auth/me", headers=auth_headers)
                 if r.status_code == 200:
                     user_data = r.json()
-                    print_status("User Profile (/api/v1/users/me)", True, f"Logged in as {user_data.get('email')} ({user_data.get('role')})")
+                    print_status("User Profile (/api/v1/auth/me)", True, f"Logged in as {user_data.get('email')} ({user_data.get('role')})")
                 else:
-                    print_status("User Profile (/api/v1/users/me)", False, f"HTTP {r.status_code}")
+                    print_status("User Profile (/api/v1/auth/me)", False, f"HTTP {r.status_code}")
                     all_passed = False
             except Exception as e:
-                print_status("Authenticated APIs", False, str(e))
+                print_status("User Profile (/api/v1/auth/me)", False, str(e))
                 all_passed = False
+        else:
+            print_status("Authenticated APIs", False, "Skipped due to login failure")
+            all_passed = False
 
     print("=" * 60)
     if all_passed:
@@ -149,4 +160,3 @@ def run_smoke_test(timeout_seconds: float = 30.0) -> bool:
 if __name__ == "__main__":
     success = run_smoke_test()
     sys.exit(0 if success else 1)
-

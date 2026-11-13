@@ -150,7 +150,7 @@ docker compose -f docker-compose.test.yml run --rm test-runner pytest tests/ -v 
 | **Integration: Discovery API** | `tests/integration/test_discovery_api.py` | 4 | 4 | 0 | 14.2s |
 | **Integration: End-to-End Workflow** | `tests/integration/test_e2e_workflow.py` | 1 | 1 | 0 | 18.5s |
 | **Integration: Findings Management** | `tests/integration/test_findings_api.py` | 3 | 3 | 0 | 11.0s |
-| **Integration: Project Management** | `tests/integration/test_projects_api.py` | 6 | 6 | 0 | 14.9s |
+| **Integration: Project Management** | `tests/integration/test_projects_api.py` | 5 | 5 | 0 | 14.9s |
 | **Integration: Reporting & Retest** | `tests/integration/test_reporting_api.py` | 2 | 2 | 0 | 16.3s |
 | **Integration: Scope Enforcement** | `tests/integration/test_scope_api.py` | 2 | 2 | 0 | 7.4s |
 | **Integration: Security Tools & HTTP** | `tests/integration/test_tools_api.py` | 5 | 5 | 0 | 5m 28s |
@@ -165,10 +165,10 @@ docker compose -f docker-compose.test.yml run --rm test-runner pytest tests/ -v 
 | **Unit: Evidence Engine & Hasher** | `tests/unit/test_evidence_engine.py` | 9 | 9 | 0 | 3.5s |
 | **Unit: Findings Lifecycle & Retest** | `tests/unit/test_findings_management.py` | 6 | 6 | 0 | 14.8s |
 | **Unit: Raw HTTP Testing** | `tests/unit/test_http_testing.py` | 2 | 2 | 0 | 3.2s |
-| **Unit: LLM Provider Abstraction** | `tests/unit/test_llm_provider.py` | 12 | 12 | 0 | 15.6s |
+| **Unit: LLM Provider Abstraction** | `tests/unit/test_llm_provider.py` | 10 | 10 | 0 | 15.6s |
 | **Unit: Parameter Extraction** | `tests/unit/test_parameter_extraction.py` | 9 | 9 | 0 | 4.1s |
 | **Unit: Reporting Engine (PDF/HTML)** | `tests/unit/test_reporting_engine.py` | 5 | 5 | 0 | 18.2s |
-| **Unit: Scope Engine & Anti-Rebinding** | `tests/unit/test_scope_engine.py` | 13 | 13 | 0 | 8.9s |
+| **Unit: Scope Engine & Anti-Rebinding** | `tests/unit/test_scope_engine.py` | 11 | 11 | 0 | 8.9s |
 | **Unit: RBAC & Password Hashing** | `tests/unit/test_security_rbac.py` | 4 | 4 | 0 | 2.4s |
 | **Unit: Specialized Agents** | `tests/unit/test_specialized_agents.py` | 9 | 9 | 0 | 32.1s |
 | **Unit: Technology Fingerprinting** | `tests/unit/test_technology_detection.py` | 4 | 4 | 0 | 2.9s |
@@ -230,6 +230,34 @@ docker compose -f docker-compose.test.yml run --rm test-runner pytest tests/ -v 
 
 ### Recommendation
 **The Pre-Flight phase is 100% complete.** The platform is hardened, deterministic, reproducible, and ready for **Phase 2 (Functional and Integration Testing)**.
+
+---
+
+## 6. Audit Errata (Phase 2 Gate Re-Verification)
+
+During the Phase 2 Gate verification (Run 1), three significant anomalies from the Pre-Flight report were empirically identified, documented, and corrected:
+
+1. **PF-6 Smoke Test Failure & False Claim of Pass:**
+   - *Reported:* `scripts/smoke_test.py` passing 100%.
+   - *Actual Empirical Finding:* `scripts/smoke_test.py` failed with exit code 1 due to two defects:
+     1. `GET /api/v1/tools` was called prior to authentication, returning HTTP 401 Unauthorized.
+     2. `GET /api/v1/users/me` was queried instead of `GET /api/v1/auth/me`, returning HTTP 422 Unprocessable Entity (FastAPI expected UUID path parameter on `/api/v1/users/{user_id}`).
+   - *Remediation:* `scripts/smoke_test.py` was refactored to authenticate first, supply `Authorization: Bearer <token>` to all protected endpoints, and query `/api/v1/auth/me`. Verified 100% passing across all 7 health checks.
+
+2. **Test Collection Count Discrepancy (172 vs 167):**
+   - *Reported:* Summary stated 167, but per-suite table summed to 172.
+   - *Actual Empirical Finding:* Pytest collects exactly 167 tests. Three test files were overcounted in the pre-flight table: `test_projects_api.py` (reported 6, actual 5), `test_llm_provider.py` (reported 12, actual 10), and `test_scope_engine.py` (reported 13, actual 11).
+   - *Remediation:* Section 3 table was corrected to match the true collection count of 167.
+
+3. **Uncontrolled Outbound Scanning by Integration Test (`test_tools_api.py`):**
+   - *Reported:* `test_tools_api.py` passed in 5m 28s with no explanation of network activity.
+   - *Actual Empirical Finding:* `test_tool_execution_and_listing` dispatched an unmocked `nuclei` subprocess against the live public domain `https://target.com` (which was placed in-scope by `test_project`). Furthermore, nuclei had no baked-in templates and attempted live GitHub template updates.
+   - *Remediation:* 
+     - Added `-duc` (disable update check) and custom template support to `NucleiRunner`.
+     - Replaced public domain target with a transient local HTTP fixture server on loopback.
+     - Enforced strict assertions (`status == "SUCCESS"` on active local target).
+     - Isolated test container execution onto an `internal: true` Docker network with zero WAN connectivity.
+     - Execution time dropped from 5m 28s to ~14s (5 passed).
 
 ---
 *Per instruction, execution is stopped at this gate awaiting user review and approval.*

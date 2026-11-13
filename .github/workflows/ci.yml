@@ -7,48 +7,21 @@ on:
     branches: [main, master]
 
 jobs:
-  test:
-    name: Full Test Suite (Linux / Async & Sync)
+  docker-test-isolated:
+    name: Isolated Dockerized Test Suite (Internal Network / No WAN)
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: "pip"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Install System Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libpq-dev dnsutils
-
-      - name: Install Python Dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Run Full Pytest Suite (Async & Sync)
-        env:
-          PENTESA_ENV: test
-          PENTESA_LLM_PROVIDER: mock
-          PENTESA_ENCRYPTION_KEY: ci_master_encryption_key_for_testing_32b!
-        run: |
-          pytest tests/ -v --tb=short --cov=. --cov-report=term-missing
-
-  docker-test:
-    name: Dockerized Test Environment Verification
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Run Tests in Docker Container
+      - name: Build Test Harness
         run: |
           docker compose -f docker-compose.test.yml build
-          docker compose -f docker-compose.test.yml run --rm test-runner
 
+      - name: Run Pytest Suite in Isolated Network (Zero Outbound Internet)
+        run: |
+          docker compose -f docker-compose.test.yml run --rm test-runner

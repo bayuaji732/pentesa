@@ -21,6 +21,7 @@ class ToolExecutionRequest(BaseModel):
     target_url: str = Field(..., description="Target URL or endpoint within project scope")
     tags: Optional[List[str]] = Field(default=None, description="Nuclei template tags, e.g. cve, exposure")
     severity: Optional[List[str]] = Field(default=None, description="Nuclei severities, e.g. medium, high, critical")
+    template_path: Optional[str] = Field(default=None, description="Path to specific Nuclei template")
     wordlist: Optional[str] = Field(default=None, description="Wordlist identifier for ffuf")
     rate_limit: int = Field(default=20, ge=1, le=100, description="Max requests per second")
     timeout_seconds: int = Field(default=300, ge=10, le=1800)

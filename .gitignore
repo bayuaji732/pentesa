@@ -48,6 +48,9 @@ Thumbs.db
 
 # Environment variables
 .env
+
+# Scratch scripts
+scratch/
 .env.*
 !.env.example
 

@@ -1,8 +1,42 @@
 """Integration tests for Security Tools execution and HTTP testing endpoints."""
 
+import http.server
+import socketserver
+import threading
 from unittest.mock import AsyncMock, patch
+import uuid
 import httpx
 import pytest
+
+from database.models.scope import ScopeRule
+
+
+@pytest.fixture(scope="module")
+def local_test_server():
+    """Runs a minimal local HTTP server on loopback to provide a deterministic target for tool execution."""
+    class Handler(http.server.SimpleHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain")
+            self.end_headers()
+            self.wfile.write(b"OK")
+
+        def do_POST(self):
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain")
+            self.end_headers()
+            self.wfile.write(b"OK")
+
+        def log_message(self, format, *args):
+            pass
+
+    server = socketserver.TCPServer(("127.0.0.1", 0), Handler)
+    port = server.server_address[1]
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    yield f"http://127.0.0.1:{port}", port
+    server.shutdown()
+    server.server_close()
 
 
 @pytest.mark.asyncio
@@ -23,13 +57,13 @@ async def test_list_tools_catalog(client, admin_token):
 @pytest.mark.asyncio
 async def test_tool_execution_scope_enforcement(client, admin_token, test_project):
     """Verify executing tool against out-of-scope target returns 403 Forbidden."""
-    # Out-of-scope target
+    # Out-of-scope target using RFC-reserved name
     resp = await client.post(
         f"/api/v1/projects/{test_project.id}/tools/execute",
         headers={"Authorization": f"Bearer {admin_token}"},
         json={
             "tool_name": "nuclei",
-            "target_url": "https://unauthorized-domain.com",
+            "target_url": "https://unauthorized.example.test",
             "rate_limit": 10
         }
     )
@@ -50,23 +84,42 @@ async def test_tool_execution_scope_enforcement(client, admin_token, test_projec
 
 
 @pytest.mark.asyncio
-async def test_tool_execution_and_listing(client, admin_token, test_project):
-    """Verify in-scope tool dispatch, execution record creation, and retrieval."""
+async def test_tool_execution_and_listing(client, admin_token, test_project, db_session, local_test_server):
+    """Verify in-scope tool dispatch against local fixture server, strict status assertion, and retrieval."""
+    local_url, local_port = local_test_server
+
+    # Allow loopback for this controlled fixture test and add exact port rule
+    test_project.allow_internal_networks = True
+    rule = ScopeRule(
+        id=uuid.uuid4(),
+        project_id=test_project.id,
+        rule_type="EXACT_IP",
+        target_type="IN_SCOPE",
+        pattern="127.0.0.1",
+        protocol="http",
+        port_range=str(local_port)
+    )
+    db_session.add(rule)
+    await db_session.commit()
+
     resp = await client.post(
         f"/api/v1/projects/{test_project.id}/tools/execute",
         headers={"Authorization": f"Bearer {admin_token}"},
         json={
             "tool_name": "nuclei",
-            "target_url": "https://target.com",
-            "tags": ["cve"],
-            "rate_limit": 20
+            "target_url": local_url,
+            "template_path": "/app/tests/fixtures/nuclei/ping.yaml",
+            "rate_limit": 20,
+            "timeout_seconds": 10
         }
     )
     assert resp.status_code == 201
     exec_data = resp.json()
     assert exec_data["tool_name"] == "nuclei"
-    assert exec_data["target_url"] == "https://target.com"
-    assert exec_data["status"] in ["SUCCESS", "FAILED", "TIMEOUT"]
+    assert exec_data["target_url"] == local_url
+    # Strict status assertion: responsive local fixture server must complete with SUCCESS
+    assert exec_data["status"] == "SUCCESS"
+    assert exec_data["findings_count"] >= 1
 
     exec_id = exec_data["id"]
 
@@ -112,12 +165,12 @@ async def test_tool_config_update(client, admin_token, test_project):
 @pytest.mark.asyncio
 async def test_raw_http_test_endpoint(client, admin_token, test_project):
     """Verify raw HTTP testing endpoint with scope check and evidence response."""
-    # Scope rejection on out of scope URL
+    # Scope rejection on out-of-scope URL
     out_resp = await client.post(
         f"/api/v1/projects/{test_project.id}/tools/http-test",
         headers={"Authorization": f"Bearer {admin_token}"},
         json={
-            "url": "https://evil.corp/steal",
+            "url": "https://unauthorized.example.test/steal",
             "method": "POST"
         }
     )

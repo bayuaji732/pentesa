@@ -1,20 +1,25 @@
 """Security tool execution orchestrator service."""
 
+import logging
 import shutil
 import uuid
 from typing import Any, Dict, List, Optional
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from apps.api.dependencies import record_audit_log
 from database.models.finding import Finding, FindingEvidence
 from database.models.tool import ToolConfiguration, ToolExecution
+from database.models.wstg import WSTGTestCatalog, WSTGTestInstance
 from integrations.ffuf.runner import FfufRunner
 from integrations.nuclei.runner import NucleiRunner
-from packages.common.exceptions import BadRequestError, ResourceNotFoundError
+from packages.common.exceptions import BadRequestError, ResourceNotFoundError, ToolNotAvailableError
 from packages.schemas.tool import ToolExecutionRequest, ToolInfoResponse
 from services.evidence_engine.collector import build_forensic_evidence
 from services.execution_engine.planner import sync_wstg_instance_for_finding
+
+logger = logging.getLogger(__name__)
 
 
 class ToolService:
@@ -120,13 +125,22 @@ class ToolService:
         await self.session.commit()
 
         # 5. Execute runner
-        result = await runner.execute(
-            session=self.session,
-            project_id=project_id,
-            target_url=payload.target_url,
-            options=opts,
-            timeout_seconds=payload.timeout_seconds
-        )
+        try:
+            result = await runner.execute(
+                session=self.session,
+                project_id=project_id,
+                target_url=payload.target_url,
+                options=opts,
+                timeout_seconds=payload.timeout_seconds
+            )
+        except ToolNotAvailableError as exc:
+            logger.error(f"Security tool execution aborted: {exc}")
+            execution.status = "NOT_EXECUTED"
+            execution.error_message = str(exc)
+            execution.stderr_summary = f"[ToolNotAvailableError] {str(exc)}"
+            await self.session.commit()
+            await self._mark_wstg_tool_not_executed(project_id, payload.tool_name, str(exc))
+            raise exc
 
         execution.status = result.status
         execution.exit_code = result.exit_code
@@ -138,6 +152,7 @@ class ToolService:
         findings_count = 0
         synced_wstg_ids: set[str] = set()
         for f in result.findings:
+            is_sim = f.get("is_simulated", False) or getattr(result, "is_simulated", False)
             new_finding = Finding(
                 project_id=project_id,
                 title=f["title"],
@@ -147,7 +162,8 @@ class ToolService:
                 wstg_id=f.get("wstg_id"),
                 detection_source=payload.tool_name,
                 confidence=f.get("confidence", "High"),
-                status="Detected"
+                status="Detected",
+                is_simulated=is_sim
             )
             self.session.add(new_finding)
             await self.session.flush()
@@ -266,4 +282,30 @@ class ToolService:
         await self.session.commit()
         await self.session.refresh(cfg)
         return cfg
+
+    async def _mark_wstg_tool_not_executed(
+        self,
+        project_id: uuid.UUID,
+        tool_name: str,
+        reason: str
+    ) -> None:
+        """Mark WSTG instances that require this tool as 'Not Executed' when tool is unavailable."""
+        tool_lower = tool_name.lower()
+        stmt = (
+            select(WSTGTestInstance)
+            .options(selectinload(WSTGTestInstance.catalog_item))
+            .where(
+                WSTGTestInstance.project_id == project_id,
+                WSTGTestInstance.status.in_(["Planned", "Running", "Not Started"])
+            )
+        )
+        instances = (await self.session.execute(stmt)).scalars().all()
+        for inst in instances:
+            cat = inst.catalog_item
+            req_tools = [t.lower() for t in (cat.required_tools or [])] if cat else []
+            if tool_lower in req_tools:
+                inst.status = "Not Executed"
+                inst.notes = f"Marked Not Executed: {reason}"
+        await self.session.commit()
+
 

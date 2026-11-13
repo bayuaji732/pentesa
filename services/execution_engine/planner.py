@@ -28,15 +28,16 @@ from services.scope_engine.validator import parse_port_range
 
 # Finite state transition rules for WSTG test cases
 VALID_STATE_TRANSITIONS: Dict[str, Set[str]] = {
-    "Not Started": {"Planned", "Not Applicable"},
-    "Planned": {"Running", "Not Applicable", "Not Started"},
-    "Running": {"Passed", "Failed", "Needs Manual Review", "Blocked", "Error", "Planned"},
+    "Not Started": {"Planned", "Not Applicable", "Not Executed"},
+    "Planned": {"Running", "Not Applicable", "Not Started", "Blocked", "Not Executed"},
+    "Running": {"Passed", "Failed", "Needs Manual Review", "Blocked", "Error", "Planned", "Not Executed"},
     "Needs Manual Review": {"Passed", "Failed", "Running"},
-    "Blocked": {"Running", "Planned", "Not Applicable"},
-    "Error": {"Running", "Planned", "Not Applicable"},
+    "Blocked": {"Running", "Planned", "Not Applicable", "Not Executed"},
+    "Error": {"Running", "Planned", "Not Applicable", "Not Executed"},
     "Passed": {"Failed", "Needs Manual Review", "Not Applicable", "Planned"},  # Manual override
     "Failed": {"Passed", "Needs Manual Review", "Not Applicable", "Planned"},  # Manual override
     "Not Applicable": {"Planned", "Not Started"},
+    "Not Executed": {"Running", "Planned", "Not Applicable"},
 }
 
 

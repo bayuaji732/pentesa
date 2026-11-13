@@ -8,4 +8,6 @@ services:
       - PENTESA_ENV=test
       - PENTESA_LLM_PROVIDER=mock
       - PENTESA_ENCRYPTION_KEY=preflight_test_master_encryption_key_32b_hex!
+    volumes:
+      - .:/app
     command: ["pytest", "tests/", "-v", "--tb=short"]

@@ -1,10 +1,14 @@
 """Unit tests for tool wrappers: NucleiRunner and FfufRunner."""
 
 import json
+import os
 import pytest
+from database.models.finding import Finding
 from integrations.ffuf.runner import FfufRunner
 from integrations.nuclei.runner import NucleiRunner
-from packages.common.exceptions import ScopeViolationError
+from packages.common.exceptions import ScopeViolationError, ToolNotAvailableError
+from packages.schemas.report import ReportGenerateRequest
+from services.reporting_engine.context_builder import build_report_context
 
 
 def test_nuclei_build_argv():
@@ -70,7 +74,7 @@ def test_nuclei_parse_output():
 
 @pytest.mark.asyncio
 async def test_nuclei_simulation():
-    """Verify simulated execution when nuclei binary is absent."""
+    """Verify simulated execution tags finding as simulated."""
     runner = NucleiRunner()
     res = await runner.simulate_execution(
         target_url="https://target.com",
@@ -78,9 +82,11 @@ async def test_nuclei_simulation():
         options={"simulate_finding": True}
     )
     assert res.status == "SUCCESS"
+    assert res.is_simulated is True
     assert len(res.findings) == 1
-    assert res.findings[0]["title"] == "Exposed Git Repository Configuration"
-    assert res.findings[0]["severity"] == "High"
+    assert "[SIMULATED]" in res.findings[0]["title"]
+    assert res.findings[0]["is_simulated"] is True
+    assert res.findings[0]["detection_source"] == "nuclei_simulated"
 
 
 def test_ffuf_build_argv_rate_limit_capping():
@@ -141,7 +147,7 @@ def test_ffuf_parse_output():
 
 @pytest.mark.asyncio
 async def test_ffuf_simulation():
-    """Verify simulated execution when ffuf binary is absent."""
+    """Verify simulated execution tags ffuf finding as simulated."""
     runner = FfufRunner()
     res = await runner.simulate_execution(
         target_url="https://target.com",
@@ -149,8 +155,90 @@ async def test_ffuf_simulation():
         options={"simulate_finding": True}
     )
     assert res.status == "SUCCESS"
+    assert res.is_simulated is True
     assert len(res.findings) == 1
-    assert res.findings[0]["title"] == "Discovered Path: /backup.sql"
+    assert "[SIMULATED]" in res.findings[0]["title"]
+    assert res.findings[0]["is_simulated"] is True
+    assert res.findings[0]["detection_source"] == "ffuf_simulated"
+
+
+@pytest.mark.asyncio
+async def test_missing_binary_raises_tool_not_available_error(db_session, test_project, monkeypatch):
+    """Verify missing binary raises typed ToolNotAvailableError when simulation is not permitted."""
+    runner = NucleiRunner()
+    monkeypatch.setattr(runner, "get_binary_path", lambda: None)
+    # Clear simulation environment variable
+    monkeypatch.delenv("PENTESA_ALLOW_TOOL_SIMULATION", raising=False)
+
+    with pytest.raises(ToolNotAvailableError) as exc_info:
+        await runner.execute(
+            session=db_session,
+            project_id=test_project.id,
+            target_url="https://target.com",
+            options={}
+        )
+    assert exc_info.value.tool_name == "nuclei"
+    assert "not installed or available" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_simulation_blocked_when_env_not_test(db_session, test_project, monkeypatch):
+    """Verify simulation is strictly blocked in production even if simulation flag is passed."""
+    runner = FfufRunner()
+    monkeypatch.setattr(runner, "get_binary_path", lambda: None)
+    monkeypatch.setenv("PENTESA_ENV", "production")
+    monkeypatch.setenv("PENTESA_ALLOW_TOOL_SIMULATION", "true")
+
+    with pytest.raises(ToolNotAvailableError) as exc_info:
+        await runner.execute(
+            session=db_session,
+            project_id=test_project.id,
+            target_url="https://target.com",
+            options={"simulate_finding": True}
+        )
+    assert exc_info.value.tool_name == "ffuf"
+
+
+@pytest.mark.asyncio
+async def test_no_mock_finding_in_real_report(db_session, test_project):
+    """Verify simulated findings can never leak into published PTES reports."""
+    # Seed a simulated finding and a legitimate finding
+    sim_finding = Finding(
+        project_id=test_project.id,
+        title="[SIMULATED] Exposed Git Repository Configuration",
+        description="Mock test finding",
+        severity="High",
+        detection_source="nuclei_simulated",
+        status="Detected",
+        confidence="Confirmed",
+        is_simulated=True
+    )
+    real_finding = Finding(
+        project_id=test_project.id,
+        title="Actual Missing Content-Security-Policy Header",
+        description="Verified missing header",
+        severity="Low",
+        detection_source="security_headers",
+        status="Detected",
+        confidence="Confirmed",
+        is_simulated=False
+    )
+    db_session.add_all([sim_finding, real_finding])
+    await db_session.commit()
+
+    # Build report context
+    ctx = await build_report_context(
+        session=db_session,
+        project_id=test_project.id,
+        options=ReportGenerateRequest(format="HTML")
+    )
+
+    # Check findings in report context
+    report_titles = [f.title for f in ctx.findings]
+    assert "Actual Missing Content-Security-Policy Header" in report_titles
+    assert "[SIMULATED] Exposed Git Repository Configuration" not in report_titles
+    for f in ctx.findings:
+        assert not f.title.startswith("[SIMULATED]")
 
 
 @pytest.mark.asyncio

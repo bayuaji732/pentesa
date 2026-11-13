@@ -81,18 +81,17 @@ class NucleiRunner(BaseToolWrapper):
         argv: List[str],
         options: Dict[str, Any]
     ) -> ToolExecutionResult:
-        """Simulate execution when Nuclei binary is not installed on the system."""
-        # Check if simulation should trigger a mock finding for test coverage
+        """Simulate execution when Nuclei binary is not installed on the system (test mode only)."""
         mock_finding = options.get("simulate_finding", False)
         findings = []
-        stdout = "Nuclei v3.0.0 engine simulation complete."
+        stdout = "[SIMULATED] Nuclei test engine simulation complete."
 
         if mock_finding:
             clean_base = target_url.rstrip("/")
             host_hdr = urlparse(target_url).netloc or clean_base
             findings.append({
-                "title": "Exposed Git Repository Configuration",
-                "description": "Git repository configuration directory (.git/config) is accessible.",
+                "title": "[SIMULATED] Exposed Git Repository Configuration",
+                "description": "[SIMULATED TEST DATA] Git repository configuration directory (.git/config) is accessible.",
                 "severity": "High",
                 "cwe_id": "CWE-538",
                 "wstg_id": "WSTG-CONF-04",
@@ -101,8 +100,9 @@ class NucleiRunner(BaseToolWrapper):
                 "reproduction_curl": f"curl -i -s '{clean_base}/.git/config'",
                 "raw_request": f"GET /.git/config HTTP/1.1\r\nHost: {host_hdr}\r\n\r\n",
                 "raw_response": "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n[core]\r\nrepositoryformatversion = 0",
-                "detection_source": "nuclei",
-                "confidence": "Confirmed"
+                "detection_source": "nuclei_simulated",
+                "confidence": "Confirmed",
+                "is_simulated": True
             })
 
         return ToolExecutionResult(
@@ -113,6 +113,7 @@ class NucleiRunner(BaseToolWrapper):
             exit_code=0,
             duration_ms=120,
             stdout=stdout,
-            findings=findings
+            findings=findings,
+            is_simulated=True
         )
 

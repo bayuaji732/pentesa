@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from apps.api.dependencies import get_current_user, verify_project_access
 from database.models.user import User
 from database.session import get_db
-from packages.common.exceptions import BadRequestError, ResourceNotFoundError, ScopeViolationError
+from packages.common.exceptions import BadRequestError, ResourceNotFoundError, ScopeViolationError, ToolNotAvailableError
 from packages.schemas.tool import (
     HttpTestRequest,
     HttpTestResponse,
@@ -76,6 +76,8 @@ async def execute_tool_run(
         return execution
     except ScopeViolationError as e:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+    except ToolNotAvailableError as e:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e))
     except BadRequestError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 

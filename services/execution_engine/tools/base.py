@@ -2,6 +2,7 @@
 
 import abc
 import asyncio
+import logging
 import os
 import shutil
 import time
@@ -12,8 +13,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.models.project import Project
 from database.models.scope import ScopeRule
-from packages.common.exceptions import ScopeViolationError
+from packages.common.exceptions import ScopeViolationError, ToolNotAvailableError
 from services.scope_engine.service import scope_service
+
+logger = logging.getLogger(__name__)
 
 
 class ToolExecutionResult:
@@ -24,13 +27,14 @@ class ToolExecutionResult:
         tool_name: str,
         target_url: str,
         argv: List[str],
-        status: str,  # SUCCESS, FAILED, TIMEOUT, CANCELLED, SCOPE_REJECTED
+        status: str,  # SUCCESS, FAILED, TIMEOUT, CANCELLED, SCOPE_REJECTED, NOT_EXECUTED
         exit_code: Optional[int] = None,
         duration_ms: Optional[int] = None,
         stdout: str = "",
         stderr: str = "",
         findings: Optional[List[Dict[str, Any]]] = None,
-        error_message: Optional[str] = None
+        error_message: Optional[str] = None,
+        is_simulated: bool = False
     ):
         self.tool_name = tool_name
         self.target_url = target_url
@@ -42,6 +46,7 @@ class ToolExecutionResult:
         self.stderr = stderr
         self.findings = findings or []
         self.error_message = error_message
+        self.is_simulated = is_simulated
 
 
 class BaseToolWrapper(abc.ABC):
@@ -121,9 +126,24 @@ class BaseToolWrapper(abc.ABC):
         start_time = time.time()
         binary_path = self.get_binary_path()
 
-        # If binary is not installed, run fallback simulation handler
+        # If binary is not installed, verify whether simulation is allowed under strict test constraints
         if not binary_path:
-            return await self.simulate_execution(target_url, argv, opts)
+            is_test_env = os.getenv("PENTESA_ENV") == "test"
+            allow_sim_env = os.getenv("PENTESA_ALLOW_TOOL_SIMULATION", "").lower() in ("1", "true")
+            allow_sim_opt = bool(opts.get("allow_simulation") or opts.get("simulate_finding"))
+
+            # Simulation is strictly disallowed in production or when not explicitly flagged for tests
+            if is_test_env and allow_sim_env and allow_sim_opt:
+                logger.warning(
+                    f"Tool '{self.tool_name}' binary not installed. Running simulated execution under explicit TEST mode."
+                )
+                return await self.simulate_execution(target_url, argv, opts)
+            else:
+                logger.error(
+                    f"Security tool '{self.tool_name}' binary is not installed or accessible on system PATH. "
+                    f"Simulation is prohibited (PENTESA_ENV='{os.getenv('PENTESA_ENV')}', allow_sim={allow_sim_env})."
+                )
+                raise ToolNotAvailableError(self.tool_name)
 
         clean_env = self.build_sanitized_env()
 

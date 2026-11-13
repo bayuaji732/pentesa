@@ -98,7 +98,7 @@ async def build_report_context(
     except Exception:
         pass
 
-    # 5. Fetch Findings & Filter
+    # 5. Fetch Findings & Filter (Suppress false positives and any test-only simulated findings)
     findings_stmt = (
         select(Finding)
         .options(
@@ -107,7 +107,9 @@ async def build_report_context(
         )
         .where(
             Finding.project_id == project_id,
-            Finding.status != "False Positive"  # Suppress false positives from client report
+            Finding.status != "False Positive",
+            Finding.is_simulated.is_(False),
+            ~Finding.title.startswith("[SIMULATED]")
         )
     )
 

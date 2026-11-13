@@ -58,6 +58,7 @@ class Finding(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     )  # Confirmed, High, Medium, Low
     remediation_guidance: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     business_impact: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    is_simulated: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Relationships
     project: Mapped["Project"] = relationship("Project")

@@ -57,9 +57,21 @@ class BadRequestError(PentesaError):
     pass
 
 
+class ToolNotAvailableError(PentesaError):
+    """Raised when a required external security tool binary is not installed or available."""
+
+    def __init__(self, tool_name: str, message: Optional[str] = None):
+        self.tool_name = tool_name
+        super().__init__(
+            message or f"Security tool binary '{tool_name}' is not installed or available on the host system."
+        )
+
+
 # Aliases for naming compatibility
 BadRequestException = BadRequestError
 NotFoundException = ResourceNotFoundError
 ScopeViolationException = ScopeViolationError
+ToolNotAvailableException = ToolNotAvailableError
+
 
 

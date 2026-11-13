@@ -78,14 +78,14 @@ class FfufRunner(BaseToolWrapper):
         argv: List[str],
         options: Dict[str, Any]
     ) -> ToolExecutionResult:
-        """Simulate ffuf execution when binary is not installed on the system."""
+        """Simulate ffuf execution when binary is not installed on the system (test mode only)."""
         mock_finding = options.get("simulate_finding", False)
         findings = []
 
         if mock_finding:
             findings.append({
-                "title": "Discovered Path: /backup.sql",
-                "description": "Sensitive database backup file identified via fuzzing.",
+                "title": "[SIMULATED] Discovered Path: /backup.sql",
+                "description": "[SIMULATED TEST DATA] Sensitive database backup file identified via fuzzing.",
                 "severity": "High",
                 "cwe_id": "CWE-530",
                 "wstg_id": "WSTG-CONF-04",
@@ -94,8 +94,9 @@ class FfufRunner(BaseToolWrapper):
                 "reproduction_curl": f"curl -i -s '{target_url}/backup.sql'",
                 "raw_request": f"GET /backup.sql HTTP/1.1\r\n\r\n",
                 "raw_response": "HTTP/1.1 200 OK\r\n\r\n-- Database Dump",
-                "detection_source": "ffuf",
-                "confidence": "Confirmed"
+                "detection_source": "ffuf_simulated",
+                "confidence": "Confirmed",
+                "is_simulated": True
             })
 
         return ToolExecutionResult(
@@ -105,7 +106,8 @@ class FfufRunner(BaseToolWrapper):
             status="SUCCESS",
             exit_code=0,
             duration_ms=100,
-            stdout="ffuf simulation completed cleanly.",
-            findings=findings
+            stdout="[SIMULATED] ffuf simulation completed cleanly.",
+            findings=findings,
+            is_simulated=True
         )
 

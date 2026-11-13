@@ -30,9 +30,11 @@ class DiscoveryService:
         custom_client=None
     ) -> CrawlSummaryResponse:
         """Run scope-enforced crawler and persist discovered attack surface entities."""
+        rules_stmt = select(ScopeRule).where(ScopeRule.project_id == project.id)
+        rules = (await session.execute(rules_stmt)).scalars().all()
         crawler = ScopeEnforcedCrawler(
             project=project,
-            rules=project.scope_rules,
+            rules=rules,
             custom_client=custom_client
         )
         crawl_result = await crawler.crawl(config)

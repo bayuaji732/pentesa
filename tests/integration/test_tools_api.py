@@ -16,10 +16,16 @@ def local_test_server():
     """Runs a minimal local HTTP server on loopback to provide a deterministic target for tool execution."""
     class Handler(http.server.SimpleHTTPRequestHandler):
         def do_GET(self):
-            self.send_response(200)
-            self.send_header("Content-Type", "text/plain")
-            self.end_headers()
-            self.wfile.write(b"OK")
+            if self.path in ("/", "/index.html", "/healthz"):
+                self.send_response(200)
+                self.send_header("Content-Type", "text/plain")
+                self.end_headers()
+                self.wfile.write(b"OK")
+            else:
+                self.send_response(404)
+                self.send_header("Content-Type", "text/plain")
+                self.end_headers()
+                self.wfile.write(b"Not Found")
 
         def do_POST(self):
             self.send_response(200)
@@ -108,7 +114,7 @@ async def test_tool_execution_and_listing(client, admin_token, test_project, db_
         json={
             "tool_name": "nuclei",
             "target_url": local_url,
-            "template_path": "/app/tests/fixtures/nuclei/ping.yaml",
+            "template_path": "/opt/nuclei-templates/ping.yaml",
             "rate_limit": 20,
             "timeout_seconds": 10
         }

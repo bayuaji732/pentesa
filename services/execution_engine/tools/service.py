@@ -1,6 +1,7 @@
 """Security tool execution orchestrator service."""
 
 import logging
+import os
 import shutil
 import uuid
 from typing import Any, Dict, List, Optional
@@ -81,10 +82,33 @@ class ToolService:
         """Execute a tool with pre-flight scope validation and ingest findings into database."""
         runner = self.get_runner(payload.tool_name)
 
-        # 1. Scope check before record creation
+        # 1. Enforce template path restriction (F1 / TOOL-ASSETS-01)
+        if payload.tool_name.lower() == "nuclei" and payload.template_path:
+            from integrations.nuclei.runner import DEFAULT_NUCLEI_TEMPLATES
+            allowed_bases = [
+                os.path.abspath("/opt/nuclei-templates"),
+                "/opt/nuclei-templates"
+            ]
+            if os.path.exists(DEFAULT_NUCLEI_TEMPLATES):
+                allowed_bases.append(os.path.abspath(DEFAULT_NUCLEI_TEMPLATES))
+
+            clean_path = os.path.abspath(payload.template_path)
+            is_valid = any(
+                clean_path == os.path.abspath(b) or clean_path.startswith(os.path.abspath(b) + os.sep)
+                for b in allowed_bases
+            )
+            if not is_valid:
+                raise BadRequestError(
+                    f"Template path '{payload.template_path}' is outside authorized directory (/opt/nuclei-templates)."
+                )
+
+        # 2. Scope check before record creation
         await runner.validate_scope(self.session, project_id, payload.target_url)
 
-        # 2. Build options (TOOL-ASSETS-01: separate probe timeout from overall execution timeout)
+        # 2. Build options (TOOL-ASSETS-01: separate probe timeout from overall execution timeout; TOOL-FP-01 soft-404 baseline)
+        from services.execution_engine.tools.soft_404 import detect_soft_404_baseline
+        baseline = await detect_soft_404_baseline(payload.target_url)
+
         probe_timeout = getattr(payload, "request_timeout", None) or 5
         opts = {
             "tags": payload.tags,
@@ -93,7 +117,8 @@ class ToolService:
             "wordlist_path": payload.wordlist,
             "rate_limit": payload.rate_limit,
             "request_timeout": probe_timeout,
-            "timeout_seconds": payload.timeout_seconds
+            "timeout_seconds": payload.timeout_seconds,
+            "baseline": baseline
         }
 
         # 3. Create execution record in QUEUED status
@@ -172,6 +197,13 @@ class ToolService:
         findings_count = 0
         synced_wstg_ids: set[str] = set()
         for f in result.findings:
+            if baseline and baseline.has_soft_404:
+                raw_resp = f.get("raw_response") or ""
+                resp_len = len(raw_resp.encode("utf-8")) if raw_resp else None
+                if baseline.is_match(status=200, length=resp_len, body=raw_resp):
+                    logger.info(f"Skipping soft-404 finding during ingestion: {f.get('title')}")
+                    continue
+
             is_sim = f.get("is_simulated", False) or getattr(result, "is_simulated", False)
             new_finding = Finding(
                 project_id=project_id,

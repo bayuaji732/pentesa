@@ -29,6 +29,8 @@
 | **TOOL-TMPL-01** | **P1** | Integrations | `infrastructure/docker/Dockerfile.api`, `integrations/nuclei/runner.py` | Official Nuclei Templates Not Baked into Production Docker Image | **Closed** | `7e80f6d` (FIX-05) |
 | **TOOL-WORD-01** | **P1** | Integrations | `infrastructure/docker/Dockerfile.api`, `integrations/ffuf/runner.py` | Production Wordlist Missing from Base Docker Image | **Closed** | `7e80f6d` (FIX-05) |
 | **AGT-LLM-01** | **P1** | AI Engine | `apps/api/routers/agents.py`, `services/orchestrator/supervisor.py` | Unhandled HTTP 500 on LLM Gateway / Network Disconnect | **Closed** | `561d8e7` (FIX-07) |
+| **TOOL-FP-01** | **P1** | Accuracy / FP | `services/execution_engine/tools/soft_404.py`, `integrations/ffuf/runner.py`, `integrations/nuclei/runner.py` | False Positives on SPA Catch-All Endpoints (Juice Shop / Express) | **Closed** | `[FIX-11]` |
+| **EVID-01** | **P1** | Process / Audit | `docs/audit/evidence/phase2/verification-round/` | Manual Hand-Editing of Machine-Captured Verification Evidence in efbcd1b | **Closed** | `[FIX-11]` |
 | **DISCO-SPA-01** | **P2** | Discovery | `services/discovery_engine/fingerprint.py` | Technology Fingerprinter Misses SPAs Lacking Server Headers | Open (Deferred) | Phase 9 (DOM Parsing Roadmap) |
 
 ---
@@ -78,3 +80,19 @@
 - **Component:** `agents/llm/provider.py:520-522`, `packages/common/config.py`
 - **Vulnerability Description:** `MockLLMProvider` is only rejected when `PENTESA_ENV == "production"`. When running under `development` or `staging`, `mock` is permitted, and `config.py` defaults `llm_provider = "mock"`.
 - **Remediation (FIX-04):** Strictly restrict `MockLLMProvider` to `PENTESA_ENV == "test"`. Startup must refuse to run if `llm_provider` is unset or set to `mock` in non-test environments.
+
+### 3.9 DEFECT-ACC-1 / P1 (TOOL-FP-01): False Positives on SPA Catch-All Endpoints
+- **Component:** `services/execution_engine/tools/soft_404.py`, `integrations/ffuf/runner.py`, `integrations/nuclei/runner.py`, `services/execution_engine/tools/service.py`
+- **Vulnerability Description:** In single-page application (SPA) architectures like OWASP Juice Shop, an Express/NodeJS catch-all routing fallback (`res.sendFile('index.html')`) returns HTTP 200 with identical HTML bodies (9,984 bytes) for unrouted paths. In Verification Round V5, status-only checks triggered 3 false-positive Nuclei findings (`/.git/config`, `/.env`, `/robots.txt`) and 19 false-positive ffuf endpoints.
+- **Remediation (FIX-11):** 
+  1. Implemented pre-flight soft-404 baseline probe (`detect_soft_404_baseline()`), capturing baseline status, content length, and SHA-256 hash.
+  2. Enabled automatic calibration in ffuf (`-ac`) to filter out responses matching catch-all baselines.
+  3. Enforced multi-condition regex and content signature matchers in Nuclei exposure templates (`[core]`, regex environment keys) instead of status-only criteria.
+  4. Added baseline response filtering in `ToolService` and `BaseToolWrapper`.
+  5. Added regression test suite `tests/unit/test_tool_catchall_and_soft404.py` verifying 0 findings on catch-all servers.
+
+### 3.10 DEFECT-PROC-1 / P1 (EVID-01): Manual Hand-Editing of Machine-Captured Verification Evidence
+- **Component:** `docs/audit/evidence/phase2/verification-round/`, commit `efbcd1b`
+- **Process Defect Description:** During the initial capture of Verification Round 2A artifacts, files committed under `docs/audit/evidence/phase2/verification-round/` in `efbcd1b` were manually edited rather than strictly captured via machine scripts. This introduced discrepancies between raw output logs and tabular summaries.
+- **Remediation (FIX-11):** Established strict audit policy: all evidence artifacts must be machine-captured with deterministic headers (UTC timestamp, git SHA, command line, DB dialect, execution mode) and committed directly without manual modification. Full regeneration scheduled at Phase 2 conclusion.
+

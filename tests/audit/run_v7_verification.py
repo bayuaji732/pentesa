@@ -94,7 +94,7 @@ async def run_v7_verification():
                 json={
                     "tool_name": "nuclei",
                     "target_url": "https://target.com",
-                    "template_path": "/app/tests/fixtures/nuclei/ping.yaml"
+                    "template_path": "/opt/nuclei-templates/ping.yaml"
                 }
             )
             print(f"HTTP Status: {resp_pub.status_code} (Expected: 403 Forbidden)")
@@ -116,7 +116,7 @@ async def run_v7_verification():
                 json={
                     "tool_name": "nuclei",
                     "target_url": "http://target-juiceshop:3000",
-                    "template_path": "/app/tests/fixtures/nuclei/ping.yaml",
+                    "template_path": "/opt/nuclei-templates/ping.yaml",
                     "timeout_seconds": 10
                 }
             )

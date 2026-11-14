@@ -36,7 +36,7 @@ def verify_assets() -> bool:
     ]
     tpl_dir = next((p for p in tpl_candidates if p and os.path.isdir(p)), None)
     if tpl_dir:
-        yaml_count = len([f for f in os.listdir(tpl_dir) if f.endswith((".yaml", ".yml"))])
+        yaml_count = sum(len([f for f in files if f.endswith((".yaml", ".yml"))]) for _, _, files in os.walk(tpl_dir))
         if yaml_count > 0:
             print(f"[OK] Nuclei templates verified at {tpl_dir} ({yaml_count} templates found)")
         else:
@@ -55,7 +55,7 @@ def verify_assets() -> bool:
     ]
     wl_file = next((p for p in wl_candidates if p and os.path.isfile(p) and os.path.getsize(p) > 0), None)
     if wl_file:
-        lines = len(open(wl_file, "r", encoding="utf-8", errors="ignore").readlines())
+        lines = len([l for l in open(wl_file, "r", encoding="utf-8", errors="ignore") if l.strip() and not l.startswith("#")])
         print(f"[OK] ffuf wordlist verified at {wl_file} ({lines} words)")
     else:
         print("[FAIL] Pinned ffuf wordlist file not found or empty")

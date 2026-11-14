@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from agents.llm.provider import LiteLLMProvider
 from apps.api.main import app
 from database.models.project import Project
+from database.models.scope import ScopeRule
 from database.models.user import User
 from database.session import get_db
 from packages.common.exceptions import LLMGatewayError
@@ -81,6 +82,14 @@ async def test_supervisor_persists_failed_status_and_reason_on_gateway_outage(db
         created_by=admin_user.id
     )
     db_session.add(project)
+    rule = ScopeRule(
+        id=uuid.uuid4(),
+        project_id=project.id,
+        rule_type="DOMAIN_EXACT",
+        target_type="IN_SCOPE",
+        pattern="example.test"
+    )
+    db_session.add(rule)
     await db_session.commit()
     await db_session.refresh(project)
 
@@ -132,6 +141,14 @@ async def test_api_workflow_start_returns_clean_502_on_gateway_outage(db_session
         created_by=admin_user.id
     )
     db_session.add(project)
+    rule = ScopeRule(
+        id=uuid.uuid4(),
+        project_id=project.id,
+        rule_type="DOMAIN_EXACT",
+        target_type="IN_SCOPE",
+        pattern="example.test"
+    )
+    db_session.add(rule)
     await db_session.commit()
     await db_session.refresh(project)
 

@@ -7,7 +7,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     FFUF_VERSION="2.1.0" \
     FFUF_SHA256="fc2c82736c14dcbea4daf3d3cf3878c1c4773008ba45c2bc0fceba7d17b40bb5" \
     NUCLEI_VERSION="3.3.7" \
-    NUCLEI_SHA256="725ef892fcffd1b03ad4f0874942fc4b623c0419b6b6c6c91fe4a5a65671f77c"
+    NUCLEI_SHA256="725ef892fcffd1b03ad4f0874942fc4b623c0419b6b6c6c91fe4a5a65671f77c" \
+    NUCLEI_TEMPLATES_TAG="v10.5.2" \
+    NUCLEI_TEMPLATES_SHA256="24551e1ef6a5f99f6a0a3cb98abc4325a1e554367d2a8ce09caaf82d860cd50b" \
+    SECLISTS_COMMIT="8115582"
 
 WORKDIR /app
 
@@ -49,6 +52,12 @@ COPY agents/ ./agents/
 COPY integrations/ ./integrations/
 COPY apps/ ./apps/
 COPY scripts/ ./scripts/
+
+# Bake pinned Nuclei templates and ffuf wordlists (TOOL-ASSETS-01)
+RUN mkdir -p /opt/nuclei-templates /opt/wordlists && \
+    cp -r integrations/nuclei/templates/* /opt/nuclei-templates/ && \
+    cp integrations/ffuf/wordlists/common_paths.txt /opt/wordlists/common_paths.txt && \
+    chmod -R 755 /opt/nuclei-templates /opt/wordlists
 
 # Startup check verifying pinned security tools are executable
 RUN python scripts/check_security_tools.py

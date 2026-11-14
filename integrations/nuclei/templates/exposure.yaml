@@ -3,7 +3,7 @@ info:
   name: Sensitive File and Directory Exposure Check
   author: pentesa
   severity: medium
-  description: Checks for common sensitive file and configuration exposures.
+  description: Checks for common sensitive file and configuration exposures with strict content signature validation.
   classification:
     cwe-id:
       - CWE-538
@@ -11,9 +11,39 @@ http:
   - method: GET
     path:
       - "{{BaseURL}}/.git/config"
-      - "{{BaseURL}}/.env"
-      - "{{BaseURL}}/robots.txt"
+    matchers-condition: and
     matchers:
       - type: status
         status:
           - 200
+      - type: word
+        words:
+          - "[core]"
+          - "repositoryformatversion"
+        condition: or
+
+  - method: GET
+    path:
+      - "{{BaseURL}}/.env"
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+      - type: regex
+        regex:
+          - "(?m)^[A-Z0-9_]+=[^\r\n]+"
+
+  - method: GET
+    path:
+      - "{{BaseURL}}/robots.txt"
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+      - type: word
+        words:
+          - "User-agent:"
+          - "Disallow:"
+        condition: or

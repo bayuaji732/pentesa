@@ -36,6 +36,7 @@ class FfufRunner(BaseToolWrapper):
             "-w", wordlist,
             "-rate", str(rate_limit),
             "-fc", "404",
+            "-ac",
             "-of", "json",
             "-s"
         ]
@@ -48,8 +49,8 @@ class FfufRunner(BaseToolWrapper):
         clean_argv = [a for a in argv if a not in ("-r", "-recursion")]
         return clean_argv
 
-    def parse_output(self, stdout: str) -> List[Dict[str, Any]]:
-        """Parse ffuf JSON output into standardized finding / match records."""
+    def parse_output(self, stdout: str, baseline: Optional[Any] = None) -> List[Dict[str, Any]]:
+        """Parse ffuf JSON output into standardized finding / match records with soft-404 baseline filtering."""
         matches = []
         if not stdout:
             return matches
@@ -61,6 +62,12 @@ class FfufRunner(BaseToolWrapper):
                 fuzz_val = r.get("input", {}).get("FUZZ", "")
                 url = r.get("url", "")
                 status_code = r.get("status", 200)
+                length = r.get("length")
+
+                # Filter out soft-404 / SPA catch-all false positives (TOOL-FP-01)
+                if baseline and getattr(baseline, "has_soft_404", False):
+                    if baseline.is_match(status=status_code, length=length):
+                        continue
 
                 matches.append({
                     "title": f"Discovered Path: /{fuzz_val}",
@@ -70,7 +77,7 @@ class FfufRunner(BaseToolWrapper):
                     "wstg_id": "WSTG-CONF-04",
                     "matched_at": url,
                     "status_code": status_code,
-                    "length": r.get("length"),
+                    "length": length,
                     "words": r.get("words"),
                     "lines": r.get("lines"),
                     "reproduction_curl": f"curl -i -s '{url}'",

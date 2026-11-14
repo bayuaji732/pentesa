@@ -191,7 +191,10 @@ class BaseToolWrapper(abc.ABC):
             stderr_str = stderr_bytes.decode("utf-8", errors="replace")
 
             status = "SUCCESS" if proc.returncode == 0 else "FAILED"
-            findings = self.parse_output(stdout_str)
+            try:
+                findings = self.parse_output(stdout_str, baseline=opts.get("baseline"))
+            except TypeError:
+                findings = self.parse_output(stdout_str)
 
             return ToolExecutionResult(
                 tool_name=self.tool_name,

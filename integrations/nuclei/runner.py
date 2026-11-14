@@ -36,6 +36,21 @@ class NucleiRunner(BaseToolWrapper):
 
         template_path = options.get("template_path") or options.get("templates") or DEFAULT_NUCLEI_TEMPLATES
         if template_path:
+            # Enforce template path restriction (F1 / TOOL-ASSETS-01)
+            allowed_bases = [
+                os.path.abspath(DEFAULT_NUCLEI_TEMPLATES),
+                os.path.abspath("/opt/nuclei-templates"),
+                "/opt/nuclei-templates"
+            ]
+            clean_path = os.path.abspath(str(template_path))
+            is_valid = any(
+                clean_path == os.path.abspath(b) or clean_path.startswith(os.path.abspath(b) + os.sep)
+                for b in allowed_bases
+            )
+            if not is_valid:
+                raise ValueError(
+                    f"Template path '{template_path}' is outside authorized directory (/opt/nuclei-templates)."
+                )
             argv.extend(["-t", str(template_path)])
 
         tags = options.get("tags")
@@ -64,8 +79,8 @@ class NucleiRunner(BaseToolWrapper):
         clean_argv = [a for a in argv if a not in ("-follow-redirects", "-fr", "-r")]
         return clean_argv
 
-    def parse_output(self, stdout: str) -> List[Dict[str, Any]]:
-        """Parse line-delimited JSON stream into structured finding objects."""
+    def parse_output(self, stdout: str, baseline: Optional[Any] = None) -> List[Dict[str, Any]]:
+        """Parse line-delimited JSON stream into structured finding objects with soft-404 baseline filtering."""
         findings = []
         if not stdout:
             return findings
@@ -81,6 +96,13 @@ class NucleiRunner(BaseToolWrapper):
                 cwe_list = classification.get("cwe-id", [])
                 cwe_id = cwe_list[0] if cwe_list else None
 
+                raw_resp = raw_item.get("response", "")
+                # Soft-404 baseline filtering (TOOL-FP-01)
+                if baseline and getattr(baseline, "has_soft_404", False):
+                    resp_len = len(raw_resp.encode("utf-8")) if raw_resp else None
+                    if baseline.is_match(status=200, length=resp_len, body=raw_resp):
+                        continue
+
                 finding = {
                     "title": info.get("name", raw_item.get("template-id", "Nuclei Finding")),
                     "description": info.get("description", "Vulnerability detected by Nuclei template."),
@@ -91,7 +113,7 @@ class NucleiRunner(BaseToolWrapper):
                     "template_id": raw_item.get("template-id"),
                     "reproduction_curl": raw_item.get("curl-command"),
                     "raw_request": raw_item.get("request"),
-                    "raw_response": raw_item.get("response"),
+                    "raw_response": raw_resp,
                     "detection_source": "nuclei",
                     "confidence": "High"
                 }

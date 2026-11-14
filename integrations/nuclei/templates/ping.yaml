@@ -3,7 +3,6 @@ info:
   name: Local Test Ping Endpoint
   author: pentesa
   severity: info
-  description: Verifies basic HTTP reachability for scope-validated endpoints.
 http:
   - method: GET
     path:
@@ -12,6 +11,4 @@ http:
       - type: status
         status:
           - 200
-          - 204
-          - 301
-          - 302
+

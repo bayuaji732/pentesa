@@ -1,0 +1,4 @@
+# Lab-only fixture paths for verification and security integration tests
+# STRICTLY FOR TEST/LAB PURPOSES ONLY - DO NOT USE IN PRODUCTION WORDLISTS
+redirect
+canary-trap

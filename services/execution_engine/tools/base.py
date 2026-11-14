@@ -76,6 +76,31 @@ class BaseToolWrapper(abc.ABC):
         if not proj:
             raise ScopeViolationError(f"Project {project_id} not found.")
 
+        # V7 Lab-Only Guardrail (NI-03 interim enforcement without containerized Layer-2 egress proxy)
+        layer2_enabled = os.getenv("PENTESA_LAYER2_EGRESS_ENABLED", "").lower() in ("1", "true", "yes")
+        if not layer2_enabled:
+            from urllib.parse import urlparse
+            import ipaddress
+            parsed_host = urlparse(target_url).hostname or target_url
+
+            is_private = False
+            if parsed_host in ("localhost", "127.0.0.1", "::1", "target-juiceshop", "redirector", "canary", "test-server") or parsed_host.endswith(".test") or parsed_host.endswith(".internal"):
+                is_private = True
+            else:
+                try:
+                    ip_obj = ipaddress.ip_address(parsed_host)
+                    if ip_obj.is_private or ip_obj.is_loopback:
+                        is_private = True
+                except ValueError:
+                    pass
+
+            if not (proj.allow_internal_networks and is_private):
+                raise ScopeViolationError(
+                    f"Layer-2 egress proxy not active (PENTESA_LAYER2_EGRESS_ENABLED!=true): "
+                    f"Tool execution against '{target_url}' refused with HTTP 403. Subprocess tools are restricted to "
+                    f"authorized private lab targets with allow_internal_networks=True."
+                )
+
         rules_stmt = select(ScopeRule).where(ScopeRule.project_id == project_id)
         rules = (await session.execute(rules_stmt)).scalars().all()
 

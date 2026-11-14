@@ -30,7 +30,8 @@ class NucleiRunner(BaseToolWrapper):
             "-jsonl",
             "-no-interactsh",
             "-silent",
-            "-duc"
+            "-duc",
+            "-dr"
         ]
 
         template_path = options.get("template_path") or options.get("templates") or DEFAULT_NUCLEI_TEMPLATES

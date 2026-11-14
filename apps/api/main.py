@@ -48,7 +48,10 @@ KNOWN_INSECURE_KEYS = {
 
 
 def validate_encryption_key_startup():
-    """SEC-KEY-01: Ensure platform fails closed unless PENTESA_ENCRYPTION_KEY is configured and secure."""
+    """SEC-KEY-01 & SEC-PWD-01: Ensure platform fails closed against default/insecure credentials and keys."""
+    env = (getattr(settings, "env", "") or os.getenv("PENTESA_ENV", "")).lower()
+
+    # 1. Master Encryption Key check
     key = os.environ.get("PENTESA_ENCRYPTION_KEY") or getattr(settings, "encryption_key", "")
     if not key:
         raise RuntimeError(
@@ -63,13 +66,31 @@ def validate_encryption_key_startup():
         )
 
     key_str = str(key).strip().lower()
-    if (settings.env or "").lower() not in ("test",) and (
+    if env not in ("test",) and (
         key in KNOWN_INSECURE_KEYS or "change-in-prod" in key_str or "change-me" in key_str
     ):
         raise RuntimeError(
             "CRITICAL SECURITY CONFIGURATION ERROR: PENTESA_ENCRYPTION_KEY is set to a known repository default "
             "or insecure placeholder string. Provide a unique cryptographically generated key in non-test environments."
         )
+
+    # 2. Strict database password and JWT secret enforcement outside test/dev
+    if env not in ("development", "test"):
+        db_url = os.getenv("PENTESA_DATABASE_URL") or os.getenv("DATABASE_URL") or ""
+        insecure_passwords = ["pentesa_password", "postgres", "password", "admin", "root", "123456"]
+        for bad_pwd in insecure_passwords:
+            if f":{bad_pwd}@" in db_url:
+                raise RuntimeError(
+                    f"CRITICAL SECURITY VIOLATION: Database URL contains prohibited default password '{bad_pwd}' "
+                    f"in environment '{env}'. Set a strong unique password via POSTGRES_PASSWORD."
+                )
+
+        secret = os.getenv("PENTESA_SECRET_KEY") or getattr(settings, "secret_key", "")
+        if not secret or len(secret) < 32 or "change-in-production" in secret.lower() or "change-this" in secret.lower():
+            raise RuntimeError(
+                f"CRITICAL SECURITY VIOLATION: JWT signature secret key (PENTESA_SECRET_KEY) is missing, "
+                f"shorter than 32 characters, or set to an insecure default template in environment '{env}'."
+            )
 
 
 @asynccontextmanager

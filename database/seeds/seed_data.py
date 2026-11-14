@@ -1,32 +1,95 @@
-"""Initial database seeding for administrative user and optional demo project."""
+"""Initial database seeding for administrator account and optional demo project."""
 
+import logging
 import os
+import re
 import uuid
 from datetime import datetime, timedelta, timezone
+from typing import Tuple
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.models.user import User
 from database.models.project import Project, ProjectMember
-from database.models.scope import ScopeRule
+from packages.common.config import settings
 from packages.common.security import hash_password
 from services.execution_engine.planner import seed_wstg_catalog
 
+logger = logging.getLogger(__name__)
+
+
+def is_strong_password(password: str) -> Tuple[bool, str]:
+    """Validate administrator password complexity (SEC-PWD-01)."""
+    if len(password) < 12:
+        return False, "Password must be at least 12 characters long."
+    if not re.search(r"[A-Z]", password):
+        return False, "Password must contain at least one uppercase letter."
+    if not re.search(r"[a-z]", password):
+        return False, "Password must contain at least one lowercase letter."
+    if not re.search(r"\d", password):
+        return False, "Password must contain at least one numeric digit."
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>\-_]", password):
+        return False, "Password must contain at least one special character."
+    lower = password.lower()
+    if any(b in lower for b in ["password", "admin", "123456", "pentesa"]):
+        return False, "Password contains prohibited common phrases."
+    return True, ""
+
 
 async def seed_initial_data(session: AsyncSession) -> None:
-    """Seed initial administrator account and OWASP WSTG catalog."""
-    stmt = select(User).where(User.email == "admin@example.com")
-    result = await session.execute(stmt)
-    admin_user = result.scalar_one_or_none()
+    """
+    Seed initial system data adhering to SEC-PWD-01:
+    - Always seed official OWASP WSTG test catalog
+    - Never unconditionally seed default admin@example.com credentials
+    - Bootstrap admin ONLY if explicit valid bootstrap credentials provided
+      (PENTESA_BOOTSTRAP_ADMIN_EMAIL / PENTESA_BOOTSTRAP_ADMIN_PASSWORD)
+    - OR if PENTESA_ENV=development AND PENTESA_SEED_DEMO_DATA=1
+    """
+    # 1. Populate/refresh official WSTG Catalog
+    await seed_wstg_catalog(session)
 
-    if not admin_user:
+    # 2. Check if any admin account already exists
+    admin_stmt = select(User).where(User.role == "ADMIN")
+    existing_admin = (await session.execute(admin_stmt)).first()
+    if existing_admin:
+        return
+
+    bootstrap_email = os.getenv("PENTESA_BOOTSTRAP_ADMIN_EMAIL")
+    bootstrap_pwd = os.getenv("PENTESA_BOOTSTRAP_ADMIN_PASSWORD")
+
+    # 3. Handle explicit bootstrap credentials
+    if bootstrap_email and bootstrap_pwd:
+        is_strong, reason = is_strong_password(bootstrap_pwd)
+        if not is_strong:
+            raise ValueError(
+                f"SEC-PWD-01: PENTESA_BOOTSTRAP_ADMIN_PASSWORD rejected: {reason}"
+            )
+
+        admin_user = User(
+            id=uuid.uuid4(),
+            email=bootstrap_email.strip().lower(),
+            password_hash=hash_password(bootstrap_pwd),
+            full_name="System Administrator",
+            role="ADMIN",
+            is_active=True,
+        )
+        session.add(admin_user)
+        await session.commit()
+        logger.info(f"Successfully bootstrapped initial admin account: {bootstrap_email}")
+        return
+
+    # 4. Handle development demo data seeding
+    env = (getattr(settings, "env", "") or os.getenv("PENTESA_ENV", "")).lower()
+    seed_demo = os.getenv("PENTESA_SEED_DEMO_DATA", "").lower() in ("1", "true", "yes")
+
+    if env in ("development", "test") and seed_demo:
         admin_user = User(
             id=uuid.uuid4(),
             email="admin@example.com",
             password_hash=hash_password("Admin123!Secure"),
-            full_name="ADMIN",
+            full_name="Development Administrator",
             role="ADMIN",
-            is_active=True
+            is_active=True,
         )
         session.add(admin_user)
         await session.flush()
@@ -45,7 +108,7 @@ async def seed_initial_data(session: AsyncSession) -> None:
                 authorization_document_ref="ROE-DEMO-2026-001",
                 authorization_start=now - timedelta(days=1),
                 authorization_end=now + timedelta(days=30),
-                created_by=admin_user.id
+                created_by=admin_user.id,
             )
             session.add(demo_project)
             await session.flush()
@@ -54,29 +117,12 @@ async def seed_initial_data(session: AsyncSession) -> None:
                 id=uuid.uuid4(),
                 project_id=demo_project.id,
                 user_id=admin_user.id,
-                role="LEAD"
+                role="LEAD",
             )
             session.add(membership)
 
-            rule1 = ScopeRule(
-                id=uuid.uuid4(),
-                project_id=demo_project.id,
-                rule_type="DOMAIN_WILDCARD",
-                target_type="IN_SCOPE",
-                pattern="*.example.com",
-                protocol="https,http"
-            )
-            rule2 = ScopeRule(
-                id=uuid.uuid4(),
-                project_id=demo_project.id,
-                rule_type="EXCLUDED_PATH",
-                target_type="OUT_OF_SCOPE",
-                pattern="/logout"
-            )
-            session.add_all([rule1, rule2])
-
         await session.commit()
+        logger.info("Initialized development demo data (PENTESA_SEED_DEMO_DATA=1).")
+        return
 
-    # Always ensure WSTG catalog is seeded and current
-    await seed_wstg_catalog(session)
-    await session.commit()
+    logger.info("SEC-PWD-01: Zero admin accounts seeded. Set PENTESA_BOOTSTRAP_ADMIN_EMAIL to create admin.")

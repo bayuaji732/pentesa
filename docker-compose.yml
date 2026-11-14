@@ -15,8 +15,10 @@ services:
     environment:
       - PENTESA_ENV=production
       - PENTESA_DEBUG=false
-      - PENTESA_DATABASE_URL=postgresql+asyncpg://pentesa_user:pentesa_password@db:5432/pentesa
+      - PENTESA_DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-pentesa_user}:${POSTGRES_PASSWORD:?}@db:5432/${POSTGRES_DB:-pentesa}
       - PENTESA_REDIS_URL=redis://redis:6379/0
+      - PENTESA_SECRET_KEY=${JWT_SECRET:?}
+      - PENTESA_ENCRYPTION_KEY=${PENTESA_ENCRYPTION_KEY:?}
       - PENTESA_REPORT_STORAGE_DIR=/app/data/reports
       - PENTESA_EVIDENCE_STORAGE_DIR=/app/data/evidence
     extra_hosts:
@@ -52,8 +54,10 @@ services:
     environment:
       - PENTESA_ENV=production
       - PENTESA_DEBUG=false
-      - PENTESA_DATABASE_URL=postgresql+asyncpg://pentesa_user:pentesa_password@db:5432/pentesa
+      - PENTESA_DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-pentesa_user}:${POSTGRES_PASSWORD:?}@db:5432/${POSTGRES_DB:-pentesa}
       - PENTESA_REDIS_URL=redis://redis:6379/0
+      - PENTESA_SECRET_KEY=${JWT_SECRET:?}
+      - PENTESA_ENCRYPTION_KEY=${PENTESA_ENCRYPTION_KEY:?}
       - PENTESA_REPORT_STORAGE_DIR=/app/data/reports
       - PENTESA_EVIDENCE_STORAGE_DIR=/app/data/evidence
     extra_hosts:
@@ -109,7 +113,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-pentesa_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pentesa_password}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
       POSTGRES_DB: ${POSTGRES_DB:-pentesa}
     volumes:
       - pentesa-pgdata:/var/lib/postgresql/data

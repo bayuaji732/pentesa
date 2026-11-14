@@ -1,0 +1,41 @@
+=== V1.1: WHY POST-FIX SMOKE TEST LOGGED IN AS admin@example.com ===
+Explanation: docker-compose.phase2.yml attached persistent named volume 'phase2-pgdata'.
+Prior to FIX-03, seed_data.py seeded admin@example.com into the volume on container initial startup.
+seed_initial_data() skips seeding if an admin user already exists (select User where role='ADMIN').
+Restarting containers without '-v' preserved the existing database volume rows.
+smoke_test.py used admin@example.com / Admin123!Secure and authenticated against the pre-existing row.
+Result: Verified root cause of persistent volume behavior.
+
+=== V1.2 (a): PENTESA_ENV=production, NO BOOTSTRAP FLAG -> NO USERS EXIST ===
+DELETE FROM project_members;
+DELETE FROM users;
+Total users in DB: 0
+admin@example.com exists in DB: False
+Result: PASS (0 users seeded; admin@example.com login fails with HTTP 401)
+
+=== V1.2 (b): BOOTSTRAP FLAG WITHOUT EMAIL/PASSWORD -> STARTUP REFUSES ===
+Refusal exception caught: ValueError: SEC-PWD-01: PENTESA_BOOTSTRAP_ADMIN is enabled but PENTESA_BOOTSTRAP_ADMIN_EMAIL or PENTESA_BOOTSTRAP_ADMIN_PASSWORD is missing. Both must be provided.
+Result: PASS (startup refused)
+
+=== V1.2 (c): PASSWORD Admin123!Secure -> REFUSED AS WEAK/DEFAULT ===
+Refusal exception caught: ValueError: SEC-PWD-01: PENTESA_BOOTSTRAP_ADMIN_PASSWORD rejected: Password contains prohibited common phrases.
+Result: PASS (weak/default password refused)
+
+=== V1.2 (d): STRONG PASSWORD -> ADMIN CREATED ===
+INSERT INTO users (email, password_hash, full_name, role, is_active) VALUES ('admin@enterprise.test', '$2b$12$...', 'System Administrator', 'ADMIN', 1);
+Admin user created: email=admin@enterprise.test, role=ADMIN, is_active=True
+Result: PASS (admin successfully bootstrapped with strong password)
+
+=== V1.3: DATABASE PASSWORD CHECK ON DATABASE_URL ===
+Variable read by check: Reads PENTESA_DATABASE_URL, DATABASE_URL, and settings.database_url.
+Testing DATABASE_URL with default password 'pentesa_password' in production:
+Refusal exception caught: RuntimeError: CRITICAL SECURITY VIOLATION: Database URL contains prohibited default password 'pentesa_password' in environment 'production'. Set a strong unique password via POSTGRES_PASSWORD.
+Result: PASS (DATABASE_URL default password check fired)
+
+=== V1.4: DOCKER-COMPOSE.YML NO LONGER DEFAULTS DB PASSWORD OR JWT SECRET ===
+docker-compose.yml excerpt: - PENTESA_DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-pentesa_user}:${POSTGRES_PASSWORD:?}@db:5432/${POSTGRES_DB:-pentesa}
+docker-compose.yml excerpt: - PENTESA_SECRET_KEY=${JWT_SECRET:?}
+docker-compose.yml excerpt: - PENTESA_DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-pentesa_user}:${POSTGRES_PASSWORD:?}@db:5432/${POSTGRES_DB:-pentesa}
+docker-compose.yml excerpt: - PENTESA_SECRET_KEY=${JWT_SECRET:?}
+docker-compose.yml excerpt: POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+Result: PASS (all secrets enforce mandatory environment definition via :?)

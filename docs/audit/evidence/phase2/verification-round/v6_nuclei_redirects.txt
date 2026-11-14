@@ -1,0 +1,46 @@
+﻿================================================================================
+=== V6: REDIRECT HARDENING VERIFICATION (NUCLEI & FFUF) ===
+================================================================================
+Redirect test server running on 127.0.0.1:37439
+Redirect endpoint: /redirect -> 302 -> /canary
+Canary endpoint:   /canary   -> 200 (logs canary hit)
+
+--- TEST 1: Nuclei WITHOUT -dr flag (Template has redirects: true) ---
+Command: nuclei -target http://127.0.0.1:37439 -t /tmp/test_redirect_template.yaml -silent -no-interactsh -duc -timeout 2
+Redirector Hits: 1
+Canary Hits:     1
+Findings Output: [[92mtest-internal-redirect[0m] [[94mhttp[0m] [[34minfo[0m] http://127.0.0.1:37439/canary
+Outcome: Template followed internal redirect -> Canary was reached: True
+[CONFIRMED] Nuclei without -dr follows template-level redirects into out-of-scope targets.
+
+--- TEST 2: Nuclei WITH -dr flag (Pentesa hardened build_argv) ---
+Command: nuclei -target http://127.0.0.1:37439 -t /tmp/test_redirect_template.yaml -silent -no-interactsh -duc -dr -timeout 2
+Redirector Hits: 1
+Canary Hits:     0
+Findings Output: 
+Outcome: -dr flag blocked template-level redirect -> Canary hits: 0 (ZERO HITS)
+[PASS] Nuclei -dr flag successfully prevented redirect following.
+
+--- TEST 3: ffuf redirect behavior ---
+Command (default): ffuf -u http://127.0.0.1:37439/FUZZ -w /tmp/test_wordlist.txt -s
+Redirector Hits: 1
+Canary Hits:     0
+Outcome: ffuf default does not follow redirects -> Canary hits: 0 (ZERO HITS)
+[PASS] ffuf does not follow redirects without -r flag.
+
+Command (with -r): ffuf -u http://127.0.0.1:37439/FUZZ -w /tmp/test_wordlist.txt -r -s
+Redirector Hits: 1
+Canary Hits:     1
+Outcome: ffuf with -r followed redirect to canary -> Canary hits: 1
+[CONFIRMED] ffuf -r is dangerous and Pentesa FfufRunner strictly forbids/strips -r.
+
+================================================================================
+=== V6 ARCHITECTURAL ANALYSIS (NI-03 CLASSIFICATION) ===
+  - Nuclei templates can declare 'redirects: true'. Passing '-dr' (-disable-redirects)
+    in NucleiRunner.build_argv() completely disables template-level redirects.
+  - ffuf by default NEVER follows HTTP redirects; FfufRunner strips -r to prevent following.
+  - Both tools with Pentesa CLI hardening achieve ZERO canary hits (0 hits).
+  - However, because CLI flags rely on subprocess/tool cooperation, complete architectural
+    defense-in-depth requires a dedicated Layer-2 container proxy (reassigned to Phase 9).
+  - In the interim, NI-03 is mitigated via fail-closed lab-only guardrail and -dr CLI enforcement.
+================================================================================

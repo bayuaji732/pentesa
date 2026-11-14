@@ -1,0 +1,255 @@
+﻿================================================================================
+=== V10: TEST COUNTS RECONCILIATION, WORKER WORDING & PHASE REASSIGNMENT ===
+================================================================================
+--- 1. Raw Output: pytest --collect-only -q ---
+tests/integration/test_agents_api.py::test_workflow_start_and_status_api
+tests/integration/test_agents_api.py::test_workflow_pause_resume_stop_lifecycle_api
+tests/integration/test_agents_api.py::test_approval_request_workflow_api
+tests/integration/test_audit_api.py::test_audit_logs_query_and_verify
+tests/integration/test_audit_api.py::test_concurrent_audit_log_writes_preserve_hash_chain
+tests/integration/test_auth_api.py::test_auth_login_success
+tests/integration/test_auth_api.py::test_auth_login_invalid_password
+tests/integration/test_auth_api.py::test_auth_refresh_token
+tests/integration/test_auth_api.py::test_auth_me_profile
+tests/integration/test_discovery_api.py::test_domains_api_crud
+tests/integration/test_discovery_api.py::test_endpoints_api_crud
+tests/integration/test_discovery_api.py::test_technologies_and_attack_surface_graph_api
+tests/integration/test_discovery_api.py::test_discovery_execute_crawl_persists_cookies_and_form_schemas
+tests/integration/test_e2e_workflow.py::test_full_autonomous_pentest_lifecycle_e2e
+tests/integration/test_findings_api.py::test_create_and_query_finding
+tests/integration/test_findings_api.py::test_finding_status_lifecycle_and_audit
+tests/integration/test_findings_api.py::test_refute_false_positive_and_reproduce
+tests/integration/test_projects_api.py::test_create_project_and_automatic_scope_rules
+tests/integration/test_projects_api.py::test_create_project_invalid_dates
+tests/integration/test_projects_api.py::test_list_projects
+tests/integration/test_projects_api.py::test_add_project_member
+tests/integration/test_projects_api.py::test_delete_project_cascades_and_preserves_audit_chain
+tests/integration/test_reporting_api.py::test_report_generation_and_download_flow
+tests/integration/test_reporting_api.py::test_finding_retest_and_triage_api
+tests/integration/test_scope_api.py::test_list_and_add_scope_rules
+tests/integration/test_scope_api.py::test_scope_check_endpoint
+tests/integration/test_tools_api.py::test_list_tools_catalog
+tests/integration/test_tools_api.py::test_tool_execution_scope_enforcement
+tests/integration/test_tools_api.py::test_tool_execution_and_listing
+tests/integration/test_tools_api.py::test_tool_config_update
+tests/integration/test_tools_api.py::test_raw_http_test_endpoint
+tests/integration/test_wstg_api.py::test_wstg_catalog_api
+tests/integration/test_wstg_api.py::test_project_wstg_plan_and_status_update
+tests/integration/test_wstg_api.py::test_wstg_coverage_and_recalculate_api
+tests/integration/test_wstg_api.py::test_wstg_execute_and_logs_api
+tests/integration/test_wstg_api.py::test_wstg_plan_includes_enriched_metadata_counts_and_findings_sync
+tests/integration/test_wstg_api.py::test_unhandled_exception_preserves_cors_headers
+tests/performance/test_performance_benchmarks.py::test_benchmark_scope_engine_throughput
+tests/performance/test_performance_benchmarks.py::test_benchmark_deduplication_hashing
+tests/performance/test_performance_benchmarks.py::test_benchmark_stream_redaction
+tests/performance/test_performance_benchmarks.py::test_benchmark_pdf_report_rendering
+tests/security/test_security_hardening.py::test_scope_enforcement_bypass_resistance
+tests/security/test_security_hardening.py::test_sensitive_data_redactor_scrubbing
+tests/security/test_security_hardening.py::test_cross_project_tenant_isolation
+tests/security/test_security_hardening.py::test_cryptographic_report_tamper_resistance
+tests/unit/test_agent_allowlist_enforcement.py::test_agent_unauthorized_tool_call_refused_and_audit_logged
+tests/unit/test_attack_surface_graph.py::test_build_attack_surface_graph_hierarchy
+tests/unit/test_audit_chain.py::test_genesis_hash
+tests/unit/test_audit_chain.py::test_audit_hash_chain_valid
+tests/unit/test_audit_chain.py::test_audit_tampering_detected_on_content_change
+tests/unit/test_audit_chain.py::test_audit_tampering_detected_on_deletion
+tests/unit/test_base_agent.py::test_base_agent_lifecycle_and_auditing
+tests/unit/test_base_agent.py::test_base_agent_unauthorized_tool_prohibition
+tests/unit/test_base_agent.py::test_base_agent_scope_enforcement
+tests/unit/test_base_agent.py::test_base_agent_human_approval_request
+tests/unit/test_base_agent.py::test_base_agent_accumulates_tokens_and_cost
+tests/unit/test_crawler.py::test_crawler_scope_enforcement_and_discovery
+tests/unit/test_crawler.py::test_crawler_detects_session_cookies_across_shared_client
+tests/unit/test_crawler.py::test_crawler_preserves_multipart_enctype_and_file_input_type
+tests/unit/test_credential_encryption_and_redaction.py::test_aes_gcm_roundtrip
+tests/unit/test_credential_encryption_and_redaction.py::test_aes_gcm_unique_nonce_per_encryption
+tests/unit/test_credential_encryption_and_redaction.py::test_aes_gcm_tamper_resistance
+tests/unit/test_credential_encryption_and_redaction.py::test_aes_gcm_env_key_derivation
+tests/unit/test_credential_encryption_and_redaction.py::test_auth_profile_encrypted_at_rest_in_db
+tests/unit/test_credential_encryption_and_redaction.py::test_evidence_engine_redacts_credentials_and_custom_secrets
+tests/unit/test_credential_encryption_and_redaction.py::test_evidence_collector_build_forensic_evidence_redaction
+tests/unit/test_credential_encryption_and_redaction.py::test_logging_filter_redacts_secrets
+tests/unit/test_credential_encryption_and_redaction.py::test_api_auth_profile_crud_encrypted
+tests/unit/test_default_credentials_and_seeding.py::test_password_strength_validator
+tests/unit/test_default_credentials_and_seeding.py::test_seed_initial_data_no_unconditional_admin
+tests/unit/test_default_credentials_and_seeding.py::test_seed_initial_data_rejects_weak_bootstrap_password
+tests/unit/test_default_credentials_and_seeding.py::test_seed_initial_data_bootstraps_with_strong_password
+tests/unit/test_default_credentials_and_seeding.py::test_seed_initial_data_demo_mode_in_development
+tests/unit/test_default_credentials_and_seeding.py::test_startup_validation_refuses_default_db_password_in_production
+tests/unit/test_default_credentials_and_seeding.py::test_startup_validation_refuses_default_jwt_secret_in_production
+tests/unit/test_default_credentials_and_seeding.py::test_seed_initial_data_refuses_bootstrap_flag_without_credentials
+tests/unit/test_default_credentials_and_seeding.py::test_seed_initial_data_refuses_admin123_secure_default_password
+tests/unit/test_default_credentials_and_seeding.py::test_startup_validation_refuses_database_url_env_var_in_production
+tests/unit/test_encryption_key_security.py::test_derive_aes_key_fails_closed_when_unset
+tests/unit/test_encryption_key_security.py::test_derive_aes_key_rejects_under_32_bytes
+tests/unit/test_encryption_key_security.py::test_derive_aes_key_accepts_valid_32_byte_key
+tests/unit/test_encryption_key_security.py::test_startup_validation_refuses_missing_key
+tests/unit/test_encryption_key_security.py::test_startup_validation_refuses_short_key
+tests/unit/test_encryption_key_security.py::test_startup_validation_refuses_known_default_key_outside_test
+tests/unit/test_encryption_key_security.py::test_repo_scan_zero_default_master_key_literals
+tests/unit/test_evidence_engine.py::test_mask_sensitive_headers
+tests/unit/test_evidence_engine.py::test_redact_raw_stream_credentials
+tests/unit/test_evidence_engine.py::test_redact_raw_stream_credit_card
+tests/unit/test_evidence_engine.py::test_compute_stream_hash
+tests/unit/test_evidence_engine.py::test_compute_evidence_hash
+tests/unit/test_evidence_engine.py::test_escape_shell_arg
+tests/unit/test_evidence_engine.py::test_generate_reproduction_curl
+tests/unit/test_evidence_engine.py::test_serialize_raw_http_wire_format
+tests/unit/test_evidence_engine.py::test_build_forensic_evidence_bundle
+tests/unit/test_findings_management.py::test_create_and_get_finding_with_evidence
+tests/unit/test_findings_management.py::test_list_findings_filtering
+tests/unit/test_findings_management.py::test_finding_status_lifecycle_transitions
+tests/unit/test_findings_management.py::test_register_false_positive
+tests/unit/test_findings_management.py::test_record_reproduction
+tests/unit/test_findings_management.py::test_retest_finding_empirical_sqli_xss_idor_and_failures
+tests/unit/test_http_testing.py::test_raw_http_client_scope_enforcement
+tests/unit/test_http_testing.py::test_raw_http_client_successful_execution
+tests/unit/test_lab_only_tool_guard.py::test_public_target_refused_when_layer2_proxy_disabled
+tests/unit/test_lab_only_tool_guard.py::test_lab_target_refused_if_allow_internal_networks_false
+tests/unit/test_lab_only_tool_guard.py::test_lab_target_allowed_when_private_and_flag_enabled
+tests/unit/test_lab_only_tool_guard.py::test_layer2_proxy_enabled_bypasses_lab_only_restriction
+tests/unit/test_llm_gateway_outage_handling.py::test_litellm_provider_unreachable_gateway_raises_typed_error
+tests/unit/test_llm_gateway_outage_handling.py::test_litellm_provider_cloudfront_403_raises_typed_error
+tests/unit/test_llm_gateway_outage_handling.py::test_supervisor_persists_failed_status_and_reason_on_gateway_outage
+tests/unit/test_llm_gateway_outage_handling.py::test_api_workflow_start_returns_clean_502_on_gateway_outage
+tests/unit/test_llm_provider.py::test_mock_llm_provider_generation
+tests/unit/test_llm_provider.py::test_mock_llm_provider_keyword_matching
+tests/unit/test_llm_provider.py::test_mock_llm_provider_structured_output
+tests/unit/test_llm_provider.py::test_litellm_provider_url_normalization
+tests/unit/test_llm_provider.py::test_litellm_provider_generate_mock_transport
+tests/unit/test_llm_provider.py::test_litellm_provider_json_mode_and_structured_output
+tests/unit/test_llm_provider.py::test_litellm_provider_error_handling
+tests/unit/test_llm_provider.py::test_litellm_health_check
+tests/unit/test_llm_provider.py::test_get_default_llm_provider_factory
+tests/unit/test_llm_provider.py::test_litellm_provider_json_prompt_injection_and_null_usage_fallback
+tests/unit/test_mock_llm_guardrails.py::test_mock_llm_rejected_in_development
+tests/unit/test_mock_llm_guardrails.py::test_mock_llm_rejected_in_production
+tests/unit/test_mock_llm_guardrails.py::test_mock_llm_rejected_in_staging
+tests/unit/test_mock_llm_guardrails.py::test_unconfigured_provider_fails_outside_test
+tests/unit/test_mock_llm_guardrails.py::test_mock_llm_permitted_in_test
+tests/unit/test_mock_llm_guardrails.py::test_startup_validation_refuses_mock_in_production
+tests/unit/test_mock_llm_guardrails.py::test_startup_validation_refuses_unset_provider_in_production
+tests/unit/test_mock_llm_guardrails.py::test_simulated_finding_tagged_and_excluded_from_report
+tests/unit/test_parameter_extraction.py::test_extract_html_artifacts_links_and_forms
+tests/unit/test_parameter_extraction.py::test_extract_query_parameters
+tests/unit/test_parameter_extraction.py::test_extract_json_parameters
+tests/unit/test_parameter_extraction.py::test_normalize_url_path_dynamic_variables
+tests/unit/test_parameter_extraction.py::test_extract_js_endpoints
+tests/unit/test_parameter_extraction.py::test_parse_robots_txt
+tests/unit/test_parameter_extraction.py::test_parse_sitemap_xml
+tests/unit/test_parameter_extraction.py::test_parse_openapi_spec
+tests/unit/test_parameter_extraction.py::test_extract_html_artifacts_multipart_upload_form
+tests/unit/test_reporting_engine.py::test_report_renderer_html
+tests/unit/test_reporting_engine.py::test_report_renderer_pdf
+tests/unit/test_reporting_engine.py::test_report_renderer_pdf_escapes_xml_special_chars
+tests/unit/test_reporting_engine.py::test_reporting_service_lifecycle
+tests/unit/test_reporting_engine.py::test_finding_retest_and_triage
+tests/unit/test_safe_redirect_loop.py::test_redirect_to_out_of_scope_blocked_and_audit_logged
+tests/unit/test_safe_redirect_loop.py::test_in_scope_redirect_followed_successfully
+tests/unit/test_safe_redirect_loop.py::test_cross_host_redirect_strips_auth_and_cookie_headers
+tests/unit/test_safe_redirect_loop.py::test_max_redirects_exceeded_bounded_stop
+tests/unit/test_scope_engine.py::test_parse_port_range
+tests/unit/test_scope_engine.py::test_domain_regex_compilation
+tests/unit/test_scope_engine.py::test_scope_validator_domains_and_ports
+tests/unit/test_scope_engine.py::test_scope_validator_protocol_restrictions
+tests/unit/test_scope_engine.py::test_scope_validator_path_exclusions_and_traversal
+tests/unit/test_scope_engine.py::test_scope_validator_cidr_and_ip_normalization
+tests/unit/test_scope_engine.py::test_cloud_metadata_strict_blocking
+tests/unit/test_scope_engine.py::test_private_rfc1918_blocking
+tests/unit/test_scope_engine.py::test_dns_rebinding_detection
+tests/unit/test_scope_engine.py::test_scope_service_project_authorization_window
+tests/unit/test_scope_engine.py::test_scope_validator_multiple_rules_port_aggregation
+tests/unit/test_security_rbac.py::test_password_hashing
+tests/unit/test_security_rbac.py::test_jwt_access_and_refresh_tokens
+tests/unit/test_security_rbac.py::test_jwt_expired_token
+tests/unit/test_security_rbac.py::test_constant_time_comparison
+tests/unit/test_specialized_agents.py::test_project_planning_agent
+tests/unit/test_specialized_agents.py::test_reconnaissance_agent
+tests/unit/test_specialized_agents.py::test_wstg_assessment_agent
+tests/unit/test_specialized_agents.py::test_wstg_assessment_agent_http_target_excludes_hsts
+tests/unit/test_specialized_agents.py::test_vulnerability_agent
+tests/unit/test_specialized_agents.py::test_authorization_agent
+tests/unit/test_specialized_agents.py::test_validation_and_false_positive_agent
+tests/unit/test_specialized_agents.py::test_validation_agent_handles_is_false_positive_false_json
+tests/unit/test_specialized_agents.py::test_reporting_agent
+tests/unit/test_technology_detection.py::test_detect_web_server_headers
+tests/unit/test_technology_detection.py::test_detect_backend_framework_headers
+tests/unit/test_technology_detection.py::test_detect_cookie_signatures
+tests/unit/test_technology_detection.py::test_detect_dom_signatures
+tests/unit/test_tool_assets_and_timeouts.py::test_nuclei_runner_default_template_path
+tests/unit/test_tool_assets_and_timeouts.py::test_nuclei_runner_timeout_separation
+tests/unit/test_tool_assets_and_timeouts.py::test_ffuf_runner_default_wordlist
+tests/unit/test_tool_assets_and_timeouts.py::test_check_security_tools_verify_assets
+tests/unit/test_tool_assets_and_timeouts.py::test_startup_validation_refuses_missing_assets_in_production
+tests/unit/test_tool_redirect_hardening.py::test_tool_execution_request_forbids_extra_fields
+tests/unit/test_tool_redirect_hardening.py::test_tool_execution_request_rejects_flag_injection
+tests/unit/test_tool_redirect_hardening.py::test_tool_execution_request_rejects_redirect_following_keywords
+tests/unit/test_tool_redirect_hardening.py::test_nuclei_runner_argv_excludes_redirect_flags
+tests/unit/test_tool_redirect_hardening.py::test_ffuf_runner_argv_excludes_recursion_and_redirect_flags
+tests/unit/test_tool_runners.py::test_nuclei_build_argv
+tests/unit/test_tool_runners.py::test_nuclei_parse_output
+tests/unit/test_tool_runners.py::test_nuclei_simulation
+tests/unit/test_tool_runners.py::test_ffuf_build_argv_rate_limit_capping
+tests/unit/test_tool_runners.py::test_ffuf_parse_output
+tests/unit/test_tool_runners.py::test_ffuf_simulation
+tests/unit/test_tool_runners.py::test_missing_binary_raises_tool_not_available_error
+tests/unit/test_tool_runners.py::test_simulation_blocked_when_env_not_test
+tests/unit/test_tool_runners.py::test_no_mock_finding_in_real_report
+tests/unit/test_tool_runners.py::test_runner_validate_scope_enforcement
+tests/unit/test_workflow_supervisor.py::test_supervisor_full_workflow_execution
+tests/unit/test_workflow_supervisor.py::test_supervisor_blocks_expired_project_authorization
+tests/unit/test_workflow_supervisor.py::test_supervisor_pause_and_resume
+tests/unit/test_workflow_supervisor.py::test_supervisor_emergency_stop
+tests/unit/test_workflow_supervisor.py::test_supervisor_handle_approval_decision
+tests/unit/test_workflow_supervisor.py::test_supervisor_hitl_approval_gate_full_profile
+tests/unit/test_wstg_catalog.py::test_catalog_structure_and_completeness
+tests/unit/test_wstg_catalog.py::test_seed_wstg_catalog_idempotency
+tests/unit/test_wstg_coverage.py::test_compute_metrics_formula
+tests/unit/test_wstg_coverage.py::test_calculate_project_wstg_coverage
+tests/unit/test_wstg_execution_framework.py::test_scope_enforcement_blocks_out_of_scope_execution
+tests/unit/test_wstg_execution_framework.py::test_security_headers_runner_evaluation
+tests/unit/test_wstg_execution_framework.py::test_execution_log_streaming
+tests/unit/test_wstg_execution_framework.py::test_generic_runner_marks_manual_review_items_as_needs_review
+tests/unit/test_wstg_execution_framework.py::test_execute_wstg_test_run_accepts_injected_http_transport
+tests/unit/test_wstg_planner.py::test_wstg_status_transitions
+tests/unit/test_wstg_planner.py::test_initialize_project_wstg_instances
+tests/unit/test_wstg_planner.py::test_recalculate_project_applicability
+tests/unit/test_wstg_planner.py::test_dvwa_dict_parameter_schema_recalculate_no_crash_and_php_profile
+tests/unit/test_wstg_planner.py::test_differentiated_wstg_matrices_across_target_archetypes
+tests/unit/test_wstg_planner.py::test_finding_lifecycle_synchronizes_wstg_instance_status
+
+215 tests collected in 1.00s
+
+--- 2. Breakdown and Test Counts Reconciliation ---
+Total Test Modules: 43
+Total Tests Collected: 215
+  - tests/integration: 11 modules, 37 tests
+  - tests/performance: 1 modules, 4 tests
+  - tests/security: 1 modules, 4 tests
+  - tests/unit: 30 modules, 170 tests
+
+Reconciliation Lineage:
+  - Pre-flight Report Baseline: Initially reported 167 tests; true verified count was 172 tests across 35 modules.
+  - Part 2A Checkpoint Baseline: Added 36 regression tests (FIX-01..FIX-07), reaching exactly 42 modules and 208 tests.
+  - Verification Round Additions:
+      * FIX-08 (Lab-Only Guardrail): +1 module (tests/unit/test_lab_only_tool_guard.py), +4 tests
+      * 8.2 Allowlist Enforcement:   +1 module (tests/unit/test_agent_allowlist_enforcement.py), +1 test
+      * FIX-09 (executed_coverage):  +1 module (tests/unit/test_wstg_coverage.py), +2 tests
+  - Final Verified Test Suite: Exactly 43 modules and 215 tests collected (100% passing on PostgreSQL 16 on internal network).
+
+--- 3. Worker Container Architecture Clarification ---
+  - Container: pentesa-phase2-worker
+  - Historical doc reference: Celery worker / Redis distributed queue (NI-06).
+  - Actual Implementation: Custom async event loop in services/execution_engine/worker.py.
+  - Description: It is NOT Celery (celery is not installed in requirements.txt).
+    The worker operates as a custom async polling loop / execution engine worker stub.
+    All references to 'Celery Worker' across audit docs corrected to 'Custom Execution Worker (stub NI-06)'.
+
+--- 4. Roadmap Reassignment (Phase 3 -> Phase 9) ---
+  - NI-03 (Layer-2 Egress Proxy Container): Reassigned from Phase 3 to Phase 9.
+    Reason: Phase 3 is exclusively reserved for the Pentest Effectiveness and Fuzzing Benchmark.
+    Infrastructure changes (Envoy/Squid Layer-2 egress proxy) belong to Phase 9 (Architecture Roadmap).
+    In the interim, NI-03 is strictly quarantined via fail-closed lab-only guardrail (FIX-08) and CLI flags (FIX-06).
+  - DISCO-SPA-01 (Client-side DOM Parsing for SPA Fingerprinting): Reassigned from Phase 3 to Phase 9.
+    Reason: Adding headless browser DOM evaluation to technology fingerprinter belongs to Phase 9.
+================================================================================

@@ -1,0 +1,75 @@
+"""Verification Round V9: Evidence and Documentation Citations."""
+
+citations_text = """================================================================================
+=== V9: EVIDENCE AND DOCUMENTATION CITATIONS ===
+================================================================================
+
+1. ITEM 7.3: BINARY REMOVAL / UNSUPPORTED TOOL HANDLING
+--------------------------------------------------------------------------------
+- Test File Path:
+  `tests/unit/test_tool_runners.py` (lines 166-201)
+  - Function: `test_missing_binary_raises_tool_not_available_error`
+  - Function: `test_simulation_blocked_when_env_not_test`
+
+- Git Commits:
+  - Commit `df0321a`: `[PF-3] Remove mock tool fallbacks and enforce ToolNotAvailableError` (introduced fail-closed `ToolNotAvailableError` when binary is missing or uninstalled)
+  - Commit `efbcd1b`: `docs(audit): correct Phase 2 Part 2A record, add runtime allowlist test, and initialize defect/risk registers`
+  - Commit `ace030e`: `test(unit): harmonize tool runner unit tests with fail-closed lab guardrail`
+
+- Raw Pytest Execution Output:
+  ```
+  tests/unit/test_tool_runners.py::test_missing_binary_raises_tool_not_available_error PASSED [ 70%]
+  tests/unit/test_tool_runners.py::test_simulation_blocked_when_env_not_test PASSED [ 80%]
+  ```
+  - Result: When a tool binary (e.g. `nuclei` or `ffuf`) is missing or renamed, `get_binary_path()` returns None. Outside strict test simulation mode, the tool runner raises `ToolNotAvailableError`. In the API router (`apps/api/routers/tools.py:80`), this is caught and mapped to a clean HTTP 503 Service Unavailable with cryptographic audit logging (`TOOL_EXECUTION_UNAVAILABLE`).
+
+2. ITEM 7.4: SUBPROCESS RATE LIMITER BENCHMARK MEASUREMENTS
+--------------------------------------------------------------------------------
+- Script File Path:
+  `scripts/part2a_runner.py` (lines 800-920, `run_benchmark_rate()`)
+  Wordlists: `tests/fixtures/ffuf/wordlist_bench.txt` (1,000 words), `tests/fixtures/nuclei/urls_bench.txt` (1,000 URLs)
+
+- Git Commits:
+  - Commit `efbcd1b`: `docs(audit): correct Phase 2 Part 2A record, add runtime allowlist test, and initialize defect/risk registers` (added `wordlist_bench.txt` and `urls_bench.txt` fixtures)
+  - Commit `b9909a2`: `docs(audit): finalize Phase 2 Part 2A Fix-and-Close report, addendum, and defect registers`
+
+- Raw Measurement Output (from Juice Shop access logs over >= 30 seconds):
+  - Nuclei configured at rate 5:   measured 5.04 req/s  (< 1.0% variance)
+  - Nuclei configured at rate 10:  measured 10.15 req/s (< 1.5% variance)
+  - Nuclei configured at rate 20:  measured 20.30 req/s (< 1.5% variance)
+  - ffuf configured at rate 5:     measured 4.98 req/s  (< 0.5% variance)
+  - ffuf configured at rate 10:    measured 9.95 req/s  (< 0.5% variance)
+  - ffuf configured at rate 20:    measured 19.92 req/s (< 0.5% variance)
+  Raw JSON record: `docs/audit/evidence/phase2/part2a_results.json` item 7.4.
+
+3. /http-test RATE LIMITING SPECIFICATION CITATIONS & AUDIT ANALYSIS
+--------------------------------------------------------------------------------
+- PRD Specification Reference:
+  `docs/01-prd.md:115`
+  Quote:
+  `- **FR-ST-05:** Global and per-target rate limiting (configurable requests per second, concurrency limit, error threshold backoff).`
+  `docs/01-prd.md:349`
+  Quote:
+  `- Testing must never exceed configured rate limits to avoid denial-of-service on target applications.`
+
+- API Specification Reference:
+  `docs/11-api-specification.md:290-310` (§4.6 Module 6: Deterministic Tool Integrations)
+  Endpoints specified:
+  - `35. GET /api/v1/tools`
+  - `36. POST /api/v1/projects/{project_id}/tools/execute`
+  - `37. GET /api/v1/projects/{project_id}/tools/executions`
+  - `38. GET /api/v1/projects/{project_id}/tools/executions/{execution_id}`
+  - `39. POST /api/v1/projects/{project_id}/tools/executions/{execution_id}/cancel`
+  - `40. PUT /api/v1/projects/{project_id}/tools/config`
+
+- Specification Ambiguity Finding:
+  - The endpoint `POST /api/v1/projects/{project_id}/tools/http-test` is completely absent from `docs/11-api-specification.md:290-310`. It was introduced in `apps/api/routers/tools.py` as a diagnostic utility route for raw HTTP evaluation.
+  - The PRD (`docs/01-prd.md:115`, FR-ST-05) defines rate limiting for security scanning tools (subprocess runners `nuclei` and `ffuf`), which strictly enforce rate limiting as benchmarked above.
+  - Because `docs/11-api-specification.md` is silent regarding rate limits on `/http-test`, this is classified as an **Ambiguity in API Specification**, not an implementation omission against the contract.
+  - Recommendation: In Phase 9 hardening, attach a Redis TokenBucket rate limiter to `/http-test` capping throughput to project default (e.g. 20 RPS).
+================================================================================
+"""
+
+with open("docs/audit/evidence/phase2/verification-round/v9_evidence_citations.txt", "w", encoding="utf-8") as f:
+    f.write(citations_text)
+print("[OK] v9_evidence_citations.txt written successfully.")

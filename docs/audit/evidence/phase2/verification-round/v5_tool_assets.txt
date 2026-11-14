@@ -1,0 +1,114 @@
+﻿================================================================================
+=== V5: TOOL ASSETS VERIFICATION (TOOL-ASSETS-01 / FIX-05) ===
+================================================================================
+--- 1. Pinned Tool Versions and SHA-256 Checksums in Dockerfiles ---
+
+[File: infrastructure/docker/Dockerfile.api]
+   FFUF_VERSION="2.1.0" \
+   FFUF_SHA256="fc2c82736c14dcbea4daf3d3cf3878c1c4773008ba45c2bc0fceba7d17b40bb5" \
+   NUCLEI_VERSION="3.3.7" \
+   NUCLEI_SHA256="725ef892fcffd1b03ad4f0874942fc4b623c0419b6b6c6c91fe4a5a65671f77c"
+   && curl -fsSL -o /tmp/ffuf.tar.gz "https://github.com/ffuf/ffuf/releases/download/v${FFUF_VERSION}/ffuf_${FFUF_VERSION}_linux_amd64.tar.gz" \
+   && echo "${FFUF_SHA256}  /tmp/ffuf.tar.gz" | sha256sum -c - \
+   && curl -fsSL -o /tmp/nuclei.zip "https://github.com/projectdiscovery/nuclei/releases/download/v${NUCLEI_VERSION}/nuclei_${NUCLEI_VERSION}_linux_amd64.zip" \
+   && echo "${NUCLEI_SHA256}  /tmp/nuclei.zip" | sha256sum -c - \
+
+[File: infrastructure/docker/Dockerfile.worker]
+   FFUF_VERSION="2.1.0" \
+   FFUF_SHA256="fc2c82736c14dcbea4daf3d3cf3878c1c4773008ba45c2bc0fceba7d17b40bb5" \
+   NUCLEI_VERSION="3.3.7" \
+   NUCLEI_SHA256="725ef892fcffd1b03ad4f0874942fc4b623c0419b6b6c6c91fe4a5a65671f77c"
+   && curl -fsSL -o /tmp/ffuf.tar.gz "https://github.com/ffuf/ffuf/releases/download/v${FFUF_VERSION}/ffuf_${FFUF_VERSION}_linux_amd64.tar.gz" \
+   && echo "${FFUF_SHA256}  /tmp/ffuf.tar.gz" | sha256sum -c - \
+   && curl -fsSL -o /tmp/nuclei.zip "https://github.com/projectdiscovery/nuclei/releases/download/v${NUCLEI_VERSION}/nuclei_${NUCLEI_VERSION}_linux_amd64.zip" \
+   && echo "${NUCLEI_SHA256}  /tmp/nuclei.zip" | sha256sum -c - \
+
+[File: infrastructure/docker/Dockerfile.test]
+   FFUF_VERSION="2.1.0" \
+   FFUF_SHA256="fc2c82736c14dcbea4daf3d3cf3878c1c4773008ba45c2bc0fceba7d17b40bb5" \
+   NUCLEI_VERSION="3.3.7" \
+   NUCLEI_SHA256="725ef892fcffd1b03ad4f0874942fc4b623c0419b6b6c6c91fe4a5a65671f77c"
+   && curl -fsSL -o /tmp/ffuf.tar.gz "https://github.com/ffuf/ffuf/releases/download/v${FFUF_VERSION}/ffuf_${FFUF_VERSION}_linux_amd64.tar.gz" \
+   && echo "${FFUF_SHA256}  /tmp/ffuf.tar.gz" | sha256sum -c - \
+   && curl -fsSL -o /tmp/nuclei.zip "https://github.com/projectdiscovery/nuclei/releases/download/v${NUCLEI_VERSION}/nuclei_${NUCLEI_VERSION}_linux_amd64.zip" \
+   && echo "${NUCLEI_SHA256}  /tmp/nuclei.zip" | sha256sum -c - \
+
+--- 2. Container Startup and Assets Verification with --network none ---
+Executing: docker run --rm --network none pentesa-test-runner:latest python scripts/check_security_tools.py
+[*] Verifying installed security tools and baked assets...
+[OK] nuclei verified at /usr/local/bin/nuclei: [[34mINF[0m] Nuclei Engine Version: v3.3.7
+[OK] ffuf verified at /usr/local/bin/ffuf: ffuf version: 2.1.0
+[OK] Nuclei templates verified at /opt/nuclei-templates (2 templates found)
+[OK] ffuf wordlist verified at /opt/wordlists/common_paths.txt (19 words)
+[SUCCESS] All required security tools and assets verified and operational.
+
+Inspecting baked templates and wordlist:
+Templates in /opt/nuclei-templates: 2
+  - exposure.yaml (438 bytes)
+  - ping.yaml (337 bytes)
+
+Wordlist lines in /opt/wordlists/common_paths.txt: 19 paths
+Sample paths: ['rest', 'api', 'ftp', 'admin', 'assets']
+
+--- 3. Real Nuclei Execution against Juice Shop (JSON Findings Output) ---
+Running Nuclei against target-juiceshop:3000...
+Nuclei Execution Completed. Findings detected: 3
+Finding #1:
+  Template ID: generic-exposure-check
+  Name:        Sensitive File and Directory Exposure Check
+  Severity:    medium
+  Matched At:  http://target-juiceshop:3000/.git/config
+  CWE:         ['cwe-538']
+Finding #2:
+  Template ID: generic-exposure-check
+  Name:        Sensitive File and Directory Exposure Check
+  Severity:    medium
+  Matched At:  http://target-juiceshop:3000/.env
+  CWE:         ['cwe-538']
+Finding #3:
+  Template ID: generic-exposure-check
+  Name:        Sensitive File and Directory Exposure Check
+  Severity:    medium
+  Matched At:  http://target-juiceshop:3000/robots.txt
+  CWE:         ['cwe-538']
+
+Structured JSON findings successfully written to /tmp/nuclei_verified_findings.json
+
+--- 4. Real ffuf Execution against Juice Shop (JSON Output) ---
+Running ffuf against target-juiceshop:3000/FUZZ...
+redirect
+metrics
+.git
+.env
+health
+rest
+backup.sql
+profile
+config
+robots.txt
+canary-trap
+healthz
+api
+status
+assets
+test
+login
+admin
+ftp
+ffuf Execution Completed. Results discovered: 19
+  Path: /redirect | Status: 500 | Length: 2531 | Words: 219
+  Path: /metrics | Status: 200 | Length: 26452 | Words: 1037
+  Path: /.git | Status: 200 | Length: 9984 | Words: 474
+  Path: /.env | Status: 200 | Length: 9984 | Words: 474
+  Path: /health | Status: 200 | Length: 9984 | Words: 474
+  ... and 14 more discovered endpoints.
+
+Structured JSON output successfully verified from /tmp/ffuf_verified_output.json
+
+================================================================================
+=== V5 VERIFICATION STATUS: COMPLETE & FULLY OPERATIONAL ===
+  - All tool binaries pinned with SHA-256 verification in Dockerfiles.
+  - Nuclei templates (2) and ffuf wordlists (19 lines) baked into image.
+  - Container starts up and verifies assets with --network none (zero internet dependency).
+  - Nuclei and ffuf both successfully executed against Juice Shop and produced structured JSON findings.
+================================================================================

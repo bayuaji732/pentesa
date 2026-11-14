@@ -1,0 +1,44 @@
+=== V2.1: GIT GREP FOR pentesa-master-key ===
+$ git grep -n "pentesa-master-key"
+apps/api/main.py:40:    "pentesa-master-key-32-bytes-long-change-in-prod!",
+docs/audit/evidence/phase2/2A-addendum.md:198:- **Root Cause:** [`packages/common/security.py:derive_aes_key()`](../../../packages/common/security.py) silently fell back to hardcoded `settings.master_key` (`"pentesa-master-key-32-bytes-long-change-in-prod!"`) when `PENTESA_ENCRYPTION_KEY` was missing or empty.
+docs/audit/evidence/phase2/2A-checkpoint.md:218:  `settings.master_key` defaults to `"pentesa-master-key-32-bytes-long-change-in-prod!"`. The API does **not** fail closed.
+tests/unit/test_encryption_key_security.py:59:    monkeypatch.setenv("PENTESA_ENCRYPTION_KEY", "pentesa-master-key-32-bytes-long-change-in-prod!")
+tests/unit/test_encryption_key_security.py:72:        "pentesa-master-key-32-bytes-long-change-in-prod!",
+
+Checked master_key default in packages/common/config.py:
+settings.master_key exists: False
+Result: PASS (pentesa-master-key literal is completely removed from config.py and packages; only present in rejection blacklist KNOWN_INSECURE_KEYS in main.py)
+
+=== V2.2: TESTS REJECTING REPO DEFAULTS AND SHORT KEYS ===
+derive_aes_key() missing key error: Encryption key not configured. Set PENTESA_ENCRYPTION_KEY environment variable.
+derive_aes_key() short key error: Encryption key must be at least 32 bytes (got 25 bytes).
+validate_encryption_key_startup() known default error: CRITICAL SECURITY CONFIGURATION ERROR: PENTESA_ENCRYPTION_KEY is set to a known repository default or insecure placeholder string. Provide a unique cryptographically generated key in non-test environments.
+Result: PASS (fail-closed behavior on missing, short, and default keys verified via tests/unit/test_encryption_key_security.py: 7 passed in 14.75s)
+
+=== V2.3: ENTRY POINT VALIDATION CONFIRMATION ===
+Entry Point 1: apps/api/main.py -> lifespan() invokes validate_encryption_key_startup()
+Entry Point 2: services/execution_engine/worker.py -> run_worker_loop() invokes validate_encryption_key_startup()
+Entry Point 3: scripts/verify_deployment.py -> check_environment_configuration() invokes validate_encryption_key_startup()
+services/execution_engine/worker.py run_worker_loop source check:
+  async def run_worker_loop():
+      """Main worker event loop."""
+      logger.info("Initializing Pentesa Asynchronous Security Worker...")
+      logger.info(f"Worker PID: {os.getpid()}")
+  
+      # Fail-closed startup security validation (SEC-KEY-01, SEC-PWD-01)
+      from apps.api.main import validate_encryption_key_startup
+      validate_encryption_key_startup()
+  
+      logger.info("Connecting to Redis task queue & PostgreSQL state engine...")
+Result: PASS (every entrypoint verifies master encryption key at startup)
+
+=== V2.4: 32 BYTES OF ENTROPY HONEST WORDING ===
+Code Analysis of validate_encryption_key_startup():
+  raw_bytes = key.encode('utf-8') if isinstance(key, str) else key
+  if len(raw_bytes) < 32: raise RuntimeError(...)
+  if key in KNOWN_INSECURE_KEYS or 'change-in-prod' in key_str or 'change-me' in key_str: raise RuntimeError(...)
+HONEST DISCLOSURE:
+The check 'len(raw_bytes) >= 32' is strictly a byte-length check combined with an insecure string blacklist.
+It does NOT calculate mathematical Shannon entropy. Docs and reports must state this honestly as a 32-byte minimum length requirement with known-default pattern rejection.
+Result: PASS

@@ -3,7 +3,7 @@
 > **Document Identifier:** PENTESA-AUDIT-PHASE2-2A-CHECKPOINT  
 > **Execution Phase:** Phase 2 (Functional and Integration Testing) — RUN 1 OF 2  
 > **Evaluation Scope:** Pre-Flight Gate Verification, Test Environment Bring-up, Part 2A (Backend and API)  
-> **Evaluated Stack:** Pentesa API (`pentesa-phase2-api`), PostgreSQL 16 (`pentesa-phase2-db`), Redis 7 (`pentesa-phase2-redis`), SOC Console (`pentesa-phase2-web`), Celery Worker (`pentesa-phase2-worker`)  
+> **Evaluated Stack:** Pentesa API (`pentesa-phase2-api`), PostgreSQL 16 (`pentesa-phase2-db`), Redis 7 (`pentesa-phase2-redis`), SOC Console (`pentesa-phase2-web`), Custom Execution Worker (`pentesa-phase2-worker`; idle polling loop stub NI-06)  
 > **Authorized Target:** OWASP Juice Shop v20.4.0 (`pentesa-phase2-target`)  
 > **Adversarial In-Scope Target:** HTTP Redirector (`pentesa-phase2-redirector`)  
 > **Out-of-Scope Target:** Canary Logger (`pentesa-phase2-canary`)  

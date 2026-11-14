@@ -21,7 +21,7 @@
 
 | Defect ID | Severity | Category | Component / Path | Title | Status | Remediation Commit / Target |
 |---|---|---|---|---|---|---|
-| **NI-03** | **P0-KNOWN** | Scope / Egress | `integrations/nuclei/`, `integrations/ffuf/` | Tool Subprocess Redirect Egress Breach | Open (Lab-Only, Hardened) | `5cede9b` (Interim Hardening) / Phase 3 Layer-2 Egress Proxy |
+| **NI-03** | **P0-KNOWN** | Scope / Egress | `integrations/nuclei/`, `integrations/ffuf/` | Tool Subprocess Redirect Egress Breach | Open (Lab-Only, Hardened) | `5cede9b` (Interim Hardening) / `aac2f64` (FIX-08 Guardrail) / Phase 9 Layer-2 Egress Proxy |
 | **SEC-RED-01** | **P0** | Scope / Egress | `packages/common/http_client.py`, `services/execution_engine/tools/http_client.py` | Python-Layer HTTP Client Redirect Scope Bypass | **Closed** | `e888ab1` (FIX-01) |
 | **SEC-KEY-01** | **P0** | Cryptography | `packages/common/security.py`, `apps/api/main.py` | `derive_aes_key()` Fails Open to Static Master Key Literal | **Closed** | `b3c1e1b` (FIX-02) |
 | **SEC-PWD-01** | **P1** | Authentication | `database/seeds/seed_data.py`, `apps/api/main.py` | Unconditional Seeding of Static Admin & Default Database Passwords | **Closed** | `a709a7c` (FIX-03) |
@@ -29,7 +29,7 @@
 | **TOOL-TMPL-01** | **P1** | Integrations | `infrastructure/docker/Dockerfile.api`, `integrations/nuclei/runner.py` | Official Nuclei Templates Not Baked into Production Docker Image | **Closed** | `7e80f6d` (FIX-05) |
 | **TOOL-WORD-01** | **P1** | Integrations | `infrastructure/docker/Dockerfile.api`, `integrations/ffuf/runner.py` | Production Wordlist Missing from Base Docker Image | **Closed** | `7e80f6d` (FIX-05) |
 | **AGT-LLM-01** | **P1** | AI Engine | `apps/api/routers/agents.py`, `services/orchestrator/supervisor.py` | Unhandled HTTP 500 on LLM Gateway / Network Disconnect | **Closed** | `561d8e7` (FIX-07) |
-| **DISCO-SPA-01** | **P2** | Discovery | `services/discovery_engine/fingerprint.py` | Technology Fingerprinter Misses SPAs Lacking Server Headers | Open (Deferred) | Phase 3 |
+| **DISCO-SPA-01** | **P2** | Discovery | `services/discovery_engine/fingerprint.py` | Technology Fingerprinter Misses SPAs Lacking Server Headers | Open (Deferred) | Phase 9 (DOM Parsing Roadmap) |
 
 ---
 
@@ -42,7 +42,7 @@
   ```json
   {"timestamp": "2026-11-13T22:31:12.196980+00:00", "client_address": "172.21.0.5", "method": "GET", "path": "/canary-trap", "headers": {"Host": "canary:9099", "User-Agent": "Mozilla/5.0..."}}
   ```
-- **Remediation & Interim Action:** Subprocesses cannot inspect redirect hops in software without an external Layer-2 proxy. Interim fix (FIX-06): Disallow redirect-following flags in CLI runners, enforce strict options schema forbidding arbitrary CLI flags, resulting in 0 canary hits for hardened runs. Tool binaries remain strictly **lab-only** until the dedicated Layer-2 egress proxy with iptables enforcement is implemented in Phase 3. NI-03 remains open as **P0-KNOWN** with FIX-06 providing defense-in-depth interim hardening.
+- **Remediation & Interim Action:** Subprocesses cannot inspect redirect hops in software without an external Layer-2 proxy. Interim fix (FIX-06): Disallow redirect-following flags in CLI runners, enforce strict options schema forbidding arbitrary CLI flags, resulting in 0 canary hits for hardened runs. Further enforced via FIX-08 (`aac2f64`) fail-closed lab-only guardrail. Tool binaries remain strictly **lab-only** until the dedicated Layer-2 egress proxy with iptables enforcement is implemented in Phase 9. NI-03 remains open as **P0-KNOWN** with FIX-06 and FIX-08 providing defense-in-depth interim hardening.
 
 ### 3.2 DEFECT-HIGH-1 / P0 (SEC-RED-01): Python-Layer HTTP Client Redirect Scope Bypass
 - **Component:** `services/execution_engine/tools/http_client.py:53-63`, `services/discovery_engine/crawler.py`

@@ -9,6 +9,7 @@ services:
       - PENTESA_LLM_PROVIDER=mock
       - PENTESA_ENCRYPTION_KEY=preflight_test_master_encryption_key_32b_hex!
       - TEST_DATABASE_URL=postgresql+asyncpg://pentesa_user:pentesa_password@db:5432/pentesa_test
+      - PENTESA_LAYER2_EGRESS_ENABLED=true
     volumes:
       - .:/app
     networks:

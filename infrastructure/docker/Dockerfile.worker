@@ -53,9 +53,12 @@ COPY integrations/ ./integrations/
 COPY apps/ ./apps/
 COPY scripts/ ./scripts/
 
-# Bake pinned Nuclei templates and ffuf wordlists (TOOL-ASSETS-01)
-RUN mkdir -p /opt/nuclei-templates /opt/wordlists && \
-    cp -r integrations/nuclei/templates/* /opt/nuclei-templates/ && \
+# Bake pinned Nuclei templates and ffuf wordlists (TOOL-ASSETS-01 / F4)
+RUN curl -fsSL -o /tmp/nuclei-templates.zip "https://github.com/projectdiscovery/nuclei-templates/archive/refs/tags/${NUCLEI_TEMPLATES_TAG}.zip" && \
+    python scripts/extract_pinned_templates.py /tmp/nuclei-templates.zip /opt/nuclei-templates && \
+    rm -f /tmp/nuclei-templates.zip && \
+    cp integrations/nuclei/templates/*.yaml /opt/nuclei-templates/ && \
+    mkdir -p /opt/wordlists && \
     cp integrations/ffuf/wordlists/common_paths.txt /opt/wordlists/common_paths.txt && \
     chmod -R 755 /opt/nuclei-templates /opt/wordlists
 
@@ -65,7 +68,9 @@ RUN python scripts/check_security_tools.py
 # Create persistent storage mount points and unprivileged service user
 RUN mkdir -p /app/data/reports /app/data/evidence && \
     useradd -m -u 10001 pentesa && \
-    chown -R pentesa:pentesa /app
+    mkdir -p /home/pentesa/.config/nuclei && \
+    echo "# nuclei-ignore" > /home/pentesa/.config/nuclei/.nuclei-ignore && \
+    chown -R pentesa:pentesa /app /home/pentesa
 USER pentesa
 
 # Default command: start worker process or health loop

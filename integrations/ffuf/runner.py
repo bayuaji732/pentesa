@@ -37,6 +37,7 @@ class FfufRunner(BaseToolWrapper):
             "-rate", str(rate_limit),
             "-fc", "404",
             "-ac",
+            "-json",
             "-of", "json",
             "-s"
         ]
@@ -50,44 +51,68 @@ class FfufRunner(BaseToolWrapper):
         return clean_argv
 
     def parse_output(self, stdout: str, baseline: Optional[Any] = None) -> List[Dict[str, Any]]:
-        """Parse ffuf JSON output into standardized finding / match records with soft-404 baseline filtering."""
+        """Parse ffuf newline-delimited or array JSON output into standardized finding records."""
         matches = []
         if not stdout:
             return matches
 
-        try:
-            data = json.loads(stdout)
-            results = data.get("results", [])
-            for r in results:
-                fuzz_val = r.get("input", {}).get("FUZZ", "")
-                url = r.get("url", "")
-                status_code = r.get("status", 200)
-                length = r.get("length")
+        import base64
+        from urllib.parse import urlparse
 
-                # Filter out soft-404 / SPA catch-all false positives (TOOL-FP-01)
-                if baseline and getattr(baseline, "has_soft_404", False):
-                    if baseline.is_match(status=status_code, length=length):
-                        continue
+        # Process each line as newline-delimited JSON or parse full JSON object
+        raw_results = []
+        for line in stdout.strip().splitlines():
+            line = line.strip()
+            if not line or not line.startswith("{"):
+                continue
+            try:
+                parsed = json.loads(line)
+                if "results" in parsed and isinstance(parsed["results"], list):
+                    raw_results.extend(parsed["results"])
+                else:
+                    raw_results.append(parsed)
+            except Exception:
+                continue
 
-                matches.append({
-                    "title": f"Discovered Path: /{fuzz_val}",
-                    "description": f"Hidden endpoint or file discovered via controlled fuzzing (HTTP {status_code}).",
-                    "severity": "Low" if status_code != 200 else "Medium",
-                    "cwe_id": "CWE-538",
-                    "wstg_id": "WSTG-CONF-04",
-                    "matched_at": url,
-                    "status_code": status_code,
-                    "length": length,
-                    "words": r.get("words"),
-                    "lines": r.get("lines"),
-                    "reproduction_curl": f"curl -i -s '{url}'",
-                    "raw_request": f"GET /{fuzz_val} HTTP/1.1\r\n\r\n",
-                    "raw_response": f"HTTP/1.1 {status_code}\r\n\r\n",
-                    "detection_source": "ffuf",
-                    "confidence": "High"
-                })
-        except Exception:
-            pass
+        for r in raw_results:
+            fuzz_val = r.get("input", {}).get("FUZZ", "")
+            if fuzz_val:
+                try:
+                    b_dec = base64.b64decode(fuzz_val).decode("utf-8")
+                    if b_dec and all(32 <= ord(c) <= 126 for c in b_dec):
+                        fuzz_val = b_dec
+                except Exception:
+                    pass
+
+            url = r.get("url", "")
+            if not fuzz_val and url:
+                fuzz_val = urlparse(url).path.lstrip("/")
+
+            status_code = r.get("status", 200)
+            length = r.get("length")
+
+            # Filter out soft-404 / SPA catch-all false positives (TOOL-FP-01)
+            if baseline and getattr(baseline, "has_soft_404", False):
+                if baseline.is_match(status=status_code, length=length):
+                    continue
+
+            matches.append({
+                "title": f"Discovered Path: /{fuzz_val}",
+                "description": f"Hidden endpoint or file discovered via controlled fuzzing (HTTP {status_code}).",
+                "severity": "Low" if status_code != 200 else "Medium",
+                "cwe_id": "CWE-538",
+                "wstg_id": "WSTG-CONF-04",
+                "matched_at": url,
+                "status_code": status_code,
+                "length": length,
+                "words": r.get("words"),
+                "lines": r.get("lines"),
+                "reproduction_curl": f"curl -i -s '{url}'",
+                "raw_request": f"GET /{fuzz_val} HTTP/1.1\r\n\r\n",
+                "raw_response": f"HTTP/1.1 {status_code}\r\n\r\n",
+                "detection_source": "ffuf",
+                "confidence": "High"
+            })
 
         return matches
 

@@ -195,13 +195,23 @@ class ToolService:
 
         # 6. Ingest any confirmed findings
         findings_count = 0
+        suppressed_findings: List[Dict[str, Any]] = []
         synced_wstg_ids: set[str] = set()
         for f in result.findings:
             if baseline and baseline.has_soft_404:
                 raw_resp = f.get("raw_response") or ""
-                resp_len = len(raw_resp.encode("utf-8")) if raw_resp else None
-                if baseline.is_match(status=200, length=resp_len, body=raw_resp):
-                    logger.info(f"Skipping soft-404 finding during ingestion: {f.get('title')}")
+                resp_len = f.get("length")
+                if resp_len is None and raw_resp:
+                    resp_len = len(raw_resp.encode("utf-8"))
+                status = f.get("status_code", 200)
+                matched, reason = baseline.is_match_with_reason(status=status, length=resp_len, body=raw_resp)
+                if matched:
+                    logger.info(f"Skipping soft-404 finding during ingestion: {f.get('title')} ({reason})")
+                    suppressed_findings.append({
+                        "title": f.get("title", "Unknown"),
+                        "matched_at": f.get("matched_at", ""),
+                        "reason": reason
+                    })
                     continue
 
             is_sim = f.get("is_simulated", False) or getattr(result, "is_simulated", False)
@@ -241,6 +251,18 @@ class ToolService:
             findings_count += 1
 
         execution.findings_count = findings_count
+
+        if suppressed_findings:
+            suppressed_summary = (
+                f"[Soft-404 Filter] Suppressed {len(suppressed_findings)} false-positive finding(s) "
+                f"matching baseline: {', '.join(s['title'] for s in suppressed_findings[:5])}"
+                + (f" and {len(suppressed_findings)-5} more" if len(suppressed_findings) > 5 else "")
+            )
+            execution.stderr_summary = (
+                (execution.stderr_summary + "\n" + suppressed_summary)
+                if execution.stderr_summary
+                else suppressed_summary
+            )
         await self.session.commit()
         for wid in synced_wstg_ids:
             await sync_wstg_instance_for_finding(self.session, project_id, wid)

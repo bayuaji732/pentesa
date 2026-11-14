@@ -143,7 +143,9 @@ services:
     ports:
       - "127.0.0.1:3001:3000"
     networks:
-      - phase2-targets
+      phase2-targets:
+        aliases:
+          - target-juiceshop
 
   # ---------------------------------------------------------------------------
   # 7. Out-of-Scope Target: Canary Logger (Must receive 0 requests)
@@ -159,7 +161,9 @@ services:
       - phase2-evidence:/app/data
     command: ["python", "/app/canary_server.py", "9099"]
     networks:
-      - phase2-targets
+      phase2-targets:
+        aliases:
+          - canary
 
   # ---------------------------------------------------------------------------
   # 8. In-Scope Target: Redirector (302 redirects to Canary)
@@ -178,7 +182,9 @@ services:
     depends_on:
       - canary
     networks:
-      - phase2-targets
+      phase2-targets:
+        aliases:
+          - redirector
 
 networks:
   phase2-internal:

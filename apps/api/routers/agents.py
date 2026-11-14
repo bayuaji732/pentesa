@@ -12,7 +12,12 @@ from apps.api.dependencies import get_current_user, verify_project_access
 from database.models.agent import ApprovalRequest
 from database.models.user import User
 from database.session import AsyncSessionLocal, get_db
-from packages.common.exceptions import BadRequestError, ProjectAuthorizationExpiredError, ResourceNotFoundError
+from packages.common.exceptions import (
+    BadRequestError,
+    LLMGatewayError,
+    ProjectAuthorizationExpiredError,
+    ResourceNotFoundError
+)
 from packages.schemas.agent import (
     AgentDecisionResponse,
     AgentToolCallResponse,
@@ -135,10 +140,20 @@ async def start_pentest_workflow(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     except BadRequestError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except LLMGatewayError as e:
+        logger.error(f"Upstream AI gateway failure during workflow start: {e}")
+        raise HTTPException(
+            status_code=e.status_code if hasattr(e, "status_code") else status.HTTP_502_BAD_GATEWAY,
+            detail="Upstream AI gateway unreachable"
+        )
     except (RuntimeError, ValueError) as e:
         msg = str(e)
-        if "LLM" in msg or "llm_provider" in msg or "PENTESA_LLM_PROVIDER" in msg or "provider" in msg.lower():
+        if "strictly restricted to PENTESA_ENV='test'" in msg or "is not configured" in msg or "missing or placeholder" in msg:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
+        if "LLM" in msg or "LiteLLM" in msg or "AI gateway" in msg or "CloudFront" in msg or "proxy" in msg:
+            logger.error(f"AI Gateway outage: {msg}")
+            code = status.HTTP_502_BAD_GATEWAY if ("CloudFront" in msg or "403" in msg or "502" in msg) else status.HTTP_503_SERVICE_UNAVAILABLE
+            raise HTTPException(status_code=code, detail="Upstream AI gateway unreachable")
         raise
 
 

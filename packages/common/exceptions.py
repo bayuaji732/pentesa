@@ -67,6 +67,19 @@ class ToolNotAvailableError(PentesaError):
         )
 
 
+class LLMGatewayError(PentesaError):
+    """Raised when an upstream LLM gateway or provider is unreachable, times out, or fails (AGT-LLM-01)."""
+
+    def __init__(
+        self,
+        message: str = "Upstream AI gateway unreachable",
+        status_code: int = 502,
+        details: Optional[Dict[str, Any]] = None
+    ):
+        super().__init__(message, details)
+        self.status_code = status_code
+
+
 # Aliases for naming compatibility
 BadRequestException = BadRequestError
 NotFoundException = ResourceNotFoundError

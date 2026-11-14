@@ -55,6 +55,7 @@ class WorkflowStatusResponse(BaseModel):
     completed_at: Optional[datetime] = None
     state_data: Dict[str, Any] = Field(default_factory=dict)
     active_agents: List[AgentStatusResponse] = Field(default_factory=list)
+    failure_reason: Optional[str] = None
 
 
 class AgentDecisionResponse(BaseModel):

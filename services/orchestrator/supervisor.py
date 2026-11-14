@@ -28,6 +28,7 @@ from database.models.project import Project
 from database.models.scope import ScopeRule
 from packages.common.exceptions import (
     BadRequestError,
+    LLMGatewayError,
     ProjectAuthorizationExpiredError,
     ResourceNotFoundError
 )
@@ -345,11 +346,25 @@ class WorkflowSupervisor:
             workflow = (await self.session.execute(wf_refresh_stmt)).scalar_one()
             workflow.status = "FAILED"
             workflow.completed_at = datetime.datetime.now(datetime.timezone.utc)
+            err_msg = str(exc)
+            is_llm_outage = (
+                isinstance(exc, LLMGatewayError)
+                or "AI gateway" in err_msg
+                or "LiteLLM" in err_msg
+                or "CloudFront" in err_msg
+                or "APIConnectionError" in type(exc).__name__
+                or "ConnectError" in type(exc).__name__
+                or "ConnectionRefused" in err_msg
+                or "403 Forbidden" in err_msg
+            )
+            failure_reason = "Upstream AI gateway unreachable" if is_llm_outage else err_msg
+
             workflow.state_data = {
                 **(workflow.state_data or {}),
-                "error": str(exc)
+                "error": err_msg,
+                "failure_reason": failure_reason
             }
-            await self._mark_unfinished_agents_stopped(exec_map, target_status="FAILED", err=str(exc))
+            await self._mark_unfinished_agents_stopped(exec_map, target_status="FAILED", err=failure_reason)
             await self.session.commit()
             raise
 
@@ -583,6 +598,9 @@ class WorkflowSupervisor:
                 )
             )
 
+        state_data = workflow.state_data or {}
+        failure_reason = state_data.get("failure_reason") or state_data.get("error")
+
         return WorkflowStatusResponse(
             id=workflow.id,
             project_id=workflow.project_id,
@@ -590,8 +608,9 @@ class WorkflowSupervisor:
             status=workflow.status,
             started_at=workflow.created_at,
             completed_at=workflow.completed_at,
-            state_data=workflow.state_data or {},
-            active_agents=agent_statuses
+            state_data=state_data,
+            active_agents=agent_statuses,
+            failure_reason=failure_reason
         )
 
     async def list_agent_decisions(

@@ -6,6 +6,7 @@ import time
 from typing import Any, Dict, List, Optional, Type, TypeVar
 import httpx
 from pydantic import BaseModel
+from packages.common.exceptions import LLMGatewayError
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -298,25 +299,39 @@ class OpenAICompatibleProvider(BaseLLMProvider):
             "Content-Type": "application/json"
         }
 
-        async with httpx.AsyncClient(timeout=120.0, transport=self.transport) as client:
-            resp = await client.post(self.chat_url, json=payload, headers=headers)
-            resp.raise_for_status()
-            data = resp.json()
+        try:
+            async with httpx.AsyncClient(timeout=120.0, transport=self.transport) as client:
+                resp = await client.post(self.chat_url, json=payload, headers=headers)
+                resp.raise_for_status()
+                data = resp.json()
 
-            choices = data.get("choices") or []
-            msg_obj = (choices[0].get("message") or {}) if choices else {}
-            msg_content = (msg_obj.get("content") or "").strip()
-
-            # Fallback: if json_mode produced an empty choice on gateway, retry without response_format
-            if not msg_content and not msg_obj.get("reasoning_content") and json_mode:
-                fallback_payload = dict(payload)
-                fallback_payload.pop("response_format", None)
-                resp_retry = await client.post(self.chat_url, json=fallback_payload, headers=headers)
-                resp_retry.raise_for_status()
-                data = resp_retry.json()
                 choices = data.get("choices") or []
                 msg_obj = (choices[0].get("message") or {}) if choices else {}
                 msg_content = (msg_obj.get("content") or "").strip()
+
+                # Fallback: if json_mode produced an empty choice on gateway, retry without response_format
+                if not msg_content and not msg_obj.get("reasoning_content") and json_mode:
+                    fallback_payload = dict(payload)
+                    fallback_payload.pop("response_format", None)
+                    resp_retry = await client.post(self.chat_url, json=fallback_payload, headers=headers)
+                    resp_retry.raise_for_status()
+                    data = resp_retry.json()
+                    choices = data.get("choices") or []
+                    msg_obj = (choices[0].get("message") or {}) if choices else {}
+                    msg_content = (msg_obj.get("content") or "").strip()
+        except httpx.HTTPStatusError as e:
+            code = 502 if e.response.status_code >= 500 or e.response.status_code in (403, 401) else 503
+            raise LLMGatewayError(
+                f"Upstream AI gateway returned HTTP error {e.response.status_code} at {self.chat_url}: {e.response.text[:200]}",
+                status_code=code,
+                details={"status_code": e.response.status_code, "url": self.chat_url}
+            ) from e
+        except (httpx.RequestError, TimeoutError, ConnectionRefusedError) as e:
+            raise LLMGatewayError(
+                f"Failed to connect to upstream AI gateway at {self.chat_url}: {e}",
+                status_code=503,
+                details={"error": str(e), "url": self.chat_url}
+            ) from e
 
         if not msg_content:
             msg_content = (msg_obj.get("reasoning_content") or msg_obj.get("refusal") or "").strip()
@@ -429,12 +444,17 @@ class LiteLLMProvider(BaseLLMProvider):
                         msg_content = (msg_obj.get("content") or "").strip()
 
         except httpx.HTTPStatusError as e:
-            raise RuntimeError(
-                f"LiteLLM proxy returned HTTP error {e.response.status_code} at {self.chat_url}: {e.response.text}"
+            code = 502 if e.response.status_code >= 500 or e.response.status_code in (403, 401) else 503
+            raise LLMGatewayError(
+                f"Upstream AI gateway returned HTTP error {e.response.status_code} at {self.chat_url}: {e.response.text[:200]}",
+                status_code=code,
+                details={"status_code": e.response.status_code, "url": self.chat_url}
             ) from e
-        except httpx.RequestError as e:
-            raise RuntimeError(
-                f"Failed to connect to LiteLLM proxy at {self.chat_url}: {e}"
+        except (httpx.RequestError, TimeoutError, ConnectionRefusedError) as e:
+            raise LLMGatewayError(
+                f"Failed to connect to upstream AI gateway at {self.chat_url}: {e}",
+                status_code=503,
+                details={"error": str(e), "url": self.chat_url}
             ) from e
 
         if not msg_content:

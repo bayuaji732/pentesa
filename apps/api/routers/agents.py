@@ -101,6 +101,9 @@ async def start_pentest_workflow(
     scan_profile = (payload.scan_profile or "QUICK").upper()
 
     try:
+        # AGT-MOCK-01: Proactively validate LLM provider configuration
+        _ = supervisor.llm
+
         if payload.async_execution:
             workflow = await supervisor.prepare_workflow(
                 project_id=project_id,
@@ -132,6 +135,11 @@ async def start_pentest_workflow(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     except BadRequestError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except (RuntimeError, ValueError) as e:
+        msg = str(e)
+        if "LLM" in msg or "llm_provider" in msg or "PENTESA_LLM_PROVIDER" in msg or "provider" in msg.lower():
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
+        raise
 
 
 @router.post(

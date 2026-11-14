@@ -59,7 +59,13 @@ class WorkflowSupervisor:
 
     def __init__(self, session: AsyncSession, llm_provider: Optional[BaseLLMProvider] = None):
         self.session = session
-        self.llm = llm_provider or get_default_llm_provider()
+        self._llm = llm_provider
+
+    @property
+    def llm(self) -> BaseLLMProvider:
+        if self._llm is None:
+            self._llm = get_default_llm_provider()
+        return self._llm
 
     def _build_agents(self, llm_provider: BaseLLMProvider):
         return [

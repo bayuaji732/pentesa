@@ -92,6 +92,19 @@ def validate_encryption_key_startup():
                 f"shorter than 32 characters, or set to an insecure default template in environment '{env}'."
             )
 
+    # 3. Fail-closed LLM provider validation (AGT-MOCK-01)
+    llm_prov = (os.getenv("PENTESA_LLM_PROVIDER") or getattr(settings, "llm_provider", "")).strip().lower()
+    if llm_prov == "mock" and env != "test":
+        raise RuntimeError(
+            f"CRITICAL SECURITY CONFIGURATION ERROR: PENTESA_LLM_PROVIDER='mock' is strictly restricted to PENTESA_ENV='test' "
+            f"(current environment: '{env}'). In all other environments, configure an authentic LLM provider."
+        )
+    if not llm_prov and env not in ("test",):
+        raise RuntimeError(
+            f"CRITICAL SECURITY CONFIGURATION ERROR: PENTESA_LLM_PROVIDER is not configured in environment '{env}'. "
+            "Explicit LLM provider configuration is required in development, staging, and production."
+        )
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

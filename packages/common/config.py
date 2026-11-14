@@ -119,9 +119,9 @@ class Settings(BaseSettings):
 
     # LLM Provider Configuration
     llm_provider: str = Field(
-        default="mock",
+        default="",
         validation_alias=AliasChoices("pentesa_llm_provider", "llm_provider"),
-        description="Active LLM provider: 'mock', 'litellm', 'ollama', 'openai'"
+        description="Active LLM provider: 'litellm', 'ollama', 'openai', or 'mock' (test-only)"
     )
 
     # LiteLLM Configuration (Proxy / Enterprise Gateway)

@@ -99,6 +99,7 @@ class FindingCreate(BaseModel):
     raw_request: Optional[str] = None
     raw_response: Optional[str] = None
     reproduction_curl: Optional[str] = None
+    is_simulated: Optional[bool] = Field(default=None, description="Tag finding as mock/simulated")
 
 
 class FindingBatchUpdate(BaseModel):
@@ -147,6 +148,7 @@ class FindingResponse(BaseModel):
     detection_source: str
     remediation_guidance: Optional[str] = None
     business_impact: Optional[str] = None
+    is_simulated: bool = False
     created_at: datetime
     updated_at: datetime
     evidence: List[FindingEvidenceResponse] = Field(default_factory=list)

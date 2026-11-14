@@ -19,6 +19,7 @@ services:
       - PENTESA_REDIS_URL=redis://redis:6379/0
       - PENTESA_SECRET_KEY=${JWT_SECRET:?}
       - PENTESA_ENCRYPTION_KEY=${PENTESA_ENCRYPTION_KEY:?}
+      - PENTESA_LLM_PROVIDER=${PENTESA_LLM_PROVIDER:-litellm}
       - PENTESA_REPORT_STORAGE_DIR=/app/data/reports
       - PENTESA_EVIDENCE_STORAGE_DIR=/app/data/evidence
     extra_hosts:
@@ -58,6 +59,7 @@ services:
       - PENTESA_REDIS_URL=redis://redis:6379/0
       - PENTESA_SECRET_KEY=${JWT_SECRET:?}
       - PENTESA_ENCRYPTION_KEY=${PENTESA_ENCRYPTION_KEY:?}
+      - PENTESA_LLM_PROVIDER=${PENTESA_LLM_PROVIDER:-litellm}
       - PENTESA_REPORT_STORAGE_DIR=/app/data/reports
       - PENTESA_EVIDENCE_STORAGE_DIR=/app/data/evidence
     extra_hosts:

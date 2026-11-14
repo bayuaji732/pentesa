@@ -474,13 +474,19 @@ def get_default_llm_provider() -> BaseLLMProvider:
     - 'litellm': LiteLLM proxy / gateway server
     - 'ollama': Local Ollama instance
     - 'openai': Direct OpenAI-compatible endpoint
-    - 'mock': Deterministic mock provider (explicit offline testing only)
+    - 'mock': Deterministic mock provider (strictly restricted to PENTESA_ENV=test)
     """
     from packages.common.config import settings
 
     provider_name = (settings.llm_provider or "").lower().strip()
+    env = (settings.env or "").lower().strip()
+
     if not provider_name:
-        raise RuntimeError("PENTESA_LLM_PROVIDER is not configured.")
+        if env == "test":
+            return MockLLMProvider()
+        raise RuntimeError(
+            f"PENTESA_LLM_PROVIDER is not configured. Explicit LLM provider configuration is required in environment '{settings.env}'."
+        )
 
     if provider_name == "litellm":
         if (
@@ -517,8 +523,11 @@ def get_default_llm_provider() -> BaseLLMProvider:
         )
 
     if provider_name == "mock":
-        if (settings.env or "").lower() == "production":
-            raise RuntimeError("MockLLMProvider cannot be used when PENTESA_ENV=production.")
+        if env != "test":
+            raise RuntimeError(
+                f"MockLLMProvider cannot be used in environment '{settings.env}'. "
+                "PENTESA_LLM_PROVIDER=mock is strictly restricted to PENTESA_ENV=test."
+            )
         return MockLLMProvider()
 
     raise ValueError(

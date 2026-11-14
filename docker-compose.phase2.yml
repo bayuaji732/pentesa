@@ -8,7 +8,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: pentesa_user
-      POSTGRES_PASSWORD: pentesa_password
+      POSTGRES_PASSWORD: Phase2_Secure_DB_Pass_2026!
       POSTGRES_DB: pentesa
     volumes:
       - phase2-pgdata:/var/lib/postgresql/data
@@ -49,11 +49,12 @@ services:
     environment:
       - PENTESA_ENV=production
       - PENTESA_DEBUG=false
-      - PENTESA_DATABASE_URL=postgresql+asyncpg://pentesa_user:pentesa_password@db:5432/pentesa
+      - PENTESA_DATABASE_URL=postgresql+asyncpg://pentesa_user:Phase2_Secure_DB_Pass_2026!@db:5432/pentesa
       - PENTESA_REDIS_URL=redis://redis:6379/0
       - PENTESA_REPORT_STORAGE_DIR=/app/data/reports
       - PENTESA_EVIDENCE_STORAGE_DIR=/app/data/evidence
       - PENTESA_ENCRYPTION_KEY=phase2_master_vault_encryption_key_32b_hex!
+      - PENTESA_SECRET_KEY=Phase2_JWT_Secret_Key_32_Bytes_Long_Prod_Ready!
       - PENTESA_LLM_PROVIDER=litellm
       - PENTESA_LITELLM_BASE_URL=https://uat-ai-gateway.siloamhospitals.com/v1/
       - PENTESA_LITELLM_API_KEY=sk-mCQwNXf15qH4UyLxLVGAQA
@@ -88,11 +89,12 @@ services:
     environment:
       - PENTESA_ENV=production
       - PENTESA_DEBUG=false
-      - PENTESA_DATABASE_URL=postgresql+asyncpg://pentesa_user:pentesa_password@db:5432/pentesa
+      - PENTESA_DATABASE_URL=postgresql+asyncpg://pentesa_user:Phase2_Secure_DB_Pass_2026!@db:5432/pentesa
       - PENTESA_REDIS_URL=redis://redis:6379/0
       - PENTESA_REPORT_STORAGE_DIR=/app/data/reports
       - PENTESA_EVIDENCE_STORAGE_DIR=/app/data/evidence
       - PENTESA_ENCRYPTION_KEY=phase2_master_vault_encryption_key_32b_hex!
+      - PENTESA_SECRET_KEY=Phase2_JWT_Secret_Key_32_Bytes_Long_Prod_Ready!
       - PENTESA_LLM_PROVIDER=litellm
       - PENTESA_LITELLM_BASE_URL=https://uat-ai-gateway.siloamhospitals.com/v1/
       - PENTESA_LITELLM_API_KEY=sk-mCQwNXf15qH4UyLxLVGAQA

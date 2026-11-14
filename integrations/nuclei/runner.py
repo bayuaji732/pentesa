@@ -59,7 +59,9 @@ class NucleiRunner(BaseToolWrapper):
         clamped_req_timeout = max(1, min(30, int(req_timeout)))
         argv.extend(["-timeout", str(clamped_req_timeout)])
 
-        return argv
+        # NI-03 Interim Hardening: strictly ensure redirect-following flags are never present
+        clean_argv = [a for a in argv if a not in ("-follow-redirects", "-fr", "-r")]
+        return clean_argv
 
     def parse_output(self, stdout: str) -> List[Dict[str, Any]]:
         """Parse line-delimited JSON stream into structured finding objects."""

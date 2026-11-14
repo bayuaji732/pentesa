@@ -17,6 +17,8 @@ class ToolInfoResponse(BaseModel):
 
 class ToolExecutionRequest(BaseModel):
     """Request payload to dispatch a tool run."""
+    model_config = ConfigDict(extra="forbid")
+
     tool_name: str = Field(..., description="nuclei, ffuf, katana, httpx, etc.")
     target_url: str = Field(..., description="Target URL or endpoint within project scope")
     tags: Optional[List[str]] = Field(default=None, description="Nuclei template tags, e.g. cve, exposure")
@@ -26,6 +28,31 @@ class ToolExecutionRequest(BaseModel):
     rate_limit: int = Field(default=20, ge=1, le=100, description="Max requests per second")
     timeout_seconds: int = Field(default=300, ge=10, le=1800, description="Overall subprocess execution timeout in seconds")
     request_timeout: Optional[int] = Field(default=5, ge=1, le=30, description="Per-probe HTTP request timeout in seconds")
+
+    @field_validator("template_path", "wordlist", mode="before")
+    @classmethod
+    def validate_safe_string_paths(cls, v: Any) -> Any:
+        if v is not None:
+            s = str(v).strip()
+            forbidden = {"-fr", "-r", "-follow-redirects", "-recursion", "follow_redirects", "recursion"}
+            if s.lower() in forbidden:
+                raise ValueError(f"Redirect following is forbidden for security tools (NI-03): '{s}'")
+            if s.startswith("-"):
+                raise ValueError(f"Arbitrary CLI flag injection prohibited: '{s}'")
+        return v
+
+    @field_validator("tags", "severity", mode="before")
+    @classmethod
+    def validate_safe_lists(cls, v: Any) -> Any:
+        if v is not None and isinstance(v, list):
+            for item in v:
+                s = str(item).strip()
+                forbidden = {"-fr", "-r", "-follow-redirects", "-recursion", "follow_redirects", "recursion"}
+                if s.lower() in forbidden:
+                    raise ValueError(f"Redirect following is forbidden for security tools (NI-03): '{s}'")
+                if s.startswith("-"):
+                    raise ValueError(f"Arbitrary CLI flag injection prohibited: '{s}'")
+        return v
 
 
 class ToolExecutionResponse(BaseModel):

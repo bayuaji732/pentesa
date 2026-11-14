@@ -44,7 +44,9 @@ class FfufRunner(BaseToolWrapper):
         if filter_status:
             argv.extend(["-fc", ",".join(str(s) for s in filter_status)])
 
-        return argv
+        # NI-03 Interim Hardening: strictly ensure redirect-following and recursion flags are never present
+        clean_argv = [a for a in argv if a not in ("-r", "-recursion")]
+        return clean_argv
 
     def parse_output(self, stdout: str) -> List[Dict[str, Any]]:
         """Parse ffuf JSON output into standardized finding / match records."""

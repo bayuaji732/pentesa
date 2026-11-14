@@ -42,7 +42,7 @@
   ```json
   {"timestamp": "2026-11-13T22:31:12.196980+00:00", "client_address": "172.21.0.5", "method": "GET", "path": "/canary-trap", "headers": {"Host": "canary:9099", "User-Agent": "Mozilla/5.0..."}}
   ```
-- **Remediation & Interim Action:** Subprocesses cannot inspect redirect hops in software without an external proxy. Interim fix (FIX-06): Disallow redirect-following flags in CLI runners. Permanent remediation: Dedicated Layer-2 Egress Proxy container with iptables enforcement. Binaries marked **lab-only**.
+- **Remediation & Interim Action:** Subprocesses cannot inspect redirect hops in software without an external Layer-2 proxy. Interim fix (FIX-06): Disallow redirect-following flags in CLI runners, enforce strict options schema forbidding arbitrary CLI flags, resulting in 0 canary hits for hardened runs. Tool binaries remain strictly **lab-only** until the dedicated Layer-2 egress proxy with iptables enforcement is implemented in Phase 3. NI-03 remains open as **P0-KNOWN** with FIX-06 providing defense-in-depth interim hardening.
 
 ### 3.2 DEFECT-HIGH-1 / P0 (SEC-RED-01): Python-Layer HTTP Client Redirect Scope Bypass
 - **Component:** `services/execution_engine/tools/http_client.py:53-63`, `services/discovery_engine/crawler.py`

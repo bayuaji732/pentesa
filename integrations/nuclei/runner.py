@@ -1,9 +1,19 @@
 """Deterministic Nuclei vulnerability scanner wrapper."""
 
 import json
+import os
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 from services.execution_engine.tools.base import BaseToolWrapper, ToolExecutionResult
+
+# Baked pinned nuclei templates path with fallback for local dev/test
+DEFAULT_NUCLEI_TEMPLATES = os.getenv("PENTESA_NUCLEI_TEMPLATES_DIR", "/opt/nuclei-templates")
+if not os.path.exists(DEFAULT_NUCLEI_TEMPLATES):
+    _local_tpl = os.path.join(os.path.dirname(__file__), "templates")
+    if os.path.exists(_local_tpl):
+        DEFAULT_NUCLEI_TEMPLATES = _local_tpl
+    else:
+        DEFAULT_NUCLEI_TEMPLATES = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../tests/fixtures/nuclei"))
 
 
 class NucleiRunner(BaseToolWrapper):
@@ -13,7 +23,7 @@ class NucleiRunner(BaseToolWrapper):
         super().__init__(tool_name="nuclei", binary_name="nuclei")
 
     def build_argv(self, target_url: str, options: Dict[str, Any]) -> List[str]:
-        """Compile safe, non-shell argv for Nuclei."""
+        """Compile safe, non-shell argv for Nuclei with baked templates and separated per-probe timeout."""
         argv = [
             "nuclei",
             "-target", target_url,
@@ -23,7 +33,7 @@ class NucleiRunner(BaseToolWrapper):
             "-duc"
         ]
 
-        template_path = options.get("template_path") or options.get("templates")
+        template_path = options.get("template_path") or options.get("templates") or DEFAULT_NUCLEI_TEMPLATES
         if template_path:
             argv.extend(["-t", str(template_path)])
 
@@ -38,8 +48,16 @@ class NucleiRunner(BaseToolWrapper):
         rate_limit = options.get("rate_limit", 20)
         argv.extend(["-rate-limit", str(rate_limit)])
 
-        timeout = options.get("timeout", 5)
-        argv.extend(["-timeout", str(timeout)])
+        # Per-probe HTTP request timeout (TOOL-ASSETS-01): separated from overall subprocess execution timeout
+        req_timeout = options.get("request_timeout") or options.get("probe_timeout")
+        if req_timeout is None and "timeout" in options:
+            raw_t = int(options["timeout"])
+            req_timeout = raw_t if raw_t <= 30 else 5
+        elif req_timeout is None:
+            req_timeout = 5
+
+        clamped_req_timeout = max(1, min(30, int(req_timeout)))
+        argv.extend(["-timeout", str(clamped_req_timeout)])
 
         return argv
 

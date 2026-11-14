@@ -48,7 +48,13 @@ COPY integrations/ ./integrations/
 COPY apps/api/ ./apps/api/
 COPY scripts/ ./scripts/
 
-# Startup check verifying pinned security tools are executable
+# Bake pinned Nuclei templates and ffuf wordlists (TOOL-ASSETS-01)
+RUN mkdir -p /opt/nuclei-templates /opt/wordlists && \
+    cp -r integrations/nuclei/templates/* /opt/nuclei-templates/ && \
+    cp integrations/ffuf/wordlists/common_paths.txt /opt/wordlists/common_paths.txt && \
+    chmod -R 755 /opt/nuclei-templates /opt/wordlists
+
+# Startup check verifying pinned security tools and assets
 RUN python scripts/check_security_tools.py
 
 # Create persistent storage mount points and unprivileged service user

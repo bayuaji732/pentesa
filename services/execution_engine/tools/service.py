@@ -84,14 +84,16 @@ class ToolService:
         # 1. Scope check before record creation
         await runner.validate_scope(self.session, project_id, payload.target_url)
 
-        # 2. Build options
+        # 2. Build options (TOOL-ASSETS-01: separate probe timeout from overall execution timeout)
+        probe_timeout = getattr(payload, "request_timeout", None) or 5
         opts = {
             "tags": payload.tags,
             "severity": payload.severity,
             "template_path": payload.template_path,
             "wordlist_path": payload.wordlist,
             "rate_limit": payload.rate_limit,
-            "timeout": payload.timeout_seconds
+            "request_timeout": probe_timeout,
+            "timeout_seconds": payload.timeout_seconds
         }
 
         # 3. Create execution record in QUEUED status

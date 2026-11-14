@@ -106,11 +106,32 @@ def validate_encryption_key_startup():
         )
 
 
+def validate_tool_assets_startup():
+    """Ensure pinned nuclei templates and ffuf wordlists are present and accessible (TOOL-ASSETS-01)."""
+    from integrations.nuclei.runner import DEFAULT_NUCLEI_TEMPLATES
+    from integrations.ffuf.runner import DEFAULT_FFUF_WORDLIST
+
+    env = (getattr(settings, "env", "") or os.getenv("PENTESA_ENV", "")).lower()
+
+    if not os.path.exists(DEFAULT_NUCLEI_TEMPLATES) or not os.path.isdir(DEFAULT_NUCLEI_TEMPLATES):
+        msg = f"CRITICAL TOOL ASSET ERROR: Pinned Nuclei templates directory '{DEFAULT_NUCLEI_TEMPLATES}' not found."
+        if env in ("production", "staging"):
+            raise RuntimeError(msg)
+        logger.warning(msg)
+
+    if not os.path.exists(DEFAULT_FFUF_WORDLIST) or os.path.getsize(DEFAULT_FFUF_WORDLIST) == 0:
+        msg = f"CRITICAL TOOL ASSET ERROR: Pinned ffuf wordlist file '{DEFAULT_FFUF_WORDLIST}' not found or empty."
+        if env in ("production", "staging"):
+            raise RuntimeError(msg)
+        logger.warning(msg)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifecycle events: validate configuration, initialize database, and seed data."""
     # 0. Fail-closed startup security validation
     validate_encryption_key_startup()
+    validate_tool_assets_startup()
 
     # Ensure all root and uvicorn log handlers redact sensitive credentials
     redacting_filter = SensitiveDataLoggingFilter()

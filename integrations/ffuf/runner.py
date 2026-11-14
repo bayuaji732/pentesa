@@ -1,8 +1,18 @@
 """Controlled web fuzzer wrapper using ffuf."""
 
 import json
+import os
 from typing import Any, Dict, List, Optional
 from services.execution_engine.tools.base import BaseToolWrapper, ToolExecutionResult
+
+# Baked pinned ffuf wordlist path with fallback for local dev/test
+DEFAULT_FFUF_WORDLIST = os.getenv("PENTESA_FFUF_WORDLIST_PATH", "/opt/wordlists/common_paths.txt")
+if not os.path.exists(DEFAULT_FFUF_WORDLIST):
+    _local_wl = os.path.join(os.path.dirname(__file__), "wordlists", "common_paths.txt")
+    if os.path.exists(_local_wl):
+        DEFAULT_FFUF_WORDLIST = _local_wl
+    else:
+        DEFAULT_FFUF_WORDLIST = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../tests/fixtures/ffuf/wordlist.txt"))
 
 
 class FfufRunner(BaseToolWrapper):
@@ -12,12 +22,12 @@ class FfufRunner(BaseToolWrapper):
         super().__init__(tool_name="ffuf", binary_name="ffuf")
 
     def build_argv(self, target_url: str, options: Dict[str, Any]) -> List[str]:
-        """Compile safe, non-shell argv for ffuf."""
+        """Compile safe, non-shell argv for ffuf with baked wordlist default."""
         url_template = options.get("url_template")
         if not url_template:
             url_template = f"{target_url.rstrip('/')}/FUZZ"
 
-        wordlist = options.get("wordlist_path") or "common_paths.txt"
+        wordlist = options.get("wordlist_path") or DEFAULT_FFUF_WORDLIST
         rate_limit = min(options.get("rate_limit", 20), 50)  # Capped at 50 rps max
 
         argv = [

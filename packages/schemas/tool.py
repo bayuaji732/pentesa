@@ -24,7 +24,8 @@ class ToolExecutionRequest(BaseModel):
     template_path: Optional[str] = Field(default=None, description="Path to specific Nuclei template")
     wordlist: Optional[str] = Field(default=None, description="Wordlist identifier for ffuf")
     rate_limit: int = Field(default=20, ge=1, le=100, description="Max requests per second")
-    timeout_seconds: int = Field(default=300, ge=10, le=1800)
+    timeout_seconds: int = Field(default=300, ge=10, le=1800, description="Overall subprocess execution timeout in seconds")
+    request_timeout: Optional[int] = Field(default=5, ge=1, le=30, description="Per-probe HTTP request timeout in seconds")
 
 
 class ToolExecutionResponse(BaseModel):

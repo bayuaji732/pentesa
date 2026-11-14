@@ -1,0 +1,19 @@
+id: generic-exposure-check
+info:
+  name: Sensitive File and Directory Exposure Check
+  author: pentesa
+  severity: medium
+  description: Checks for common sensitive file and configuration exposures.
+  classification:
+    cwe-id:
+      - CWE-538
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/.git/config"
+      - "{{BaseURL}}/.env"
+      - "{{BaseURL}}/robots.txt"
+    matchers:
+      - type: status
+        status:
+          - 200

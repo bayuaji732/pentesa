@@ -166,6 +166,7 @@ async def test_ffuf_simulation():
 @pytest.mark.asyncio
 async def test_missing_binary_raises_tool_not_available_error(db_session, test_project, monkeypatch):
     """Verify missing binary raises typed ToolNotAvailableError when simulation is not permitted."""
+    monkeypatch.setenv("PENTESA_LAYER2_EGRESS_ENABLED", "true")
     runner = NucleiRunner()
     monkeypatch.setattr(runner, "get_binary_path", lambda: None)
     # Clear simulation environment variable
@@ -185,6 +186,7 @@ async def test_missing_binary_raises_tool_not_available_error(db_session, test_p
 @pytest.mark.asyncio
 async def test_simulation_blocked_when_env_not_test(db_session, test_project, monkeypatch):
     """Verify simulation is strictly blocked in production even if simulation flag is passed."""
+    monkeypatch.setenv("PENTESA_LAYER2_EGRESS_ENABLED", "true")
     runner = FfufRunner()
     monkeypatch.setattr(runner, "get_binary_path", lambda: None)
     monkeypatch.setenv("PENTESA_ENV", "production")
@@ -243,8 +245,9 @@ async def test_no_mock_finding_in_real_report(db_session, test_project):
 
 
 @pytest.mark.asyncio
-async def test_runner_validate_scope_enforcement(db_session, test_project):
+async def test_runner_validate_scope_enforcement(db_session, test_project, monkeypatch):
     """Verify pre-flight scope validation rejects out-of-scope and excluded targets."""
+    monkeypatch.setenv("PENTESA_LAYER2_EGRESS_ENABLED", "true")
     runner = NucleiRunner()
 
     # In-scope URL: should not raise

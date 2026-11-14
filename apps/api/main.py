@@ -76,7 +76,7 @@ def validate_encryption_key_startup():
 
     # 2. Strict database password and JWT secret enforcement outside test/dev
     if env not in ("development", "test"):
-        db_url = os.getenv("PENTESA_DATABASE_URL") or os.getenv("DATABASE_URL") or ""
+        db_url = os.getenv("PENTESA_DATABASE_URL") or os.getenv("DATABASE_URL") or getattr(settings, "database_url", "")
         insecure_passwords = ["pentesa_password", "postgres", "password", "admin", "root", "123456"]
         for bad_pwd in insecure_passwords:
             if f":{bad_pwd}@" in db_url:

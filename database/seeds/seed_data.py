@@ -54,8 +54,16 @@ async def seed_initial_data(session: AsyncSession) -> None:
     if existing_admin:
         return
 
+    bootstrap_flag = os.getenv("PENTESA_BOOTSTRAP_ADMIN", "").lower() in ("1", "true", "yes")
     bootstrap_email = os.getenv("PENTESA_BOOTSTRAP_ADMIN_EMAIL")
     bootstrap_pwd = os.getenv("PENTESA_BOOTSTRAP_ADMIN_PASSWORD")
+
+    # 2b. Refuse startup if bootstrap flag is enabled but credentials are missing
+    if bootstrap_flag and (not bootstrap_email or not bootstrap_pwd):
+        raise ValueError(
+            "SEC-PWD-01: PENTESA_BOOTSTRAP_ADMIN is enabled but PENTESA_BOOTSTRAP_ADMIN_EMAIL "
+            "or PENTESA_BOOTSTRAP_ADMIN_PASSWORD is missing. Both must be provided."
+        )
 
     # 3. Handle explicit bootstrap credentials
     if bootstrap_email and bootstrap_pwd:

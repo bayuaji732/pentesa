@@ -81,6 +81,14 @@ async def check_environment_configuration() -> Tuple[bool, List[str]]:
     else:
         print_check("JWT Secret Key", True, f"Cryptographically strong ({len(secret)} chars)")
 
+    try:
+        from apps.api.main import validate_encryption_key_startup
+        validate_encryption_key_startup()
+        print_check("Master Encryption Key", True, "Master AES-256 key configured (>=32 bytes)")
+    except Exception as e:
+        issues.append(str(e))
+        print_check("Master Encryption Key", False, str(e))
+
     provider = (settings.llm_provider or "mock").lower().strip()
     active_model = _resolve_active_model(provider)
     if provider == "mock" and env_mode == "production":

@@ -101,3 +101,39 @@ def test_startup_validation_refuses_default_jwt_secret_in_production(monkeypatch
     with pytest.raises(RuntimeError) as exc:
         validate_encryption_key_startup()
     assert "JWT signature secret key" in str(exc.value)
+
+
+@pytest.mark.asyncio
+async def test_seed_initial_data_refuses_bootstrap_flag_without_credentials(db_session: AsyncSession, monkeypatch):
+    """Verify seed_initial_data refuses startup when bootstrap flag is set but email/password missing."""
+    monkeypatch.setenv("PENTESA_BOOTSTRAP_ADMIN", "true")
+    monkeypatch.delenv("PENTESA_BOOTSTRAP_ADMIN_EMAIL", raising=False)
+    monkeypatch.delenv("PENTESA_BOOTSTRAP_ADMIN_PASSWORD", raising=False)
+
+    with pytest.raises(ValueError) as exc:
+        await seed_initial_data(db_session)
+    assert "PENTESA_BOOTSTRAP_ADMIN is enabled but PENTESA_BOOTSTRAP_ADMIN_EMAIL or PENTESA_BOOTSTRAP_ADMIN_PASSWORD is missing" in str(exc.value)
+
+
+@pytest.mark.asyncio
+async def test_seed_initial_data_refuses_admin123_secure_default_password(db_session: AsyncSession, monkeypatch):
+    """Verify seed_initial_data explicitly rejects Admin123!Secure default password."""
+    monkeypatch.setenv("PENTESA_BOOTSTRAP_ADMIN_EMAIL", "admin@corp.test")
+    monkeypatch.setenv("PENTESA_BOOTSTRAP_ADMIN_PASSWORD", "Admin123!Secure")
+
+    with pytest.raises(ValueError) as exc:
+        await seed_initial_data(db_session)
+    assert "prohibited common phrases" in str(exc.value)
+
+
+def test_startup_validation_refuses_database_url_env_var_in_production(monkeypatch):
+    """Verify API startup fails closed against DATABASE_URL (standard alias) with default password."""
+    monkeypatch.setattr(settings, "env", "production")
+    monkeypatch.setenv("PENTESA_ENCRYPTION_KEY", "a" * 32)
+    monkeypatch.delenv("PENTESA_DATABASE_URL", raising=False)
+    monkeypatch.setenv("DATABASE_URL", "postgresql+asyncpg://pentesa_user:pentesa_password@db:5432/pentesa")
+    monkeypatch.setenv("PENTESA_SECRET_KEY", "b" * 32)
+
+    with pytest.raises(RuntimeError) as exc:
+        validate_encryption_key_startup()
+    assert "prohibited default password" in str(exc.value)

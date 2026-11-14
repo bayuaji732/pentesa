@@ -29,6 +29,11 @@ async def run_worker_loop():
     """Main worker event loop."""
     logger.info("Initializing Pentesa Asynchronous Security Worker...")
     logger.info(f"Worker PID: {os.getpid()}")
+
+    # Fail-closed startup security validation (SEC-KEY-01, SEC-PWD-01)
+    from apps.api.main import validate_encryption_key_startup
+    validate_encryption_key_startup()
+
     logger.info("Connecting to Redis task queue & PostgreSQL state engine...")
 
     # Set up signal handlers where supported

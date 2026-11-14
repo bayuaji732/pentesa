@@ -91,10 +91,11 @@ async def seed_initial_data(session: AsyncSession) -> None:
     seed_demo = os.getenv("PENTESA_SEED_DEMO_DATA", "").lower() in ("1", "true", "yes")
 
     if env in ("development", "test") and seed_demo:
+        demo_pwd = os.getenv("PENTESA_DEMO_ADMIN_PASSWORD") or os.getenv("PENTESA_ADMIN_PASSWORD") or "DevAdmin2026!Complex"
         admin_user = User(
             id=uuid.uuid4(),
-            email="admin@example.com",
-            password_hash=hash_password("Admin123!Secure"),
+            email=os.getenv("PENTESA_ADMIN_EMAIL", "admin@example.com"),
+            password_hash=hash_password(demo_pwd),
             full_name="Development Administrator",
             role="ADMIN",
             is_active=True,

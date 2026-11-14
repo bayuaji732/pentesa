@@ -190,3 +190,24 @@ async def test_supervisor_hitl_approval_gate_full_profile(db_session, test_proje
     assert wf_done.status == "COMPLETED"
     assert wf_done.current_phase == "COMPLETED"
 
+
+@pytest.mark.asyncio
+async def test_supervisor_refuses_workflow_start_with_zero_scope_rules(db_session, test_project, admin_user):
+    """Verify WorkflowSupervisor refuses to start workflow on a project with zero defined scope rules."""
+    from database.models.scope import ScopeRule
+    from sqlalchemy import delete
+
+    # Remove all scope rules for the project
+    await db_session.execute(delete(ScopeRule).where(ScopeRule.project_id == test_project.id))
+    await db_session.commit()
+
+    supervisor = WorkflowSupervisor(db_session)
+    with pytest.raises(BadRequestError) as exc_info:
+        await supervisor.prepare_workflow(
+            project_id=test_project.id,
+            user_id=admin_user.id
+        )
+
+    assert "zero defined scope rules" in str(exc_info.value)
+
+

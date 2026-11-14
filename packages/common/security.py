@@ -13,6 +13,16 @@ import jwt
 from packages.common.config import settings
 from packages.common.exceptions import AuthenticationError
 
+KNOWN_INSECURE_KEYS = {
+    "pentesa-master-key-32-bytes-long-change-in-prod!",
+    "pentesa-super-secret-default-key-change-in-production-1234567890",
+    "default-insecure-master-key-32b!",
+    "change-me-in-production-use-a-strong-secret-key",
+    "00000000000000000000000000000000",
+    "11111111111111111111111111111111",
+    "12345678901234567890123456789012",
+}
+
 
 def hash_password(password: str) -> str:
     """Hash a plaintext password using bcrypt with salt."""
@@ -128,6 +138,11 @@ def derive_aes_key(key: Optional[Union[bytes, str]] = None) -> bytes:
 
     if len(key) < 32:
         raise ValueError(f"Encryption key must be at least 32 bytes (got {len(key)} bytes).")
+
+    key_str = key.decode("utf-8", errors="replace") if isinstance(key, bytes) else str(key)
+    env = (getattr(settings, "env", "") or os.getenv("PENTESA_ENV", "")).lower()
+    if env not in ("test",) and key_str in KNOWN_INSECURE_KEYS:
+        raise ValueError(f"Encryption key '{key_str[:12]}...' is a known repository default or insecure placeholder string.")
 
     if len(key) == 32:
         return key

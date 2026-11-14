@@ -63,6 +63,17 @@ def test_startup_validation_refuses_known_default_key_outside_test(monkeypatch):
     assert "known repository default" in str(exc_info.value)
 
 
+def test_derive_aes_key_rejects_exact_32byte_insecure_default_key(monkeypatch):
+    """Verify derive_aes_key rejects default-insecure-master-key-32b! (32 bytes, no blacklist substring)."""
+    monkeypatch.setattr(settings, "env", "production")
+    insecure_key = "default-insecure-master-key-32b!"
+    assert len(insecure_key.encode("utf-8")) == 32
+
+    with pytest.raises(ValueError) as exc_info:
+        derive_aes_key(insecure_key)
+    assert "known repository default or insecure placeholder string" in str(exc_info.value)
+
+
 def test_repo_scan_zero_default_master_key_literals():
     """Verify production Python modules contain zero occurrences of default master key literals."""
     root_dir = Path(__file__).resolve().parent.parent.parent
@@ -85,8 +96,8 @@ def test_repo_scan_zero_default_master_key_literals():
             text = py_file.read_text(encoding="utf-8", errors="ignore")
             for forbidden in forbidden_literals:
                 # Disallow default key literals anywhere in production code
-                # (except the explicit rejection blacklist KNOWN_INSECURE_KEYS in main.py)
-                if forbidden in text and py_file.name != "main.py":
+                # (except the explicit rejection blacklist KNOWN_INSECURE_KEYS in security.py / main.py)
+                if forbidden in text and py_file.name not in ("main.py", "security.py"):
                     violations.append((str(py_file.relative_to(root_dir)), forbidden))
 
     assert len(violations) == 0, f"Found default master key literals in production code: {violations}"

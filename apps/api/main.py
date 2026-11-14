@@ -36,15 +36,7 @@ from packages.common.exceptions import (
 )
 
 
-KNOWN_INSECURE_KEYS = {
-    "pentesa-master-key-32-bytes-long-change-in-prod!",
-    "pentesa-super-secret-default-key-change-in-production-1234567890",
-    "default-insecure-master-key-32b!",
-    "change-me-in-production-use-a-strong-secret-key",
-    "00000000000000000000000000000000",
-    "11111111111111111111111111111111",
-    "12345678901234567890123456789012",
-}
+from packages.common.security import KNOWN_INSECURE_KEYS
 
 
 def validate_encryption_key_startup():

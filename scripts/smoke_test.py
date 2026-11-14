@@ -20,8 +20,8 @@ import httpx
 
 API_BASE = os.environ.get("PENTESA_API_URL", "http://localhost:8000")
 WEB_BASE = os.environ.get("PENTESA_WEB_URL", "http://localhost:3000")
-DEFAULT_USER = os.environ.get("PENTESA_SMOKE_USER", "admin@example.com")
-DEFAULT_PASS = os.environ.get("PENTESA_SMOKE_PASS", "Admin123!Secure")
+DEFAULT_USER = os.environ.get("PENTESA_ADMIN_EMAIL") or os.environ.get("PENTESA_SMOKE_USER") or "admin@example.com"
+DEFAULT_PASS = os.environ.get("PENTESA_ADMIN_PASSWORD") or os.environ.get("PENTESA_SMOKE_PASS", "")
 
 
 def print_status(step: str, success: bool, message: str = ""):
@@ -82,17 +82,21 @@ def run_smoke_test(timeout_seconds: float = 30.0) -> bool:
 
         # Step 4: Authentication Flow
         access_token = None
-        try:
-            login_data = {"email": DEFAULT_USER, "password": DEFAULT_PASS}
-            r = client.post(f"{API_BASE}/api/v1/auth/login", json=login_data)
-            if r.status_code == 200:
-                tokens = r.json()
-                access_token = tokens.get("access_token")
-                print_status("Authentication (/api/v1/auth/login)", True, "JWT token pair issued successfully")
-            else:
-                print_status("Authentication (/api/v1/auth/login)", False, f"HTTP {r.status_code}: {r.text}")
-                all_passed = False
-        except Exception as e:
+        if not DEFAULT_PASS:
+            print_status("Authentication (/api/v1/auth/login)", False, "PENTESA_ADMIN_PASSWORD or PENTESA_SMOKE_PASS environment variable not set")
+            all_passed = False
+        else:
+            try:
+                login_data = {"email": DEFAULT_USER, "password": DEFAULT_PASS}
+                r = client.post(f"{API_BASE}/api/v1/auth/login", json=login_data)
+                if r.status_code == 200:
+                    tokens = r.json()
+                    access_token = tokens.get("access_token")
+                    print_status("Authentication (/api/v1/auth/login)", True, "JWT token pair issued successfully")
+                else:
+                    print_status("Authentication (/api/v1/auth/login)", False, f"HTTP {r.status_code}: {r.text}")
+                    all_passed = False
+            except Exception as e:
             print_status("Authentication (/api/v1/auth/login)", False, str(e))
             all_passed = False
 

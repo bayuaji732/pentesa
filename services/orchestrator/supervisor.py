@@ -146,6 +146,11 @@ class WorkflowSupervisor:
         # 3. Compile approved scope metadata
         scope_stmt = select(ScopeRule).where(ScopeRule.project_id == project_id)
         rules = (await self.session.execute(scope_stmt)).scalars().all()
+        if not rules:
+            raise BadRequestError(
+                "Cannot start workflow: Project has zero defined scope rules. "
+                "Define at least one authorized in-scope rule before launching autonomous assessment."
+            )
         scope_summary = {
             "target_domains": project.target_domains or [],
             "allowed_cidrs": project.allowed_cidrs or [],

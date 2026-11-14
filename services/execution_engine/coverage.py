@@ -22,27 +22,32 @@ def compute_metrics(
     needs_review: int,
     not_applicable: int,
     total: int
-) -> tuple[float, float]:
-    """Compute mathematical coverage percentage and health score.
+) -> tuple[float, float, float]:
+    """Compute mathematical coverage percentage, health score, and executed coverage percentage.
     
     Formulae:
         Coverage % = ((Passed + Failed + Needs Review + Not Applicable) / Total) * 100
         Health Score = ((Passed + Not Applicable) / Total) * 100
+        Executed Coverage % = ((Passed + Failed + Needs Review) / (Total - Not Applicable)) * 100
     """
     if total <= 0:
-        return 0.0, 0.0
+        return 0.0, 0.0, 0.0
 
     covered = passed + failed + needs_review + not_applicable
     healthy = passed + not_applicable
+    executed = passed + failed + needs_review
+    applicable = total - not_applicable
 
     coverage_pct = round((covered / total) * 100.0, 1)
     health_score = round((healthy / total) * 100.0, 1)
+    executed_cov = round((executed / applicable) * 100.0, 1) if applicable > 0 else 0.0
 
     # Clamp between 0.0 and 100.0
     coverage_pct = max(0.0, min(100.0, coverage_pct))
     health_score = max(0.0, min(100.0, health_score))
+    executed_cov = max(0.0, min(100.0, executed_cov))
 
-    return coverage_pct, health_score
+    return coverage_pct, health_score, executed_cov
 
 
 async def calculate_project_wstg_coverage(
@@ -125,13 +130,14 @@ async def calculate_project_wstg_coverage(
             total_not_started += 1
 
     total_catalog = len(rows)
-    overall_cov, overall_health = compute_metrics(
+    overall_cov, overall_health, overall_exec_cov = compute_metrics(
         total_passed, total_failed, total_needs_review, total_na, total_catalog
     )
+    applicable_tests = max(0, total_catalog - total_na)
 
     category_reports: Dict[str, CoverageCategoryMetrics] = {}
     for code, counts in cat_counts.items():
-        cov, health = compute_metrics(
+        cov, health, exec_cov = compute_metrics(
             counts["passed"],
             counts["failed"],
             counts["needs_review"],
@@ -150,15 +156,18 @@ async def calculate_project_wstg_coverage(
             running_count=counts["running"],
             not_started_count=counts["not_started"],
             coverage_pct=cov,
-            health_score=health
+            health_score=health,
+            executed_coverage_pct=exec_cov
         )
 
     return WSTGCoverageReport(
         project_id=project_id,
         overall_coverage_pct=overall_cov,
         testing_health_score=overall_health,
+        executed_coverage_pct=overall_exec_cov,
         total_catalog_tests=total_catalog,
         in_scope_tests_count=total_catalog,
+        applicable_tests_count=applicable_tests,
         passed_count=total_passed,
         failed_count=total_failed,
         needs_review_count=total_needs_review,

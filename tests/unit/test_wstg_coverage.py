@@ -16,21 +16,25 @@ from services.execution_engine.planner import initialize_project_wstg_instances
 def test_compute_metrics_formula():
     """Verify exact formula values and edge conditions."""
     # Zero items
-    cov, health = compute_metrics(passed=0, failed=0, needs_review=0, not_applicable=0, total=0)
+    cov, health, exec_cov = compute_metrics(passed=0, failed=0, needs_review=0, not_applicable=0, total=0)
     assert cov == 0.0
     assert health == 0.0
+    assert exec_cov == 0.0
 
     # 100 total, 50 passed, 20 failed, 10 review, 10 na, 10 not started
     # Covered = 50 + 20 + 10 + 10 = 90 -> 90.0%
     # Health = 50 + 10 = 60 -> 60.0%
-    cov, health = compute_metrics(passed=50, failed=20, needs_review=10, not_applicable=10, total=100)
+    # Applicable = 100 - 10 = 90. Executed = 50 + 20 + 10 = 80 -> 80/90 = 88.9%
+    cov, health, exec_cov = compute_metrics(passed=50, failed=20, needs_review=10, not_applicable=10, total=100)
     assert cov == 90.0
     assert health == 60.0
+    assert exec_cov == 88.9
 
     # 106 total, all passed
-    cov, health = compute_metrics(passed=106, failed=0, needs_review=0, not_applicable=0, total=106)
+    cov, health, exec_cov = compute_metrics(passed=106, failed=0, needs_review=0, not_applicable=0, total=106)
     assert cov == 100.0
     assert health == 100.0
+    assert exec_cov == 100.0
 
 
 @pytest.mark.asyncio
@@ -46,6 +50,8 @@ async def test_calculate_project_wstg_coverage(db_session: AsyncSession, test_pr
     assert rep1.total_catalog_tests == 106
     assert rep1.overall_coverage_pct == 0.0
     assert rep1.testing_health_score == 0.0
+    assert rep1.executed_coverage_pct == 0.0
+    assert rep1.applicable_tests_count == 106
     assert rep1.not_started_count == 106
     assert len(rep1.categories) == 12
 
@@ -72,10 +78,13 @@ async def test_calculate_project_wstg_coverage(db_session: AsyncSession, test_pr
     assert rep2.passed_count == 10
     assert rep2.failed_count == 5
     assert rep2.not_applicable_count == 5
+    assert rep2.applicable_tests_count == 101
     # Covered = 20 / 106 = 18.9%
     # Health = 15 / 106 = 14.2%
+    # Executed = 15 / 101 = 14.9%
     assert rep2.overall_coverage_pct == 18.9
     assert rep2.testing_health_score == 14.2
+    assert rep2.executed_coverage_pct == 14.9
 
     # Verify per-category breakdowns
     inpv_cat = rep2.categories["WSTG-INPV"]

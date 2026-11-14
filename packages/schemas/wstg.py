@@ -71,6 +71,7 @@ class CoverageCategoryMetrics(BaseModel):
     not_started_count: int
     coverage_pct: float
     health_score: float
+    executed_coverage_pct: float = 0.0
 
 
 class WSTGCoverageReport(BaseModel):
@@ -78,8 +79,10 @@ class WSTGCoverageReport(BaseModel):
     project_id: uuid.UUID
     overall_coverage_pct: float
     testing_health_score: float
+    executed_coverage_pct: float = 0.0
     total_catalog_tests: int
     in_scope_tests_count: int
+    applicable_tests_count: int = 0
     passed_count: int
     failed_count: int
     needs_review_count: int

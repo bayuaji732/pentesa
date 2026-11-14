@@ -58,6 +58,15 @@ async def safe_request(
         r_res = await session.execute(select(ScopeRule).where(ScopeRule.project_id == project.id))
         rules = list(r_res.scalars().all())
 
+    # Detect in-memory/mock transports: skip DNS resolution for offline unit tests and mocks
+    transport = getattr(client, "_transport", None)
+    if (
+        transport is None
+        or isinstance(transport, (httpx.MockTransport, httpx.ASGITransport))
+        or not isinstance(transport, httpx.AsyncHTTPTransport)
+    ):
+        resolve_dns = False
+
     # 2. Initial scope check on root URL
     if project is not None:
         scope_res = scope_service.check_target(

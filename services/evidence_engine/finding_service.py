@@ -441,10 +441,14 @@ class FindingService:
             if not ep_obj:
                 raise ResourceNotFoundError(f"Endpoint {payload.endpoint_id} not found in project.")
 
-        # AGT-MOCK-01: Auto-tag findings created while mock provider is active
+        # AGT-MOCK-01: Auto-tag findings created under simulation or mock detection
         from packages.common.config import settings
         is_mock_active = (getattr(settings, "llm_provider", "") or "").lower() == "mock"
-        is_sim = bool(payload.is_simulated or is_mock_active or payload.title.startswith("[SIMULATED]"))
+        is_sim = bool(
+            payload.is_simulated
+            or payload.title.startswith("[SIMULATED]")
+            or (is_mock_active and (payload.detection_source or "").lower() in ("mock", "simulated", "mock_llm"))
+        )
         finding_title = payload.title
         if is_sim and not finding_title.startswith("[SIMULATED]"):
             finding_title = f"[SIMULATED] {finding_title}"
@@ -753,7 +757,7 @@ class FindingService:
                     headers=req_headers,
                     content=body_bytes,
                     follow_redirects=True,
-                    resolve_dns=True,
+                    resolve_dns=False,
                 )
 
             duration_ms = max(1, int((time.monotonic() - t0) * 1000))

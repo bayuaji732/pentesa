@@ -319,10 +319,11 @@ class OpenAICompatibleProvider(BaseLLMProvider):
                     choices = data.get("choices") or []
                     msg_obj = (choices[0].get("message") or {}) if choices else {}
                     msg_content = (msg_obj.get("content") or "").strip()
+        # LiteLLM HTTP status error handler
         except httpx.HTTPStatusError as e:
             code = 502 if e.response.status_code >= 500 or e.response.status_code in (403, 401) else 503
             raise LLMGatewayError(
-                f"Upstream AI gateway returned HTTP error {e.response.status_code} at {self.chat_url}: {e.response.text[:200]}",
+                f"LiteLLM proxy returned HTTP error {e.response.status_code} at {self.chat_url}: {e.response.text[:200]}",
                 status_code=code,
                 details={"status_code": e.response.status_code, "url": self.chat_url}
             ) from e
@@ -443,10 +444,11 @@ class LiteLLMProvider(BaseLLMProvider):
                         msg_obj = (choices[0].get("message") or {}) if choices else {}
                         msg_content = (msg_obj.get("content") or "").strip()
 
+        # LiteLLM HTTP status error handler
         except httpx.HTTPStatusError as e:
             code = 502 if e.response.status_code >= 500 or e.response.status_code in (403, 401) else 503
             raise LLMGatewayError(
-                f"Upstream AI gateway returned HTTP error {e.response.status_code} at {self.chat_url}: {e.response.text[:200]}",
+                f"LiteLLM proxy returned HTTP error {e.response.status_code} at {self.chat_url}: {e.response.text[:200]}",
                 status_code=code,
                 details={"status_code": e.response.status_code, "url": self.chat_url}
             ) from e

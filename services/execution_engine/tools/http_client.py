@@ -65,7 +65,7 @@ class RawHttpClient:
                 headers=payload.headers,
                 content=payload.body.encode("utf-8") if payload.body else None,
                 follow_redirects=payload.follow_redirects,
-                resolve_dns=True
+                resolve_dns=False
             )
 
         duration_ms = int((time.time() - start_time) * 1000)

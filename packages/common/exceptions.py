@@ -67,7 +67,7 @@ class ToolNotAvailableError(PentesaError):
         )
 
 
-class LLMGatewayError(PentesaError):
+class LLMGatewayError(PentesaError, RuntimeError):
     """Raised when an upstream LLM gateway or provider is unreachable, times out, or fails (AGT-LLM-01)."""
 
     def __init__(

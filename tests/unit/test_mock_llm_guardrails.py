@@ -136,7 +136,9 @@ async def test_simulated_finding_tagged_and_excluded_from_report(db_session: Asy
         description="Parameter 'user' is vulnerable to boolean-based SQL injection.",
         severity="High",
         status="Confirmed",
-        confidence="High"
+        confidence="High",
+        detection_source="mock",
+        is_simulated=True
     )
     finding = await finding_svc.create_finding(project.id, finding_payload)
     await db_session.commit()

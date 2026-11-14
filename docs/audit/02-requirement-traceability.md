@@ -26,7 +26,7 @@
 |---|---|---|---|---|
 | **FR-PM-01** | Create/manage distinct projects with unique UUIDs, names, descriptions, owners | `database/models/project.py`<br>`apps/api/routers/projects.py`<br>`apps/web/src/app/projects/page.tsx` | **Verified** | Verified via Project API CRUD endpoints and frontend workspace view. |
 | **FR-PM-02** | Define Rules of Engagement (RoE) including authorized testing windows | `database/models/project.py`<br>`services/orchestrator/supervisor.py`<br>`apps/web/src/app/scope/page.tsx` | **Verified** | Verified window constraints in `supervisor.py` lines 106–114. |
-| **FR-PM-03** | Store authentication profiles with AES-256-GCM encryption at rest | `packages/common/security.py`<br>`database/models/project.py` | **Partially Verified** | User password hashing uses Argon2id; target credential vault table (`auth_profiles`) with AES-256-GCM at rest is missing. |
+| **FR-PM-03** | Store authentication profiles with AES-256-GCM encryption at rest | `database/models/auth_profile.py`<br>`packages/common/security.py` | **Verified** | Verified via `test_credential_encryption_and_redaction.py`; `AuthProfile` model encrypts payload at rest with AES-256-GCM; database ciphertext verified with zero plaintext leak (Part 2A check 4.6); fail-closed key derivation enforced in FIX-02 (`b3c1e1b`). |
 | **FR-PM-04** | Enforce automatic project expiration: scans refuse execution past end date | `services/orchestrator/supervisor.py`<br>`services/scope_engine/service.py` | **Verified** | `test_scope_service_project_authorization_window` passed; raises `ProjectAuthorizationExpiredError`. |
 | **FR-PM-05** | Maintain project-level immutable audit history recording all actions | `packages/common/audit.py`<br>`database/models/audit.py`<br>`apps/api/routers/audit.py`<br>`apps/web/src/app/audit-logs/page.tsx` | **Verified** | Cryptographic SHA-256 hash chain and tamper detection verified (`test_audit_chain.py` passed). |
 
@@ -38,8 +38,8 @@
 |---|---|---|---|---|
 | **FR-SC-01** | Define in-scope domains, wildcards (`*.example.com`), CIDRs, ports | `database/models/scope.py`<br>`services/scope_engine/validator.py`<br>`apps/api/routers/scope.py` | **Verified** | `test_parse_port_range`, `test_domain_regex_compilation`, `test_scope_validator_domains_and_ports` passed. |
 | **FR-SC-02** | Excluded hosts, regex path exclusions (`/logout`, `/admin/delete`) | `services/scope_engine/validator.py` | **Verified** | `test_scope_validator_path_exclusions_and_traversal` passed. Traversal bypasses safely rejected. |
-| **FR-SC-03** | Dual-layer scope check (Layer 1 App + Layer 2 Egress Proxy) | `services/scope_engine/service.py` | **Partially Verified** | Layer 1 Application-level validation verified; Layer 2 dedicated network Egress Proxy container is absent. |
-| **FR-SC-04** | Redirect protection: Validate every redirect hop | `services/discovery_engine/crawler.py`<br>`services/scope_engine/service.py` | **Verified** | Redirect hops validated against project scope before following. |
+| **FR-SC-03** | Dual-layer scope check (Layer 1 App + Layer 2 Egress Proxy) | `services/scope_engine/service.py`<br>`integrations/nuclei/runner.py`<br>`integrations/ffuf/runner.py` | **Partially Verified** | Layer 1 Application-level validation verified; tool subprocess wrappers interim-hardened against redirect flags and arbitrary CLI injection via FIX-06 (`5cede9b`). Layer 2 dedicated network Egress Proxy container is absent (cataloged as NI-03, P0-KNOWN, tool binaries restricted to Lab-Only pending Phase 3 egress container). |
+| **FR-SC-04** | Redirect protection: Validate every redirect hop | `packages/common/http_client.py`<br>`services/execution_engine/tools/http_client.py`<br>`services/discovery_engine/crawler.py` | **Verified** | Bounded manual redirect loop (max 5 hops) with per-hop scope validation, DNS pinning, and cross-host credential/cookie stripping implemented via FIX-01 (`e888ab1`); verified via `test_safe_redirect_loop.py` (4/4 pass). |
 | **FR-SC-05** | Prevent DNS rebinding attacks via DNS pinning | `services/scope_engine/dns_pinning.py` | **Verified** | `test_dns_rebinding_detection` passed. |
 | **FR-SC-06** | Scope change audit trail recording authorizing user | `apps/api/routers/scope.py`<br>`apps/api/dependencies.py` | **Verified** | Rule creation and deletion trigger `record_audit_log` with user UUID and IP. |
 
@@ -52,7 +52,7 @@
 | **FR-DS-01** | Subdomain enumeration (`subfinder`, passive DNS) | `services/discovery_engine/service.py` | **Partially Verified** | Handled via Python discovery; external `subfinder` binary runner not implemented. |
 | **FR-DS-02** | Scope-aware web crawling supporting HTML & SPA endpoints | `services/discovery_engine/crawler.py` | **Verified** | Python `httpx` + `BeautifulSoup4` crawler with scope check on every URL. |
 | **FR-DS-03** | Endpoint extraction from HTML forms, JS bundles, OpenAPI specs | `services/discovery_engine/extractor.py` | **Verified** | 9 unit tests passed in `test_parameter_extraction.py` (forms, JSON, JS, OpenAPI, robots, sitemap). |
-| **FR-DS-04** | Hidden path and content discovery (`ffuf`) | `integrations/ffuf/runner.py` | **Partially Verified** | Smoke check matched 4/4 canonical paths. Subprocess wrapper functional; production wordlist missing from base image (TOOL-WORD-01). Real recall deferred to Phase 3. |
+| **FR-DS-04** | Hidden path and content discovery (`ffuf`) | `integrations/ffuf/runner.py`<br>`services/execution_engine/tools/wordlists/common.txt` | **Partially Verified** | Smoke check matched 4/4 canonical paths; controlled fuzzing verified against Juice Shop (Part 2A check 7.2). Pinned wordlist bundled into image via FIX-05 (`7e80f6d`). Real fuzzing recall benchmark deferred to Phase 3. |
 | **FR-DS-05** | Centralized Endpoint Inventory with parameters and schema | `database/models/discovery.py`<br>`apps/api/routers/discovery.py`<br>`apps/web/src/app/discovery/page.tsx` | **Verified** | Endpoints and parameters persisted to DB and rendered in UI with methods, parameters, and auth flags. |
 | **FR-DS-06** | Technology fingerprinting identifying frameworks and servers | `services/discovery_engine/fingerprint.py` | **Verified** | 4 unit tests passed in `test_technology_detection.py` (headers, cookies, DOM signatures). |
 
@@ -74,8 +74,8 @@
 
 | Req ID | Requirement Description | Implementation Files | Status | Execution Evidence / Verification Notes |
 |---|---|---|---|---|
-| **FR-ST-01** | Tool execution wrapper for Nuclei with scope validation | `integrations/nuclei/runner.py`<br>`apps/api/routers/tools.py` | **Partially Verified** | Nuclei pipeline and parser verified; finding ingestion confirmed via fixture template. Real vulnerability detection not verified. Official templates not baked into base image (TOOL-TMPL-01). |
-| **FR-ST-02** | Tool execution wrappers for httpx, katana, ffuf | `integrations/ffuf/runner.py`<br>`apps/api/routers/tools.py` | **Partially Verified** | Ffuf binary v2.1.0 verified with controlled fuzzing; wordlist missing from base image (TOOL-WORD-01). Katana/httpx CLI runners absent (NI-04). |
+| **FR-ST-01** | Tool execution wrapper for Nuclei with scope validation | `integrations/nuclei/runner.py`<br>`apps/api/routers/tools.py` | **Partially Verified** | Nuclei pipeline and parser verified; finding ingestion confirmed via fixture template. Pinned templates baked into Docker image and per-probe timeout separated from subprocess execution timeout via FIX-05 (`7e80f6d`). Real vulnerability detection against live CVEs deferred to Phase 3. |
+| **FR-ST-02** | Tool execution wrappers for httpx, katana, ffuf | `integrations/ffuf/runner.py`<br>`apps/api/routers/tools.py` | **Partially Verified** | Ffuf binary v2.1.0 verified with controlled fuzzing; production wordlist bundled via FIX-05 (`7e80f6d`). Katana/httpx CLI runners absent (NI-04). |
 | **FR-ST-03** | Custom Python security check harness | `services/execution_engine/tools/http_client.py`<br>`agents/authorization/authz_agent.py`<br>`agents/vulnerability/vuln_agent.py` | **Verified** | Python-based HTTP prober with header injection, CORS, and IDOR testing active. |
 | **FR-ST-04** | Strict process sandboxing: Zero dynamic shell execution from LLM | `services/execution_engine/tools/base.py` | **Verified** | `create_subprocess_exec` uses typed `argv: List[str]`; shell strings strictly prohibited. |
 | **FR-ST-05** | Global and per-target rate limiting | `services/execution_engine/tools/base.py`<br>`integrations/ffuf/runner.py` | **Verified** | Rate limiting benchmark verified against Juice Shop logs (nuclei: 5.04, 10.15, 20.30 req/s; ffuf: 4.98, 9.95, 19.92 req/s). `/http-test` unthrottled in API spec (FR-ST-05 applies to automated tools). |
@@ -86,8 +86,8 @@
 
 | Req ID | Requirement Description | Implementation Files | Status | Execution Evidence / Verification Notes |
 |---|---|---|---|---|
-| **FR-AG-01** | Multi-agent architecture built on stateful graph workflows | `services/orchestrator/supervisor.py`<br>`services/orchestrator/state.py` | **Partially Verified** | Custom Python sequential DAG supervisor used instead of LangGraph; 3x execution battery failed with HTTP 500 due to upstream LiteLLM APIConnectionError / CloudFront 403 (AGT-LLM-01). |
-| **FR-AG-02** | 15 dedicated agents with distinct responsibilities | `agents/` | **Partially Verified** | 7 dedicated agent classes implemented; static allowlists defined on all agents; runtime allowlist enforcement verified via `test_agent_allowlist_enforcement.py`. |
+| **FR-AG-01** | Multi-agent architecture built on stateful graph workflows | `services/orchestrator/supervisor.py`<br>`apps/api/routers/agents.py` | **Partially Verified** | Custom Python sequential DAG supervisor used instead of LangGraph (NI-01); upstream LiteLLM/CloudFront gateway outages handled gracefully with HTTP 502/503 and workflow marked `FAILED` with `failure_reason` via FIX-07 (`561d8e7`), verified via `test_llm_gateway_outage_handling.py` (4/4 pass). |
+| **FR-AG-02** | 15 dedicated agents with distinct responsibilities | `agents/` | **Partially Verified** | 7 dedicated agent classes implemented; static allowlists defined on all agents; runtime allowlist enforcement verified via `test_agent_allowlist_enforcement.py` (`PermissionError` and `AGENT_TOOL_CALL_BLOCKED` audit log). |
 | **FR-AG-03** | Strict Agent-Tool boundary: agents emit JSON; engine executes | `agents/base.py` (`log_tool_call`) | **Verified** | Unauthorized tool calls raise `PermissionError` via `allowed_tools` allowlist and record `AGENT_TOOL_CALL_BLOCKED` in cryptographic audit log. |
 | **FR-AG-04** | Full agent observability: thought traces, tool calls, token/cost telemetry | `database/models/agent.py`<br>`agents/base.py`<br>`apps/api/routers/agents.py` | **Not Tested** | Observability schema and database tables verified; live token/cost telemetry accumulation not tested due to LLM gateway outage ($0 spent). |
 
@@ -143,19 +143,19 @@
 
 The table below summarizes the exact row-by-row count across all 10 modules:
 
-| Module | Total Reqs | Verified | Partially Verified | Mock / Stub | Not Implemented |
+| Module | Total Reqs | Verified | Partially Verified | Not Tested | Not Implemented |
 |---|:---:|:---:|:---:|:---:|:---:|
-| **2.1 Project Management (FR-PM)** | 5 | 4 | 1 | 0 | 0 |
+| **2.1 Project Management (FR-PM)** | 5 | 5 | 0 | 0 | 0 |
 | **2.2 Scope Enforcement (FR-SC)** | 6 | 5 | 1 | 0 | 0 |
-| **2.3 Attack Surface Discovery (FR-DS)** | 6 | 4 | 1 | 1 | 0 |
+| **2.3 Attack Surface Discovery (FR-DS)** | 6 | 4 | 2 | 0 | 0 |
 | **2.4 OWASP WSTG Test Planning (FR-WP)** | 5 | 5 | 0 | 0 | 0 |
-| **2.5 Automated Security Testing (FR-ST)** | 5 | 3 | 0 | 2 | 0 |
-| **2.6 AI Agent System (FR-AG)** | 4 | 2 | 2 | 0 | 0 |
+| **2.5 Automated Security Testing (FR-ST)** | 5 | 3 | 2 | 0 | 0 |
+| **2.6 AI Agent System (FR-AG)** | 4 | 1 | 2 | 1 | 0 |
 | **2.7 Vulnerability Validation (FR-VV)** | 5 | 5 | 0 | 0 | 0 |
 | **2.8 Authorization & Business Logic (FR-AB)** | 5 | 4 | 1 | 0 | 0 |
 | **2.9 Findings Management (FR-FM)** | 4 | 4 | 0 | 0 | 0 |
 | **2.10 PTES Reporting Engine (FR-RP)** | 4 | 4 | 0 | 0 | 0 |
-| **TOTALS** | **49** | **40 (81.63%)** | **6 (12.24%)** | **3 (6.12%)** | **0 (0.00%)** |
+| **TOTALS** | **49** | **40 (81.63%)** | **8 (16.33%)** | **1 (2.04%)** | **0 (0.00%)** |
 
 > **Audit Note on "Not Implemented" Classification:**  
 > The 49 functional requirements above correspond to capabilities that have at least partial code paths in the repository. However, several specific architectural and infrastructure subsystems documented in the specifications are **Not Implemented**. These are cataloged explicitly below.
@@ -170,10 +170,10 @@ The following items are specified in the architecture and design documentation (
 |---|---|---|---|---|
 | **NI-01** | `docs/01-prd.md` §4.6<br>`docs/04-agent-architecture.md`<br>`ADR-002` | **LangGraph Orchestration Framework** (Stateful cyclic graph, PostgreSQL checkpoints, conditional branch edges) | **Not Implemented.** `langgraph` is not in `requirements.txt`. Orchestrator uses a custom sequential Python class (`services/orchestrator/supervisor.py`). | **Architectural Divergence** |
 | **NI-02** | `docs/01-prd.md` §4.6 (FR-AG-02)<br>`docs/05-agent-specifications.md` | **8 Dedicated Agent Classes** (Scope, Surface Mapping, Auth Testing, Input Validation, Fuzzing, False Positive, Evidence Collection, Business Logic) | **Not Implemented as Separate Classes.** Only 7 agent classes exist; the other 8 responsibilities are consolidated directly into services and active agents. | **Design Consolidation** |
-| **NI-03** | `docs/01-prd.md` §4.2 (FR-SC-03)<br>`docs/08-scope-enforcement.md` §3 | **Layer 2 Network Egress Proxy Container** (Envoy/Squid with eBPF/socket filters intercepting all TCP egress) | **Not Implemented.** There is no egress proxy service in `docker-compose.yml`. Scope checking relies entirely on Layer 1 software validation in Python. | **P1 (Security Guardrail)** |
+| **NI-03** | `docs/01-prd.md` §4.2 (FR-SC-03)<br>`docs/08-scope-enforcement.md` §3 | **Layer 2 Network Egress Proxy Container** (Envoy/Squid with eBPF/socket filters intercepting all TCP egress) | **Open (Lab-Only, Hardened).** No egress proxy container in `docker-compose.yml`. Tool subprocess runners interim-hardened via FIX-06 (`5cede9b`) by stripping redirect flags (`-fr`, `-r`) and rejecting flag injection. Tool binaries restricted to lab environments pending Phase 3 containerized proxy. | **P0-KNOWN (Scope Guardrail)** |
 | **NI-04** | `docs/01-prd.md` §4.3 (FR-DS-01)<br>`docs/09-tool-integrations.md` §5.2-5.4 | **CLI Tool Runners for Katana, Httpx, and Subfinder** | **Not Implemented.** No runner classes exist in `integrations/`. Crawling and parameter extraction are done natively in Python (`services/discovery_engine/`). | **P2 (Tooling Gap)** |
 | **NI-05** | `docs/16-skill-system.md` §5 | **Dynamic Skill Execution Runtime Engine** (Dynamic loading and executing of `SKILL.md` bundles with JSON Schema parameter validation) | **Not Implemented.** Zero Python files load or execute files from `skills/`. The 18 `SKILL.md` files are documentation/prompts only. | **P2 (Extensibility Gap)** |
 | **NI-06** | `docs/01-prd.md` §4.6<br>`docs/18-deployment-architecture.md` | **Celery / Redis Distributed Task Consumer** | **Not Implemented.** `services/execution_engine/worker.py` is an idle `asyncio.sleep(2)` stub. The API server executes workflows in-process via `asyncio.create_task`. | **P2 (Scalability Gap)** |
 | **NI-07** | `docs/10-database-design.md` §7 | **Alembic Database Migration Pipeline** (Versioned schema migrations with reversible up/down scripts) | **Not Implemented.** No `alembic.ini` or migration revisions exist; tables are created via `Base.metadata.create_all()` in `apps/api/main.py`. | **P3 (Maintainability Gap)** |
-| **NI-08** | `docs/01-prd.md` §4.1 (FR-PM-03)<br>`docs/10-database-design.md` §3.9 | **Target Credential Vault Tables with AES-256-GCM at Rest** (`auth_profiles`, `test_credentials`) | **Not Implemented.** Target authentication is currently passed in memory or stored unencrypted in JSON state. (To be resolved in PF-4). | **P0 (Security Vulnerability)** |
+| **NI-08** | `docs/01-prd.md` §4.1 (FR-PM-03)<br>`docs/10-database-design.md` §3.9 | **Target Credential Vault Tables with AES-256-GCM at Rest** (`auth_profiles`, `test_credentials`) | **Resolved (Closed).** Implemented via `database/models/auth_profile.py` (`AuthProfile` model with AES-256-GCM ciphertext storage at rest); fail-closed key derivation enforced in FIX-02 (`b3c1e1b`); verified via `test_credential_encryption_and_redaction.py` (3/3 pass). | **Closed (Verified)** |
 | **NI-09** | `docs/10-database-design.md` §3.10 | **Scan Scheduling & Recurring Jobs Tables** (`scan_schedules`, `scan_jobs`) | **Not Implemented.** No automated recurring scan scheduler or cron engine is implemented in the database or backend. | **P3 (Feature Gap)** |

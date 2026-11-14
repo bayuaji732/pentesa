@@ -19,16 +19,16 @@
 
 ## 2. Master Defect Inventory
 
-| Defect ID | Severity | Category | Component / Path | Title | Status | Target Fix |
+| Defect ID | Severity | Category | Component / Path | Title | Status | Remediation Commit / Target |
 |---|---|---|---|---|---|---|
-| **NI-03** | **P0-KNOWN** | Scope / Egress | `integrations/nuclei/`, `integrations/ffuf/` | Tool Subprocess Redirect Egress Breach | Open (Lab-Only) | FIX-06 (Interim) / Phase 3 |
-| **SEC-RED-01** | **P0** | Scope / Egress | `services/execution_engine/tools/http_client.py`, `services/discovery_engine/crawler.py` | Python-Layer HTTP Client Redirect Scope Bypass | In Progress | FIX-01 |
-| **SEC-KEY-01** | **P0** | Cryptography | `packages/common/security.py`, `packages/common/config.py` | `derive_aes_key()` Fails Open to Static Master Key Literal | In Progress | FIX-02 |
-| **SEC-PWD-01** | **P1** | Authentication | `database/seeds/seed_data.py`, `docker-compose.yml`, `.env.example` | Unconditional Seeding of Static Admin & Default Database Passwords | In Progress | FIX-03 |
-| **AGT-MOCK-01** | **P1** | AI Safety | `agents/llm/provider.py`, `packages/common/config.py` | `MockLLMProvider` Selectable Outside `PENTESA_ENV=test` | In Progress | FIX-04 |
-| **TOOL-TMPL-01** | **P1** | Integrations | `infrastructure/docker/Dockerfile.api`, `integrations/nuclei/runner.py` | Official Nuclei Templates Not Baked into Production Docker Image | In Progress | FIX-05 |
-| **TOOL-WORD-01** | **P1** | Integrations | `infrastructure/docker/Dockerfile.api`, `integrations/ffuf/runner.py` | Production Wordlist Missing from Base Docker Image | In Progress | FIX-05 |
-| **AGT-LLM-01** | **P1** | AI Engine | `apps/api/routers/agents.py`, `services/orchestrator/supervisor.py` | Unhandled HTTP 500 on LLM Gateway / Network Disconnect | In Progress | FIX-07 |
+| **NI-03** | **P0-KNOWN** | Scope / Egress | `integrations/nuclei/`, `integrations/ffuf/` | Tool Subprocess Redirect Egress Breach | Open (Lab-Only, Hardened) | `5cede9b` (Interim Hardening) / Phase 3 Layer-2 Egress Proxy |
+| **SEC-RED-01** | **P0** | Scope / Egress | `packages/common/http_client.py`, `services/execution_engine/tools/http_client.py` | Python-Layer HTTP Client Redirect Scope Bypass | **Closed** | `e888ab1` (FIX-01) |
+| **SEC-KEY-01** | **P0** | Cryptography | `packages/common/security.py`, `apps/api/main.py` | `derive_aes_key()` Fails Open to Static Master Key Literal | **Closed** | `b3c1e1b` (FIX-02) |
+| **SEC-PWD-01** | **P1** | Authentication | `database/seeds/seed_data.py`, `apps/api/main.py` | Unconditional Seeding of Static Admin & Default Database Passwords | **Closed** | `a709a7c` (FIX-03) |
+| **AGT-MOCK-01** | **P1** | AI Safety | `agents/llm/provider.py`, `services/reporting_engine/context_builder.py` | `MockLLMProvider` Selectable Outside `PENTESA_ENV=test` | **Closed** | `96a9fe4` (FIX-04) |
+| **TOOL-TMPL-01** | **P1** | Integrations | `infrastructure/docker/Dockerfile.api`, `integrations/nuclei/runner.py` | Official Nuclei Templates Not Baked into Production Docker Image | **Closed** | `7e80f6d` (FIX-05) |
+| **TOOL-WORD-01** | **P1** | Integrations | `infrastructure/docker/Dockerfile.api`, `integrations/ffuf/runner.py` | Production Wordlist Missing from Base Docker Image | **Closed** | `7e80f6d` (FIX-05) |
+| **AGT-LLM-01** | **P1** | AI Engine | `apps/api/routers/agents.py`, `services/orchestrator/supervisor.py` | Unhandled HTTP 500 on LLM Gateway / Network Disconnect | **Closed** | `561d8e7` (FIX-07) |
 | **DISCO-SPA-01** | **P2** | Discovery | `services/discovery_engine/fingerprint.py` | Technology Fingerprinter Misses SPAs Lacking Server Headers | Open (Deferred) | Phase 3 |
 
 ---

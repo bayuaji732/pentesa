@@ -110,14 +110,34 @@ class ToolService:
         baseline = await detect_soft_404_baseline(payload.target_url)
 
         probe_timeout = getattr(payload, "request_timeout", None) or 5
+        # Size per-profile timeouts (P2)
+        exec_timeout = payload.timeout_seconds
+        if exec_timeout == 300:  # Default schema value if not explicitly customized
+            if payload.tool_name == "nuclei":
+                tpl = payload.template_path or ""
+                if "ping.yaml" in tpl or "exposure.yaml" in tpl:
+                    exec_timeout = 30
+                elif any(sub in tpl for sub in ("technologies", "misconfiguration")):
+                    exec_timeout = 180  # 1,866 templates ~116s at 20 rps
+                else:
+                    exec_timeout = 360  # Full allowlisted set (4,409 templates ~275s at 20 rps)
+            elif payload.tool_name == "ffuf":
+                wl = getattr(payload, "wordlist", None) or ""
+                prof = getattr(payload, "profile", "")
+                if prof in ("quick", "ci") or "common_paths" in wl or "lab_wordlist" in wl:
+                    exec_timeout = 30   # 171 paths ~8.8s at 20 rps
+                else:
+                    exec_timeout = 360  # Full SecLists common.txt (4,752 paths ~240s at 20 rps)
+
         opts = {
             "tags": payload.tags,
             "severity": payload.severity,
             "template_path": payload.template_path,
             "wordlist_path": payload.wordlist,
+            "profile": getattr(payload, "profile", None),
             "rate_limit": payload.rate_limit,
             "request_timeout": probe_timeout,
-            "timeout_seconds": payload.timeout_seconds,
+            "timeout_seconds": exec_timeout,
             "baseline": baseline
         }
 
@@ -160,7 +180,7 @@ class ToolService:
                 project_id=project_id,
                 target_url=payload.target_url,
                 options=opts,
-                timeout_seconds=payload.timeout_seconds
+                timeout_seconds=exec_timeout
             )
         except ToolNotAvailableError as exc:
             logger.error(f"Security tool execution aborted: {exc}")

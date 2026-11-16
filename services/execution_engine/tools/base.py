@@ -210,11 +210,28 @@ class BaseToolWrapper(abc.ABC):
 
         except asyncio.TimeoutError:
             duration_ms = int((time.time() - start_time) * 1000)
+            stdout_str = ""
+            stderr_str = ""
             try:
                 proc.kill()
-                await proc.wait()
+                stdout_bytes, stderr_bytes = await proc.communicate()
+                stdout_str = stdout_bytes.decode("utf-8", errors="replace")
+                stderr_str = stderr_bytes.decode("utf-8", errors="replace")
             except Exception:
                 pass
+
+            findings = []
+            if stdout_str:
+                try:
+                    findings = self.parse_output(stdout_str, baseline=opts.get("baseline"))
+                except TypeError:
+                    findings = self.parse_output(stdout_str)
+                except Exception:
+                    pass
+
+            timeout_note = f"Tool execution timed out after {timeout_seconds}s. Partial execution parsed: {len(findings)} finding(s) ingested prior to termination."
+            combined_stderr = f"{stderr_str}\n[TIMEOUT_NOTICE] {timeout_note}".strip() if stderr_str else f"[TIMEOUT_NOTICE] {timeout_note}"
+
             return ToolExecutionResult(
                 tool_name=self.tool_name,
                 target_url=target_url,
@@ -222,6 +239,9 @@ class BaseToolWrapper(abc.ABC):
                 status="TIMEOUT",
                 exit_code=124,
                 duration_ms=duration_ms,
+                stdout=stdout_str,
+                stderr=combined_stderr,
+                findings=findings,
                 error_message=f"Tool execution timed out after {timeout_seconds} seconds"
             )
 

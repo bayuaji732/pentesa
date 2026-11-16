@@ -5,14 +5,38 @@ import os
 from typing import Any, Dict, List, Optional
 from services.execution_engine.tools.base import BaseToolWrapper, ToolExecutionResult
 
-# Baked pinned ffuf wordlist path with fallback for local dev/test
-DEFAULT_FFUF_WORDLIST = os.getenv("PENTESA_FFUF_WORDLIST_PATH", "/opt/wordlists/common_paths.txt")
-if not os.path.exists(DEFAULT_FFUF_WORDLIST):
-    _local_wl = os.path.join(os.path.dirname(__file__), "wordlists", "common_paths.txt")
-    if os.path.exists(_local_wl):
-        DEFAULT_FFUF_WORDLIST = _local_wl
-    else:
-        DEFAULT_FFUF_WORDLIST = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../tests/fixtures/ffuf/wordlist.txt"))
+# Baked pinned ffuf wordlists (P1)
+# Standard: /opt/wordlists/common.txt (upstream SecLists common.txt, 4,752 lines)
+# Quick/CI: /opt/wordlists/common_quick.txt or common_paths.txt (curated high-frequency slice, 171 paths)
+DEFAULT_FULL_WORDLIST = os.getenv("PENTESA_FFUF_FULL_WORDLIST_PATH", "/opt/wordlists/common.txt")
+DEFAULT_QUICK_WORDLIST = os.getenv("PENTESA_FFUF_WORDLIST_PATH", "/opt/wordlists/common_paths.txt")
+
+
+def resolve_wordlist(profile: Optional[str] = None, explicit_path: Optional[str] = None) -> str:
+    """Resolve wordlist path based on scan profile and environment."""
+    if explicit_path:
+        return explicit_path
+    if profile in ("quick", "ci"):
+        candidates = [
+            DEFAULT_QUICK_WORDLIST,
+            "/opt/wordlists/common_quick.txt",
+            "/opt/wordlists/common_paths.txt",
+            os.path.join(os.path.dirname(__file__), "wordlists", "common_paths.txt"),
+            os.path.abspath(os.path.join(os.path.dirname(__file__), "../../tests/fixtures/ffuf/wordlist.txt"))
+        ]
+        return next((p for p in candidates if os.path.exists(p)), candidates[-1])
+    # Standard / full profile
+    candidates = [
+        DEFAULT_FULL_WORDLIST,
+        DEFAULT_QUICK_WORDLIST,
+        "/opt/wordlists/common_paths.txt",
+        os.path.join(os.path.dirname(__file__), "wordlists", "common_paths.txt"),
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "../../tests/fixtures/ffuf/wordlist.txt"))
+    ]
+    return next((p for p in candidates if os.path.exists(p)), candidates[-1])
+
+
+DEFAULT_FFUF_WORDLIST = resolve_wordlist()
 
 
 class FfufRunner(BaseToolWrapper):
@@ -27,7 +51,9 @@ class FfufRunner(BaseToolWrapper):
         if not url_template:
             url_template = f"{target_url.rstrip('/')}/FUZZ"
 
-        wordlist = options.get("wordlist_path") or DEFAULT_FFUF_WORDLIST
+        profile = options.get("profile")
+        explicit_wl = options.get("wordlist_path")
+        wordlist = resolve_wordlist(profile=profile, explicit_path=explicit_wl)
         rate_limit = min(options.get("rate_limit", 20), 50)  # Capped at 50 rps max
 
         argv = [

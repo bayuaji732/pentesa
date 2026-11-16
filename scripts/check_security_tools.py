@@ -49,6 +49,8 @@ def verify_assets() -> bool:
     # Check ffuf wordlist
     wl_candidates = [
         os.getenv("PENTESA_FFUF_WORDLIST_PATH", ""),
+        "/opt/wordlists/common.txt",
+        "/opt/wordlists/common_quick.txt",
         "/opt/wordlists/common_paths.txt",
         os.path.join(os.path.dirname(__file__), "../integrations/ffuf/wordlists/common_paths.txt"),
         os.path.join(os.path.dirname(__file__), "../tests/fixtures/ffuf/wordlist.txt"),

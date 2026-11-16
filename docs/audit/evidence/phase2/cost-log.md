@@ -11,10 +11,10 @@
 
 | Metric | Budget / Cap | Cumulative Used | Remaining |
 |---|---|---|---|
-| **Total Prompt Tokens** | - | 0 | - |
-| **Total Completion Tokens** | - | 0 | - |
-| **Total Tokens** | 100,000 | 0 | 100,000 |
-| **Total Cost (USD)** | **$5.00** | **$0.0000** | **$5.0000** |
+| **Total Prompt Tokens** | - | 8 | - |
+| **Total Completion Tokens** | - | 4 | - |
+| **Total Tokens** | 100,000 | 12 | 99,988 |
+| **Total Cost (USD)** | **$5.00** | **$0.0001** | **$4.9999** |
 
 ---
 
@@ -26,14 +26,15 @@
 | 2026-11-13T22:48:47Z | AGT-01 (Planning) | Run 1 | 0 | 0 | 0 | $0.0000 | $0.0000 | Gateway Origin Unreachable (CloudFront 403) |
 | 2026-11-13T22:48:48Z | AGT-01 (Planning) | Run 2 | 0 | 0 | 0 | $0.0000 | $0.0000 | Gateway Origin Unreachable (CloudFront 403) |
 | 2026-11-13T22:48:49Z | AGT-01 (Planning) | Run 3 | 0 | 0 | 0 | $0.0000 | $0.0000 | Gateway Origin Unreachable (CloudFront 403) |
+| 2026-11-16T03:34:34Z | S1 Gateway Check | Probe | 8 | 4 | 12 | $0.0001 | $0.0001 | Online (HTTP 200 OK) |
 
 ---
 
 ## 3. Telemetry Notes & Observations
 
 1. **LiteLLM Gateway Status:**  
-   The configured enterprise gateway endpoint `https://uat-ai-gateway.siloamhospitals.com/v1/chat/completions` returned HTTP 403 with `server: CloudFront`, `x-cache: Error from cloudfront`, and message: *"The request could not be satisfied. Request blocked. We can't connect to the server for this app or website at this time."* This indicates the backend origin server behind CloudFront is either offline, unreachable, or restricted to internal corporate subnets.
+   During initial Part 2A verification, the gateway returned HTTP 403 via CloudFront. In Run 2 (Part 2B), probe at `2026-11-16T03:34:34Z` succeeded with HTTP 200 OK, returning model `azure/gpt-5.6-terra-dev-gtw` via `istio-envoy` upstream (`x-litellm-call-id: 87471726-e14e-49a5-991e-7cd8042925e9`). LLM-dependent tests (L1-L4) unblocked.
 2. **Deterministic Agent Handoffs:**  
-   Despite the LLM gateway connection error, the workflow supervisor gracefully caught the exception, recorded the execution step, and persisted workflow state without unhandled process termination.
+   The workflow supervisor handles live provider calls with token/latency instrumentation.
 3. **Budget Status:**  
-   Zero tokens consumed; $5.00 budget remains 100% intact for subsequent Phase 2 execution.
+   12 total tokens consumed ($0.0001 USD); budget remains at $4.9999 / 99,988 tokens under the $5.00 hard cap.

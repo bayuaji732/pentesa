@@ -53,12 +53,17 @@ COPY integrations/ ./integrations/
 COPY apps/ ./apps/
 COPY scripts/ ./scripts/
 
-# Bake pinned Nuclei templates and ffuf wordlists (TOOL-ASSETS-01 / F4)
+# Bake pinned Nuclei templates and ffuf wordlists (TOOL-ASSETS-01 / P1)
+# SecLists common.txt pinned commit SHA: 0c618cfc28d1e68811b95c61cc9ab05bc10b0a02
+# SHA-256: 47fb86ca6fb3f97e5491161581900d6d99851fb16764eacddf16aa85617c956a
 RUN curl -fsSL -o /tmp/nuclei-templates.zip "https://github.com/projectdiscovery/nuclei-templates/archive/refs/tags/${NUCLEI_TEMPLATES_TAG}.zip" && \
     python scripts/extract_pinned_templates.py /tmp/nuclei-templates.zip /opt/nuclei-templates && \
     rm -f /tmp/nuclei-templates.zip && \
     cp integrations/nuclei/templates/*.yaml /opt/nuclei-templates/ && \
     mkdir -p /opt/wordlists && \
+    curl -fsSL -o /opt/wordlists/common.txt "https://raw.githubusercontent.com/danielmiessler/SecLists/0c618cfc28d1e68811b95c61cc9ab05bc10b0a02/Discovery/Web-Content/common.txt" && \
+    echo "47fb86ca6fb3f97e5491161581900d6d99851fb16764eacddf16aa85617c956a  /opt/wordlists/common.txt" | sha256sum -c - && \
+    cp integrations/ffuf/wordlists/common_paths.txt /opt/wordlists/common_quick.txt && \
     cp integrations/ffuf/wordlists/common_paths.txt /opt/wordlists/common_paths.txt && \
     chmod -R 755 /opt/nuclei-templates /opt/wordlists
 

@@ -1,0 +1,31 @@
+================================================================================
+PENTESA PHASE 2 AUDIT EVIDENCE RECORD
+Timestamp (UTC): 2026-11-16T08:31:26Z
+Git SHA:         b65eaf3e27495dd6b73587e6eed689e4f004bb3a (dirty)
+Command:         docker exec pentesa-phase2-api python tests/audit/run_l2_runtime_allowlist.py
+Database:        PostgreSQL 16.16 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+Execution Mode:  running stack (HTTP + PostgreSQL 16)
+================================================================================
+
+RUNTIME AGENT TOOL ALLOWLIST ENFORCEMENT (ITEM 8.2)
+======================================================================
+[PROJECT] Created test project L2-Allowlist-Test-1794817216 (ID: 0c1ab26c-9eb5-48cc-be97-42f204c0b5c6)
+[AGENT] Instantiated Reconnaissance & Surface Mapping Agent (AGT-03)
+[ALLOWLIST] Configured allowed tools: ['subfinder', 'tls_inspector', 'web_crawler', 'parameter_extractor']
+
+Test Case 1: Invoking Authorized Tool ('web_crawler')...
+[PASS] Authorized tool call logged successfully: ID f79949ed-e2bb-450b-acb8-95c91d4ee364
+
+Test Case 2: Invoking Unauthorized Tool ('nuclei') outside role allowlist...
+[REFUSAL CAUGHT] PermissionError raised: Agent AGT-03 (Reconnaissance & Surface Mapping Agent) is unauthorized to invoke tool 'nuclei'. Allowed tools: ['subfinder', 'tls_inspector', 'web_crawler', 'parameter_extractor']
+[PASS] Unauthorized tool invocation was strictly refused at runtime.
+
+Verifying audit ledger entry in PostgreSQL...
+[AUDIT LOG VERIFIED] Action: AGENT_TOOL_CALL_BLOCKED
+  Resource Type: AgentToolCall
+  Details: {'reason': 'Tool invocation not in agent allowlist', 'agent_id': 'AGT-03', 'agent_name': 'Reconnaissance & Surface Mapping Agent', 'allowed_tools': ['subfinder', 'tls_inspector', 'web_crawler', 'parameter_extractor'], 'unauthorized_tool': 'nuclei'}
+  Audit Log ID: 2042fca1-3e32-4e5a-882b-c02f3cd5e13c
+
+Test Case 3: Agent Error Recovery after Refusal...
+[PASS] Agent recovered gracefully and recorded decision trace: ID 22204b16-3a23-4327-a7f7-89533980ccb8
+  Thought trace: Tool 'nuclei' was refused because it is unauthorized for AGT-03. Pivoting back to allowed reconnaissance tools.

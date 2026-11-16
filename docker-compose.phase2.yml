@@ -55,6 +55,9 @@ services:
       - PENTESA_EVIDENCE_STORAGE_DIR=/app/data/evidence
       - PENTESA_ENCRYPTION_KEY=phase2_master_vault_encryption_key_32b_hex!
       - PENTESA_SECRET_KEY=Phase2_JWT_Secret_Key_32_Bytes_Long_Prod_Ready!
+      - PENTESA_BOOTSTRAP_ADMIN=true
+      - PENTESA_BOOTSTRAP_ADMIN_EMAIL=security-lead@phase2.lab
+      - PENTESA_BOOTSTRAP_ADMIN_PASSWORD=CyberSecOps_2026!Str0ng#Auth
       - PENTESA_LLM_PROVIDER=litellm
       - PENTESA_LITELLM_BASE_URL=https://uat-ai-gateway.siloamhospitals.com/v1/
       - PENTESA_LITELLM_API_KEY=sk-mCQwNXf15qH4UyLxLVGAQA
@@ -95,6 +98,9 @@ services:
       - PENTESA_EVIDENCE_STORAGE_DIR=/app/data/evidence
       - PENTESA_ENCRYPTION_KEY=phase2_master_vault_encryption_key_32b_hex!
       - PENTESA_SECRET_KEY=Phase2_JWT_Secret_Key_32_Bytes_Long_Prod_Ready!
+      - PENTESA_BOOTSTRAP_ADMIN=true
+      - PENTESA_BOOTSTRAP_ADMIN_EMAIL=security-lead@phase2.lab
+      - PENTESA_BOOTSTRAP_ADMIN_PASSWORD=CyberSecOps_2026!Str0ng#Auth
       - PENTESA_LLM_PROVIDER=litellm
       - PENTESA_LITELLM_BASE_URL=https://uat-ai-gateway.siloamhospitals.com/v1/
       - PENTESA_LITELLM_API_KEY=sk-mCQwNXf15qH4UyLxLVGAQA

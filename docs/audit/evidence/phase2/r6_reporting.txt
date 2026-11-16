@@ -1,0 +1,64 @@
+================================================================================
+PENTESA PHASE 2 AUDIT EVIDENCE RECORD
+Timestamp (UTC): 2026-11-16T05:31:57Z
+Git SHA:         b65eaf3e27495dd6b73587e6eed689e4f004bb3a (dirty)
+Command:         python -m tests.audit.run_r6_real_stack
+Database:        PostgreSQL 16.16 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+Execution Mode:  running stack (HTTP + PostgreSQL 16)
+================================================================================
+
+[AUTH] Logged in as security-lead@phase2.lab
+[PROJECT] Created assessment project ID: 95836573-27db-47d2-a2c4-ac948c1f86db
+
+--- SEEDING REAL FINDINGS & RAW FORENSIC EVIDENCE ---
+[FINDING] Ingested Critical Finding: SQL Injection in User Authentication (BOLA / Broken Auth) (ID: b76cdddc-b7e1-42fb-afbe-065a71b61207)
+[FINDING] Ingested Medium Finding: Missing Strict-Transport-Security and Content-Security-Policy Headers
+
+======================================================================
+PART 1: HTML REPORT COMPILATION & PTES STRUCTURE VERIFICATION
+======================================================================
+Report ID:          1a1dad80-99bf-4e2a-b35c-759f8303dae1
+Report Title:       PTES Penetration Test Formal Assessment Report
+Format:             HTML
+SHA-256 Hash:       a62fe9eb01ea59ab220a794f2373e4d1e80266f5997e7e79f6b1d1bb14d02494
+Download URL:       /api/v1/reports/1a1dad80-99bf-4e2a-b35c-759f8303dae1/download
+[VERIFIED] SHA-256 Integrity Verified: a62fe9eb01ea59ab220a794f2373e4d1e80266f5997e7e79f6b1d1bb14d02494
+
+PTES Structural Section Verifications:
+  [PASS] PTES Section: Section 1: Cover Page
+  [PASS] PTES Section: Section 2: Table of Contents
+  [PASS] PTES Section: Section 3: Executive Summary
+  [PASS] PTES Section: Section 4: Assessment Scope
+  [PASS] PTES Section: Section 5: Testing Methodology & Tooling
+  [PASS] PTES Section: Section 6: Rules of Engagement
+  [PASS] PTES Section: Section 7: Attack Surface Overview
+  [PASS] PTES Section: Section 8: Testing Coverage & WSTG Matrix
+  [PASS] PTES Section: Section 9: Findings Summary Matrix
+  [PASS] PTES Section: Section 10: Detailed Technical Findings
+  [PASS] PTES Section: Section 11: Reproduction Procedures
+  [PASS] PTES Section: Section 12: Forensic Evidence Dumps
+  [PASS] PTES Section: Section 13: Business Impact
+  [PASS] PTES Section: Section 14: Risk Rating Methodology
+  [PASS] PTES Section: Section 15: Prioritized Remediation Roadmap
+  [PASS] PTES Section: Section 16: Assessment Limitations
+  [PASS] PTES Section: Section 17: Appendices
+
+LLM Narrative Section Verification:
+  [PASS] Synthesized Executive Narrative with empirical posture, risk score, and endpoint counts present
+
+Forensic Data Redaction Verification:
+  [PASS] Zero plaintext bearer tokens leaked in HTML report
+  [PASS] Zero plaintext passwords leaked in HTML report
+  [PASS] Zero plaintext session cookies leaked in HTML report
+  [PASS] Redaction mask [REDACTED] actively applied to sensitive forensic streams
+
+======================================================================
+PART 2: PDF REPORT GENERATION & COMPILATION VERIFICATION
+======================================================================
+Report ID:          a907baef-76b4-4a26-a70f-316a4ed441be
+Report Title:       PTES Penetration Test Formal Assessment Report (Signed PDF)
+Format:             PDF
+SHA-256 Hash:       a47b13bd1b6108b733c77674eeeda5b2d5dc6663dd070f0c3052655484bd0956
+Download URL:       /api/v1/reports/a907baef-76b4-4a26-a70f-316a4ed441be/download
+PDF File Size:      8164 bytes
+[VERIFIED] Valid PDF magic header (%PDF-1.4) and SHA-256 cryptographic seal: a47b13bd1b6108b733c77674eeeda5b2d5dc6663dd070f0c3052655484bd0956

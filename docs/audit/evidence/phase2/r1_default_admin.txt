@@ -1,0 +1,223 @@
+================================================================================
+PENTESA PHASE 2 AUDIT EVIDENCE RECORD
+Timestamp (UTC): 2026-11-16T03:55:35Z
+Git SHA:         220dd9811d97b875b0157785fc557534efefe018 (dirty)
+Command:         python tests/audit/run_r1_real_stack.py
+Database:        PostgreSQL 16.16 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+Execution Mode:  running stack (HTTP http://127.0.0.1:8000 + PostgreSQL 16)
+================================================================================
+
+### R1.1: SCENARIO (A) - PENTESA_ENV=production, NO BOOTSTRAP FLAG
+Resetting environment to fresh volume and starting database...
+Starting API container with NO bootstrap flags on fresh database...
+API Healthcheck reached: True
+SQL Direct Verification: SELECT count(*) FROM users -> 0 users
+
+--- Real HTTP Login Attempt (admin@example.com) ---
+POST /api/v1/auth/login
+Request Body: {'email': 'admin@example.com', 'password': 'Admin123!Secure'}
+HTTP Status: 401 (Expected: 401 Unauthorized)
+Response Headers: {'date': 'Mon, 16 Nov 2026 03:55:53 GMT', 'server': 'uvicorn', 'www-authenticate': 'Bearer', 'content-length': '38', 'content-type': 'application/json', 'vary': 'Origin'}
+Response Body: {"detail":"Invalid email or password"}
+Result Scenario (a): PASS (Zero users exist, HTTP login returns 401 Unauthorized)
+
+### R1.2: SCENARIO (B) - BOOTSTRAP FLAG WITHOUT CREDENTIALS -> CONTAINER EXITS NON-ZERO
+Container Exit Code: 3 (Expected: non-zero)
+Container Output:
+INFO:     Started server process [1]
+INFO:     Waiting for application startup.
+ERROR:    Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 661, in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 248, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 248, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 248, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 248, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 248, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 248, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 248, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 248, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 248, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 248, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 248, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 248, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/app/apps/api/main.py", line 137, in lifespan
+    await seed_initial_data(session)
+  File "/app/database/seeds/seed_data.py", line 63, in seed_initial_data
+    raise ValueError(
+ValueError: SEC-PWD-01: PENTESA_BOOTSTRAP_ADMIN is enabled but PENTESA_BOOTSTRAP_ADMIN_EMAIL or PENTESA_BOOTSTRAP_ADMIN_PASSWORD is missing. Both must be provided.
+
+ERROR:    Application startup failed. Exiting.
+Result Scenario (b): PASS (Refused startup when credentials missing, exited non-zero)
+
+### R1.3: SCENARIO (C) - WEAK/DEFAULT PASSWORD (Admin123!Secure) -> REFUSED NON-ZERO
+Container Exit Code: 3 (Expected: non-zero)
+Container Output:
+INFO:     Started server process [1]
+INFO:     Waiting for application startup.
+ERROR:    Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 661, in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 248, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 248, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 248, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 248, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 248, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 248, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 248, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 248, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 248, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 248, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 248, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 248, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/app/apps/api/main.py", line 137, in lifespan
+    await seed_initial_data(session)
+  File "/app/database/seeds/seed_data.py", line 72, in seed_initial_data
+    raise ValueError(
+ValueError: SEC-PWD-01: PENTESA_BOOTSTRAP_ADMIN_PASSWORD rejected: Password contains prohibited common phrases.
+
+ERROR:    Application startup failed. Exiting.
+Result Scenario (c): PASS (Weak/default password rejected, exited non-zero)
+
+### R1.4: SCENARIO (D) - STRONG PASSWORD -> ADMIN CREATED & LOGS IN
+API Healthcheck with Bootstrap Admin: True
+SQL Direct Verification: security-lead@phase2.lab | ADMIN | t
+
+--- Real HTTP Login Attempt (security-lead@phase2.lab) ---
+POST /api/v1/auth/login
+Request Body: {'email': 'security-lead@phase2.lab', 'password': 'CyberSecOps_2026!Str0ng#Auth'}
+HTTP Status: 200 (Expected: 200 OK)
+Response Body: {"access_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlZjkzYTExOS02NzRmLTRmNjEtYTI1MS0wMWY0ODAwYjljNWUiLCJpYXQiOjE3OTQ4MDEzODUsImV4cCI6MTc5NDgwNDk4NSwidHlwZSI6ImFjY2VzcyIsInJvbGUiOiJBRE1JTiIsImVtYWlsIjoic2VjdXJpdHktbGVhZEBwaGFzZTIubGFiIn0.mSsbC6nNXj8b5W0fVOUNI21xVFXibRu_XWmBCn12o64","refresh_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlZjkzYTExOS02NzRmLTRmNjEtYTI1MS0wMWY0ODAwYjljNWUiLCJpYXQiOjE3OTQ4MDEzODUsImV4cCI6MTc5NTQwNjE4NSwidHlwZSI6InJlZnJlc2giLCJyb2xlIjoiQURNSU4iLCJlbWFpbCI6InNlY3VyaXR5LWxlYWRAcGhhc2UyLmxhYiJ9.BGOARwVESQmTBJDqObZ2rvr-YVLkc5e3C9upEc4wUA4","token_type":"bearer","expires_in":3600}
+
+GET /api/v1/auth/me
+HTTP Status: 200 (Expected: 200 OK)
+Profile: {"email":"security-lead@phase2.lab","full_name":"System Administrator","role":"ADMIN","is_active":true,"id":"ef93a119-674f-4f61-a251-01f4800b9c5e","created_at":"2026-11-16T03:56:24.004882Z","updated_at":"2026-11-16T03:56:24.004892Z"}
+Result Scenario (d): PASS (Admin created and successfully authenticated via HTTP Bearer token)

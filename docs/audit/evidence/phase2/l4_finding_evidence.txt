@@ -1,0 +1,28 @@
+================================================================================
+PENTESA PHASE 2 AUDIT EVIDENCE RECORD
+Timestamp (UTC): 2026-11-16T08:39:48Z
+Git SHA:         b65eaf3e27495dd6b73587e6eed689e4f004bb3a (dirty)
+Command:         python -m tests.audit.run_l1_l4_llm (Item L4)
+Database:        PostgreSQL 16.16 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+Execution Mode:  running stack (HTTP + PostgreSQL 16)
+================================================================================
+
+ITEM L4: FINDING RAW EVIDENCE PROVENANCE AUDIT
+Verifies zero agent hallucinations: every finding must possess backing raw evidence.
+======================================================================
+
+Audit for Project b3cbbd5c-e01f-490c-af2c-264a4d30c647 (Run 1):
+  * Finding 'Missing Security Headers (CSP, XFO, XCTO)' (ID: 437168d2-4933-41a8-87ed-0c14f44dd426) -> [VERIFIED BACKED BY TOOL EVIDENCE]
+
+Audit for Project aaa799c0-8c1a-46a7-92af-f29663e556a5 (Run 2):
+  * Finding 'Missing Security Headers (CSP, XFO, XCTO)' (ID: 27292643-2e05-4c27-a62c-e3ce3413e246) -> [VERIFIED BACKED BY TOOL EVIDENCE]
+
+Audit for Project e41bf14c-2976-4701-8e2f-2b243ee9620e (Run 3):
+  * Finding 'Missing Security Headers (CSP, XFO, XCTO)' (ID: 362bec30-cd44-42cb-8c74-12d0f58010c9) -> [VERIFIED BACKED BY TOOL EVIDENCE]
+
+======================================================================
+EVIDENCE INTEGRITY AUDIT VERDICT
+======================================================================
+Total Discovered Findings Audited Across 3 Runs : 3
+Findings Lacking Verifiable Raw Tool Evidence  : 0
+[PASS] INVARIANT CONFIRMED: ZERO agent findings without raw tool evidence.

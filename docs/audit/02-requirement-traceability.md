@@ -1,10 +1,10 @@
 # Pentesa — Requirement-to-Implementation Traceability Matrix
 
-> **Document Identifier:** PENTESA-AUDIT-02-TRACEABILITY-V1.1  
-> **Audit Phase:** Phase 1 — Repository and Documentation Audit (Pre-Flight Corrected)  
+> **Document Identifier:** PENTESA-AUDIT-02-TRACEABILITY-V1.2  
+> **Audit Phase:** Phase 2 — Functional & Integration Testing (Part 2B Conclusion)  
 > **Auditors:** Independent Principal Software Architect, Senior AppSec Engineer, Senior Penetration Tester, Security QA Engineer  
 > **Date:** November 2026  
-> **Methodology:** Direct Source Code Inspection + Automated Test Verification  
+> **Methodology:** Direct Source Code Inspection + Automated Running-Stack Test Verification  
 
 ---
 
@@ -54,7 +54,7 @@
 | **FR-DS-03** | Endpoint extraction from HTML forms, JS bundles, OpenAPI specs | `services/discovery_engine/extractor.py` | **Verified** | 9 unit tests passed in `test_parameter_extraction.py` (forms, JSON, JS, OpenAPI, robots, sitemap). |
 | **FR-DS-04** | Hidden path and content discovery (`ffuf`) | `integrations/ffuf/runner.py`<br>`services/execution_engine/tools/wordlists/common.txt` | **Partially Verified** | Smoke check matched 4/4 canonical paths; controlled fuzzing verified against Juice Shop (Part 2A check 7.2). Pinned wordlist bundled into image via FIX-05 (`7e80f6d`). Real fuzzing recall benchmark deferred to Phase 3. |
 | **FR-DS-05** | Centralized Endpoint Inventory with parameters and schema | `database/models/discovery.py`<br>`apps/api/routers/discovery.py`<br>`apps/web/src/app/discovery/page.tsx` | **Verified** | Endpoints and parameters persisted to DB and rendered in UI with methods, parameters, and auth flags. |
-| **FR-DS-06** | Technology fingerprinting identifying frameworks and servers | `services/discovery_engine/fingerprint.py` | **Verified** | 4 unit tests passed in `test_technology_detection.py` (headers, cookies, DOM signatures). |
+| **FR-DS-06** | Technology fingerprinting identifying frameworks and servers | `services/discovery_engine/fingerprint.py` | **Partially Verified** | Unit tests pass in `test_technology_detection.py`, but technology fingerprinter misses SPAs lacking server headers (DISCO-SPA-01 open, deferred to Phase 9 DOM parsing roadmap). |
 
 ---
 
@@ -65,7 +65,7 @@
 | **FR-WP-01** | Comprehensive test catalog covering all 12 WSTG v4.2 categories | `services/execution_engine/wstg_catalog_data.py`<br>`database/models/wstg.py` | **Verified** | 100% of WSTG v4.2 categories and test cases present; `test_catalog_structure_and_completeness` passed. |
 | **FR-WP-02** | Project-specific test plan generation mapped to endpoints | `services/execution_engine/planner.py`<br>`agents/wstg/wstg_agent.py` | **Verified** | Test instances instantiated per project; mapped dynamically based on discovered technologies. |
 | **FR-WP-03** | Explicit test statuses (`Planned`, `Passed`, `Failed`, `N/A`, etc.) | `database/models/wstg.py`<br>`packages/schemas/wstg.py` | **Verified** | Status state transitions verified (`test_wstg_status_transitions` passed). |
-| **FR-WP-04** | Mathematical coverage calculation: $\frac{\text{Passed+Failed+Review+NA}}{\text{Total}} \times 100$ | `services/execution_engine/coverage.py` | **Verified** | Verified formula: Overall Coverage 58.5% (62/106 incl. 60 N/A, 2 failed); Executed Coverage 4.3% (2/46 applicable; 0 passed); Health Score 56.6. |
+| **FR-WP-04** | Mathematical coverage calculation: $\frac{\text{Passed+Failed+Review+NA}}{\text{Total}} \times 100$ | `services/execution_engine/coverage.py` | **Verified** | Verified formula against authentic raw machine evidence in `r3_wstg_plan_counts.txt`: Overall Coverage 64.2% ((0+0+0+68)/106*100), Executed Coverage 0.0% ((0+0+0)/(106-68)*100), Health Score 64.2%. (Corrected from earlier draft artificial numbers; 0 tests failed because none were executed). |
 | **FR-WP-05** | Manual override for security engineers with mandatory justification | `apps/api/routers/wstg.py` (PATCH instance) | **Verified** | PATCH endpoint validates justification string and updates instance status. |
 
 ---
@@ -78,7 +78,7 @@
 | **FR-ST-02** | Tool execution wrappers for httpx, katana, ffuf | `integrations/ffuf/runner.py`<br>`apps/api/routers/tools.py` | **Partially Verified** | Ffuf binary v2.1.0 verified with controlled fuzzing; production wordlist bundled via FIX-05 (`7e80f6d`). Katana/httpx CLI runners absent (NI-04). |
 | **FR-ST-03** | Custom Python security check harness | `services/execution_engine/tools/http_client.py`<br>`agents/authorization/authz_agent.py`<br>`agents/vulnerability/vuln_agent.py` | **Verified** | Python-based HTTP prober with header injection, CORS, and IDOR testing active. |
 | **FR-ST-04** | Strict process sandboxing: Zero dynamic shell execution from LLM | `services/execution_engine/tools/base.py` | **Verified** | `create_subprocess_exec` uses typed `argv: List[str]`; shell strings strictly prohibited. |
-| **FR-ST-05** | Global and per-target rate limiting | `services/execution_engine/tools/base.py`<br>`integrations/ffuf/runner.py` | **Verified** | Rate limiting benchmark verified against Juice Shop logs (nuclei: 5.04, 10.15, 20.30 req/s; ffuf: 4.98, 9.95, 19.92 req/s). `/http-test` unthrottled in API spec (FR-ST-05 applies to automated tools). |
+| **FR-ST-05** | Global and per-target rate limiting | `services/execution_engine/tools/base.py`<br>`integrations/ffuf/runner.py` | **Partially Verified** | Rate limiting benchmark verified against Juice Shop logs (nuclei: 5.04, 10.15, 20.30 req/s; ffuf: 4.98, 9.95, 19.92 req/s). However, `/http-test` endpoint is unthrottled in API spec and awaits global rate limiting in Phase 9. |
 
 ---
 
@@ -86,10 +86,10 @@
 
 | Req ID | Requirement Description | Implementation Files | Status | Execution Evidence / Verification Notes |
 |---|---|---|---|---|
-| **FR-AG-01** | Multi-agent architecture built on stateful graph workflows | `services/orchestrator/supervisor.py`<br>`apps/api/routers/agents.py` | **Not Tested (Blocked)** | Custom Python sequential DAG supervisor used instead of LangGraph (NI-01); end-to-end multi-agent DAG execution blocked by upstream enterprise LLM gateway outage (CloudFront 403 Forbidden). Outage fail-closed handling verified via FIX-07 (`561d8e7`) returning clean HTTP 502/503 and persisting workflow state as `FAILED` with `failure_reason`. |
-| **FR-AG-02** | 15 dedicated agents with distinct responsibilities | `agents/` | **Not Tested (Blocked)** | 7 dedicated agent classes implemented; static allowlists defined on all agents; runtime allowlist enforcement verified via unit tests; end-to-end multi-agent execution blocked by upstream LLM gateway outage. |
-| **FR-AG-03** | Strict Agent-Tool boundary: agents emit JSON; engine executes | `agents/base.py` (`log_tool_call`) | **Not Tested (Blocked)** | Strict Agent-Tool boundary enforced in code; unauthorized tool calls raise `PermissionError` and record `AGENT_TOOL_CALL_BLOCKED`; end-to-end execution blocked by upstream LLM gateway outage. |
-| **FR-AG-04** | Full agent observability: thought traces, tool calls, token/cost telemetry | `database/models/agent.py`<br>`agents/base.py`<br>`apps/api/routers/agents.py` | **Not Tested** | Observability schema and database tables verified; live token/cost telemetry accumulation not tested due to LLM gateway outage ($0 spent). |
+| **FR-AG-01** | Multi-agent architecture built on stateful graph workflows | `services/orchestrator/supervisor.py`<br>`apps/api/routers/agents.py` | **Partially Verified** | Custom Python sequential DAG supervisor used instead of LangGraph (cataloged as NI-01). Verified end-to-end multi-agent execution across 3 consecutive runs against Juice Shop via live enterprise AI gateway `azure/gpt-5.6-terra-dev-gtw`. All 7 agents completed in order (AGT-01 -> AGT-03 -> AGT-05 -> AGT-09 -> AGT-07 -> AGT-11 -> AGT-15) with status `COMPLETED`. Mean runtime: 86.17s (CV 6.5%). Evidence: `docs/audit/evidence/phase2/l1_workflow_runs.txt`. |
+| **FR-AG-02** | 15 dedicated agents with distinct responsibilities | `agents/` | **Partially Verified** | 7 dedicated agent classes implemented (consolidated from 15, cataloged as NI-02). Verified all 7 agents executed in sequence across 3 runs in Part 2B live LLM battery (L1). Static tool allowlists defined and enforced. Evidence: `docs/audit/evidence/phase2/l1_workflow_runs.txt`. |
+| **FR-AG-03** | Strict Agent-Tool boundary: agents emit JSON; engine executes | `agents/base.py` (`log_tool_call`) | **Verified** | Verified in Part 2B (L2). Agent emits JSON parameters; engine validates against agent tool allowlists. Authorized tool `web_crawler` executed successfully; unauthorized tool `nuclei` raised `PermissionError` and cryptographically recorded `AGENT_TOOL_CALL_BLOCKED` in PostgreSQL audit ledger. Agent handled exception and adapted strategy. Evidence: `docs/audit/evidence/phase2/l2_runtime_allowlist.txt`. |
+| **FR-AG-04** | Full agent observability: thought traces, tool calls, token/cost telemetry | `database/models/agent.py`<br>`agents/base.py`<br>`apps/api/routers/agents.py` | **Verified** | Verified in Part 2B (L1, L3, L4). Thought traces, tool executions, and step records persisted to PostgreSQL `agent_runs` and `agent_steps`. Live token and cost accumulation tracked in `cost-log.md` (15,664 tokens, $0.1221 USD consumed across 3 runs). Finding provenance verified (L4): 0 hallucinated findings without raw tool evidence. Evidence: `docs/audit/evidence/phase2/cost-log.md`, `docs/audit/evidence/phase2/l1_workflow_runs.txt`, `docs/audit/evidence/phase2/l4_finding_evidence.txt`. |
 
 ---
 
@@ -98,9 +98,9 @@
 | Req ID | Requirement Description | Implementation Files | Status | Execution Evidence / Verification Notes |
 |---|---|---|---|---|
 | **FR-VV-01** | 10-step finding lifecycle | `database/models/finding.py`<br>`apps/api/routers/findings.py` | **Verified** | `FindingStatusHistory` tracks transitions from Detected to Confirmed/False Positive. |
-| **FR-VV-02** | Evidence artifact collection (raw bytes, headers, curl command) | `services/evidence_engine/collector.py`<br>`services/evidence_engine/curl_generator.py` | **Verified** | `test_generate_reproduction_curl`, `test_serialize_raw_http_wire_format` passed. |
+| **FR-VV-02** | Evidence artifact collection (raw bytes, headers, curl command) | `services/evidence_engine/collector.py`<br>`services/evidence_engine/curl_generator.py` | **Verified** | `test_generate_reproduction_curl`, `test_serialize_raw_http_wire_format` passed. Plaintext credential leak in cURL body resolved via FIX-10 (`b65eaf3`). Evidence: `docs/audit/evidence/phase2/r6_reporting.txt`. |
 | **FR-VV-03** | Evidence integrity: SHA-256 hash for request/response pairs | `services/evidence_engine/hasher.py` | **Verified** | `test_compute_evidence_hash` passed. |
-| **FR-VV-04** | Sensitive data masking: automatically redact cards, passwords, tokens | `services/evidence_engine/redactor.py` | **Verified** | 3 unit tests passed (`test_mask_sensitive_headers`, `test_redact_raw_stream_credentials`, `test_redact_raw_stream_credit_card`). |
+| **FR-VV-04** | Sensitive data masking: automatically redact cards, passwords, tokens | `services/evidence_engine/redactor.py` | **Verified** | 3 unit tests passed (`test_mask_sensitive_headers`, `test_redact_raw_stream_credentials`, `test_redact_raw_stream_credit_card`). Body redaction in reproduction commands enforced via FIX-10 (`b65eaf3`). |
 | **FR-VV-05** | Automated reproduction harness: re-execute minimal payloads | `agents/validation/validation_agent.py` | **Verified** | Validation agent executes independent reproduction before confirming. |
 
 ---
@@ -121,10 +121,10 @@
 
 | Req ID | Requirement Description | Implementation Files | Status | Execution Evidence / Verification Notes |
 |---|---|---|---|---|
-| **FR-FM-01** | Findings dashboard with multi-dimensional filtering | `apps/web/src/app/findings/page.tsx`<br>`apps/api/routers/findings.py` | **Verified** | Filterable by Severity, Status, WSTG category, and search query. |
+| **FR-FM-01** | Findings dashboard with multi-dimensional filtering | `apps/web/src/app/findings/page.tsx`<br>`apps/api/routers/findings.py` | **Verified** | Filterable by Severity, Status, WSTG category, and search query. Verified in UI test: `docs/audit/evidence/phase2/12_ui_playwright.txt`. |
 | **FR-FM-02** | Intelligent deduplication based on endpoint, parameter, and CWE | `services/evidence_engine/finding_service.py` | **Verified** | `test_benchmark_deduplication_hashing` passed. |
-| **FR-FM-03** | False positive management with recorded justification | `database/models/finding.py`<br>`apps/api/routers/findings.py` | **Verified** | POST `/{finding_id}/false-positive` endpoint stores rationale in `false_positives` table. |
-| **FR-FM-04** | One-click retest capability | `apps/api/routers/findings.py` | **Verified** | POST `/{finding_id}/retest` endpoint invokes automated validation prober. |
+| **FR-FM-03** | False positive management with recorded justification | `database/models/finding.py`<br>`apps/api/routers/findings.py` | **Verified** | POST `/{finding_id}/false-positive` endpoint stores rationale in `false_positives` table. Verified in UI test: `docs/audit/evidence/phase2/12_ui_playwright.txt`. |
+| **FR-FM-04** | One-click retest capability | `apps/api/routers/findings.py` | **Verified** | POST `/{finding_id}/retest` endpoint invokes automated validation prober. Verified in UI test: `docs/audit/evidence/phase2/12_ui_playwright.txt`. |
 
 ---
 
@@ -132,7 +132,7 @@
 
 | Req ID | Requirement Description | Implementation Files | Status | Execution Evidence / Verification Notes |
 |---|---|---|---|---|
-| **FR-RP-01** | Generate PTES-aligned reports in PDF and standalone HTML | `services/reporting_engine/renderer.py` | **Verified** | `test_report_renderer_html` and `test_report_renderer_pdf` passed. |
+| **FR-RP-01** | Generate PTES-aligned reports in PDF and standalone HTML | `services/reporting_engine/renderer.py` | **Verified** | `test_report_renderer_html` and `test_report_renderer_pdf` passed; verified on running stack in R6 (`docs/audit/evidence/phase2/r6_reporting.txt`). |
 | **FR-RP-02** | Comprehensive report sections (Cover, Exec Summary, WSTG, Findings, etc.) | `services/reporting_engine/context_builder.py`<br>`templates/ptes_standard.html` | **Verified** | Full PTES report context compiled from database entities. |
 | **FR-RP-03** | Report customization (logo, client details, tester signatures) | `database/models/report.py`<br>`services/reporting_engine/context_builder.py` | **Verified** | `report_templates` table and customizable metadata parameters supported. |
 | **FR-RP-04** | Report versioning: immutable snapshot preserved at publication | `database/models/report.py`<br>`apps/api/routers/reports.py` | **Verified** | Report records store complete snapshot JSON and generated file paths. |
@@ -147,18 +147,19 @@ The table below summarizes the exact row-by-row count across all 10 modules:
 |---|:---:|:---:|:---:|:---:|:---:|
 | **2.1 Project Management (FR-PM)** | 5 | 5 | 0 | 0 | 0 |
 | **2.2 Scope Enforcement (FR-SC)** | 6 | 5 | 1 | 0 | 0 |
-| **2.3 Attack Surface Discovery (FR-DS)** | 6 | 4 | 2 | 0 | 0 |
+| **2.3 Attack Surface Discovery (FR-DS)** | 6 | 3 | 3 | 0 | 0 |
 | **2.4 OWASP WSTG Test Planning (FR-WP)** | 5 | 5 | 0 | 0 | 0 |
-| **2.5 Automated Security Testing (FR-ST)** | 5 | 3 | 2 | 0 | 0 |
-| **2.6 AI Agent System (FR-AG)** | 4 | 0 | 0 | 4 | 0 |
+| **2.5 Automated Security Testing (FR-ST)** | 5 | 2 | 3 | 0 | 0 |
+| **2.6 AI Agent System (FR-AG)** | 4 | 2 | 2 | 0 | 0 |
 | **2.7 Vulnerability Validation (FR-VV)** | 5 | 5 | 0 | 0 | 0 |
 | **2.8 Authorization & Business Logic (FR-AB)** | 5 | 4 | 1 | 0 | 0 |
 | **2.9 Findings Management (FR-FM)** | 4 | 4 | 0 | 0 | 0 |
 | **2.10 PTES Reporting Engine (FR-RP)** | 4 | 4 | 0 | 0 | 0 |
-| **TOTALS** | **49** | **39 (79.59%)** | **6 (12.24%)** | **4 (8.16%)** | **0 (0.00%)** |
+| **Documented Arch Subsystems (NI-05, NI-09)** | 2 | 0 | 0 | 0 | 2 |
+| **TOTALS (Comprehensive Traceability)** | **51** | **39 (76.47%)** | **10 (19.61%)** | **0 (0.00%)** | **2 (3.92%)** |
 
 > **Audit Note on "Not Implemented" Classification:**  
-> The 49 functional requirements above correspond to capabilities that have at least partial code paths in the repository. However, several specific architectural and infrastructure subsystems documented in the specifications are **Not Implemented**. These are cataloged explicitly below.
+> Of the 49 PRD functional requirements, 39 are Verified and 10 are Partially Verified (0 Not Tested). Crucially, 2 major documented architectural capabilities are **Not Implemented**: NI-05 (Dynamic Skill Execution Runtime Engine) and NI-09 (Scan Scheduling & Recurring Jobs). A claim of "0 Not Implemented / 0 Not Tested" is not credible and has been corrected. In addition, architectural divergences and gaps (NI-01 through NI-09) are cataloged explicitly below.
 
 ---
 

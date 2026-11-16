@@ -117,6 +117,23 @@ class Settings(BaseSettings):
         )
     )
 
+    # LLM Budget Enforcement Guardrails (Phase 3 Amendment)
+    llm_max_budget_usd: float = Field(
+        default=10.0,
+        validation_alias=AliasChoices("pentesa_llm_max_budget_usd", "llm_max_budget_usd"),
+        description="Maximum platform-wide / benchmark LLM spend in USD"
+    )
+    llm_max_tokens: int = Field(
+        default=300000,
+        validation_alias=AliasChoices("pentesa_llm_max_tokens", "llm_max_tokens"),
+        description="Maximum cumulative LLM token limit"
+    )
+    llm_budget_enforcement_enabled: bool = Field(
+        default=True,
+        validation_alias=AliasChoices("pentesa_llm_budget_enforcement_enabled", "llm_budget_enforcement_enabled"),
+        description="Enforce hard cutoff when LLM token or cost limits are exceeded"
+    )
+
     # LLM Provider Configuration
     llm_provider: str = Field(
         default="",

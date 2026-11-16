@@ -38,3 +38,14 @@
    The workflow supervisor handles live provider calls with token/latency instrumentation.
 3. **Budget Status:**  
    12 total tokens consumed ($0.0001 USD); budget remains at $4.9999 / 99,988 tokens under the $5.00 hard cap.
+
+## Phase 2 Run 2 (Part 2B) Multi-Agent Workflow Runs
+- Date: 2026-11-16 08:39:48Z
+- Gateway Model: `azure/gpt-5.6-terra-dev-gtw`
+- Run 1: Tokens=5,296, Cost=$0.041404
+- Run 2: Tokens=4,907, Cost=$0.037551
+- Run 3: Tokens=5,460, Cost=$0.043045
+- Cumulative Tokens Spent: 15,664 / 100,000
+- Cumulative Cost Spent: $0.1221 / $5.00
+- Remaining Token Budget: 84,336 tokens
+- Remaining Financial Cap: $4.8779 USD

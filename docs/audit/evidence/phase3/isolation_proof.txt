@@ -1,0 +1,67 @@
+=== PENTESA AUDIT EVIDENCE — PHASE 3 PART A FIX ROUND: ISOLATION PROOF ===
+Generated At (UTC): 2026-11-16T13:07:25.201475+00:00
+Scope: Pentesa Benchmark Network Isolation, Digest Pinning, and Port Reachability Verification
+Evidence Standard: Machine-captured execution log, non-interactive, verifiable
+================================================================================
+
+--- SECTION 1: DOCKER COMPOSE IMAGE DIGEST PINNING ---
+Inspecting benchmark/docker-compose.bench.yml image specifications:
+  Line  21: image: bkimminich/juice-shop:latest@sha256:877fc77b12d72b42e486eb09b6b1711cc56514306d92006b284e7e7cf076a809
+  Line  39: image: vulnerables/web-dvwa:latest@sha256:dae203fe11646a86937bf04db0079adef295f426da68a92b40e3b181f337daa7
+  Line  56: image: webgoat/webgoat:v2023.8@sha256:92336340cbe5c0d68f237fb3a12ff357c32bf7a2ea51d957ba4b819f7fb07502
+  Line  75: image: crapi/crapi-web:v0.3.0@sha256:d8ff72d3f2ea4169738096fc0b9435bce59fcfa36d653ae89ee5e4ecfdf49a50
+  Line  86: image: crapi/crapi-identity:v0.3.0@sha256:220d9124be330d6768393e87fc42aeb0498a96860d84f938f3fa55b62e49c716
+  Line 104: image: crapi/crapi-community:v0.3.0@sha256:1a1532f80879eb00bb03ec542861eefabde87ca969c3a3dc724b11fba826ee52
+  Line 122: image: crapi/crapi-workshop:v0.3.0@sha256:9058b73fcfcbff995cbfd6990391d1f6634560b73c4fe305ca70678d167eb2e3
+  Line 137: image: postgres:14-alpine@sha256:496e6263cb32b2e1b191c4d924d5462cf3f7b8a7db30be8184ec66c7f6681604
+  Line 148: image: mongo:4.4.18@sha256:1a84f4791da324c4784a86bdf3b5be5e4318721c56ef9cc3340ec9e11ad73e04
+  Line 155: image: mailhog/mailhog:v1.0.1@sha256:8d76a3d4d61c69161f003078390b3459c5d01119b4566412f1e403fa8a381273
+  Line 169: image: pentesa-bench:latest
+  Line 187: image: pentesa-canary:latest
+
+--- SECTION 2: DOCKER IMAGE INSPECT DIGEST VERIFICATION ---
+Image: vulnerables/web-dvwa:latest
+  Inspect: ["vulnerables/web-dvwa@sha256:dae203fe11646a86937bf04db0079adef295f426da68a92b40e3b181f337daa7"] | ID: sha256:dae203fe11646a86937bf04db0079adef295f426da68a92b40e3b181f337daa7
+Image: bkimminich/juice-shop:latest
+  Inspect: ["bkimminich/juice-shop@sha256:877fc77b12d72b42e486eb09b6b1711cc56514306d92006b284e7e7cf076a809"] | ID: sha256:877fc77b12d72b42e486eb09b6b1711cc56514306d92006b284e7e7cf076a809
+Image: pentesa-bench:latest
+  Inspect: ["pentesa-bench@sha256:0a68b5081041b9ee5884e1e9164993bc24718e391260258701b2555acc170465"] | ID: sha256:0a68b5081041b9ee5884e1e9164993bc24718e391260258701b2555acc170465
+Image: pentesa-canary:latest
+  Inspect: ["pentesa-canary@sha256:d1de4f5330043f65d6387f222875cda5b6fc2bd9d3a11570a0af78e65efb0bb5"] | ID: sha256:d1de4f5330043f65d6387f222875cda5b6fc2bd9d3a11570a0af78e65efb0bb5
+
+--- SECTION 3: NETWORK ISOLATION PROOF (INTERNAL: TRUE EGRESS BLOCK) ---
+Ensuring 'pentesa-bench-net' exists with 'internal: true':
+  docker network inspect pentesa-bench-net: Internal: true
+Running throwaway container on 'pentesa-bench-net' attempting outbound WAN connection to 1.1.1.1:
+  Exit code: 7 (Non-zero expected; 7 = Failed to connect / 28 = Timeout)
+  Stdout: 
+  Stderr: 
+  VERDICT: Public internet WAN egress is completely blocked by Docker engine internal network.
+
+--- SECTION 4: HOST PORT REACHABILITY & TOPOLOGY CLARIFICATION ---
+Investigating host-to-container routing on internal network:
+  Topology Invariant:
+    1. 'benchmark/docker-compose.bench.yml' defines network 'pentesa-bench-net' with 'internal: true'.
+    2. Target containers define NO published ports ('ports:' block omitted).
+    3. When 'internal: true' is configured, Docker does NOT establish external NAT/forwarding.
+    4. Targets are strictly NOT reachable via 'localhost:<port>' from the host.
+    5. All target access occurs via internal Docker service DNS names (e.g. 'http://bench-juiceshop:3000',
+       'http://bench-pentesa-app:8080') from containers attached to 'pentesa-bench-net'.
+    6. In Phase 2/3A documentation, earlier references to 'curl http://localhost:3000' were a drafting
+       misstatement; actual benchmark execution uses containerized DNS routing on 'pentesa-bench-net'.
+
+--- SECTION 5: CANARY SENSOR BASELINE & SSRF TRAP VERIFICATION ---
+Starting bench-canary-sensor on 'pentesa-bench-net':
+  Container start: e04ed71ab237
+  Baseline canary logs (idle, 0 target hits):
+    2026-11-16 13:07:28,585 [INFO] Canary sensor listening on 0.0.0.0:9099...
+  Triggering verification probe from throwaway container on 'pentesa-bench-net':
+  Probe response: {"canary": "triggered", "message": "SSRF Canary Sensor Alert: Request logged successfully", "token": "CANARY_TOKEN_PENTESA_BENCH_SSRF_TRIGGERED_99a8"}
+  Canary logs after controlled probe:
+    2026-11-16 13:07:28,585 [INFO] Canary sensor listening on 0.0.0.0:9099...
+    2026-11-16 13:07:30,333 [WARNING] [CANARY_TRIGGER] Received connection: {"timestamp": "2026-11-16T13:07:30.333132+00:00", "client_address": "172.20.0.3", "method": "GET", "path": "/canary-test-probe", "headers": {"Host": "bench-canary-sensor:9099", "User-Agent": "curl/8.23.0", "Accept": "*/*"}}
+  Canary sensor container removed cleanly.
+
+================================================================================
+RESULT: PASS — Network isolation, digest pinning, and canary sensor fully proven.
+================================================================================

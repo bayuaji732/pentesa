@@ -1,0 +1,106 @@
+================================================================================
+PENTESA PHASE 2 AUDIT EVIDENCE RECORD
+Timestamp (UTC): 2026-11-16T05:16:26Z
+Git SHA:         220dd9811d97b875b0157785fc557534efefe018 (dirty)
+Command:         python -m tests.audit.run_r5_real_stack
+Database:        PostgreSQL 16.16 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+Execution Mode:  running stack (HTTP + PostgreSQL 16)
+================================================================================
+
+[AUTH] Logged in as security-lead@phase2.lab
+[PROJECT] Created project ID: ace14afc-d1ef-4de0-a047-faa582d785d5
+[SCOPE] Added in-scope rule for target-juiceshop:3000
+
+======================================================================
+PART 1: FFUF SUBPROCESS RATE LIMITER BENCHMARK (5, 10, 20 RPS)
+======================================================================
+[SETUP] Created /opt/wordlists/bench_5.txt (160 words), bench_10.txt (320 words), bench_20.txt (640 words)
+
+[FFUF @  5 RPS]
+  Target RPS:             5 req/s
+  Requests Dispatched:    160
+  Benchmark Duration:     32.07s (Threshold: >=30.0s)
+  Measured Actual Rate:   4.99 req/s
+  Rate Variance:          0.23% (Compliance limit: <= 5.0% per SRS-NFR-SAFE-002)
+  Tool Execution Status:  SUCCESS
+
+[FFUF @ 10 RPS]
+  Target RPS:             10 req/s
+  Requests Dispatched:    320
+  Benchmark Duration:     32.06s (Threshold: >=30.0s)
+  Measured Actual Rate:   9.98 req/s
+  Rate Variance:          0.19% (Compliance limit: <= 5.0% per SRS-NFR-SAFE-002)
+  Tool Execution Status:  SUCCESS
+
+[FFUF @ 20 RPS]
+  Target RPS:             20 req/s
+  Requests Dispatched:    640
+  Benchmark Duration:     32.06s (Threshold: >=30.0s)
+  Measured Actual Rate:   19.96 req/s
+  Rate Variance:          0.20% (Compliance limit: <= 5.0% per SRS-NFR-SAFE-002)
+  Tool Execution Status:  SUCCESS
+
+======================================================================
+PART 2: NUCLEI SUBPROCESS RATE LIMITER BENCHMARK (5, 10, 20 RPS)
+======================================================================
+[SETUP] Staged deterministic single-probe Nuclei directories (bench_5: 160, bench_10: 320, bench_20: 640 probes)
+
+[NUCLEI @  5 RPS]
+  Target RPS:             5 req/s
+  Requests Dispatched:    160
+  Benchmark Duration:     31.28s (Threshold: >=30.0s)
+  Measured Actual Rate:   5.12 req/s
+  Rate Variance:          2.31% (Compliance limit: <= 5.0% per SRS-NFR-SAFE-002)
+  Tool Execution Status:  SUCCESS
+
+[NUCLEI @ 10 RPS]
+  Target RPS:             10 req/s
+  Requests Dispatched:    320
+  Benchmark Duration:     31.28s (Threshold: >=30.0s)
+  Measured Actual Rate:   10.23 req/s
+  Rate Variance:          2.30% (Compliance limit: <= 5.0% per SRS-NFR-SAFE-002)
+  Tool Execution Status:  SUCCESS
+
+[NUCLEI @ 20 RPS]
+  Target RPS:             20 req/s
+  Requests Dispatched:    640
+  Benchmark Duration:     31.39s (Threshold: >=30.0s)
+  Measured Actual Rate:   20.39 req/s
+  Rate Variance:          1.94% (Compliance limit: <= 5.0% per SRS-NFR-SAFE-002)
+  Tool Execution Status:  SUCCESS
+
+======================================================================
+PART 3: DOCUMENTATION CITATIONS & /http-test RATE LIMIT ANALYSIS
+======================================================================
+
+A. PRD Requirement Citation (docs/01-prd.md:115):
+   "FR-ST-05: Global and per-target rate limiting (configurable requests per second,
+   concurrency limit, error threshold backoff)."
+   -> Grounding: Defines requirement specifically for automated security testing tools
+      (Nuclei, ffuf, httpx) to prevent target service degradation.
+
+B. SRS Requirements Citations:
+   1. docs/02-srs.md:204 (SRS-FR-ST-005):
+      "SRS-FR-ST-005 (Rate Limiting and Concurrency): The execution engine shall enforce
+      configurable requests-per-second (RPS) limits (default: 15 RPS) and concurrent
+      worker limits per target domain."
+   2. docs/02-srs.md:274 (SRS-NFR-SAFE-002):
+      "SRS-NFR-SAFE-002 (Rate Limit Compliance): Outbound request throughput shall never
+      exceed the operator-configured requests-per-second threshold by more than 5% over
+      any 5-second moving average window."
+
+C. API Specification Citation regarding /http-test (docs/11-api-specification.md:290-310):
+   In docs/11-api-specification.md (Section 4.6, Module 6: Tools):
+   - 35. GET /api/v1/tools
+   - 36. POST /api/v1/projects/{project_id}/tools/execute
+   - 37. GET /api/v1/projects/{project_id}/tools/executions
+   - 38. GET /api/v1/projects/{project_id}/tools/executions/{execution_id}
+   - 39. POST /api/v1/projects/{project_id}/tools/executions/{execution_id}/cancel
+   - 40. PUT /api/v1/projects/{project_id}/tools/config
+   Audit Finding:
+   `/http-test` is an internal diagnostic probe endpoint implemented for single-hop
+   connectivity verification and was omitted from the rate-limiting specification in
+   docs/11-api-specification.md:290-310. While automated tools (Nuclei, ffuf) strictly
+   comply with FR-ST-05 and SRS-NFR-SAFE-002 (<2% variance), `/http-test` is unthrottled
+   by design in the current API specification.
+

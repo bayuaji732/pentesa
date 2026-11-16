@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.api.routers import (
     agents_router,
@@ -118,6 +119,43 @@ def validate_tool_assets_startup():
         logger.warning(msg)
 
 
+async def recover_interrupted_workflows(session: AsyncSession) -> int:
+    """Mark any workflows and agent executions left RUNNING as FAILED on startup (NI-06 / G3)."""
+    from datetime import datetime, timezone
+    from sqlalchemy import select
+    from database.models.agent import WorkflowExecution, AgentExecution
+
+    now = datetime.now(timezone.utc)
+    wf_stmt = select(WorkflowExecution).where(WorkflowExecution.status == "RUNNING")
+    res = await session.execute(wf_stmt)
+    interrupted_wfs = res.scalars().all()
+    count = len(interrupted_wfs)
+    for wf in interrupted_wfs:
+        wf.status = "FAILED"
+        wf.completed_at = now
+        st_data = dict(wf.state_data or {})
+        st_data["failure_reason"] = "interrupted by restart"
+        st_data["error"] = "Workflow interrupted by server restart"
+        wf.state_data = st_data
+
+    agent_stmt = select(AgentExecution).where(AgentExecution.status.in_(["RUNNING", "QUEUED"]))
+    agent_res = await session.execute(agent_stmt)
+    interrupted_agents = agent_res.scalars().all()
+    for ag in interrupted_agents:
+        ag.status = "FAILED"
+        ag.completed_at = now
+        ag.error_message = "interrupted by restart"
+
+    if count > 0 or interrupted_agents:
+        await session.commit()
+        logging.getLogger(__name__).warning(
+            "Startup recovery: marked %d interrupted workflow(s) and %d agent execution(s) as FAILED (reason: interrupted by restart).",
+            count,
+            len(interrupted_agents),
+        )
+    return count
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifecycle events: validate configuration, initialize database, and seed data."""
@@ -135,6 +173,7 @@ async def lifespan(app: FastAPI):
     await init_db()
     async with AsyncSessionLocal() as session:
         await seed_initial_data(session)
+        await recover_interrupted_workflows(session)
     yield
     await close_db()
 

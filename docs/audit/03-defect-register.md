@@ -29,8 +29,10 @@
 | **TOOL-TMPL-01** | **P1** | Integrations | `infrastructure/docker/Dockerfile.api`, `integrations/nuclei/runner.py` | Official Nuclei Templates Not Baked into Production Docker Image | **Closed** | `7e80f6d` (FIX-05) |
 | **TOOL-WORD-01** | **P1** | Integrations | `infrastructure/docker/Dockerfile.api`, `integrations/ffuf/runner.py` | Production Wordlist Missing from Base Docker Image | **Closed** | `7e80f6d` (FIX-05) |
 | **AGT-LLM-01** | **P1** | AI Engine | `apps/api/routers/agents.py`, `services/orchestrator/supervisor.py` | Unhandled HTTP 500 on LLM Gateway / Network Disconnect | **Closed** | `561d8e7` (FIX-07) |
-| **TOOL-FP-01** | **P1** | Accuracy / FP | `services/execution_engine/tools/soft_404.py`, `integrations/ffuf/runner.py`, `integrations/nuclei/runner.py` | False Positives on SPA Catch-All Endpoints (Juice Shop / Express) | **Closed** | `[FIX-11]` |
-| **EVID-01** | **P1** | Process / Audit | `docs/audit/evidence/phase2/verification-round/` | Manual Hand-Editing of Machine-Captured Verification Evidence in efbcd1b | **Closed** | `[FIX-11]` |
+| **TOOL-FP-01** | **P1** | Accuracy / FP | `services/execution_engine/tools/soft_404.py`, `integrations/ffuf/runner.py`, `integrations/nuclei/runner.py` | False Positives on SPA Catch-All Endpoints (Juice Shop / Express) | **Closed** | `7987286` (FIX-11) / `fbb2e31` (FIX-12) |
+| **EVID-01** | **P1** | Process / Audit | `docs/audit/evidence/phase2/verification-round/` | Manual Hand-Editing of Machine-Captured Verification Evidence in efbcd1b | **Closed** | `7987286` (FIX-11) / S3 Script Headers |
+| **SEC-RED-02** | **P1** | Privacy / Leak | `services/evidence_engine/curl_generator.py`, `services/evidence_engine/finding_service.py` | Reproduction cURL Generator Leaks Plaintext Passwords in Request Body | **Closed** | `b65eaf3` (FIX-10) |
+| **EVID-02** | **P1** | Process / Audit | `docs/audit/evidence/phase2/r3_wstg_plan_counts.txt`, `phase2-summary.md` | Discrepancy Between Raw WSTG Coverage Machine Evidence and Summary Reports | **Closed** | Reconciled R3 raw counts (38 planned, 68 N/A, 0 failed) and corrected summary reports |
 | **DISCO-SPA-01** | **P2** | Discovery | `services/discovery_engine/fingerprint.py` | Technology Fingerprinter Misses SPAs Lacking Server Headers | Open (Deferred) | Phase 9 (DOM Parsing Roadmap) |
 
 ---
@@ -95,4 +97,28 @@
 - **Component:** `docs/audit/evidence/phase2/verification-round/`, commit `efbcd1b`
 - **Process Defect Description:** During the initial capture of Verification Round 2A artifacts, files committed under `docs/audit/evidence/phase2/verification-round/` in `efbcd1b` were manually edited rather than strictly captured via machine scripts. This introduced discrepancies between raw output logs and tabular summaries.
 - **Remediation (FIX-11):** Established strict audit policy: all evidence artifacts must be machine-captured with deterministic headers (UTC timestamp, git SHA, command line, DB dialect, execution mode) and committed directly without manual modification. Full regeneration scheduled at Phase 2 conclusion.
+
+### 3.11 DEFECT-PRIV-1 / P1 (SEC-RED-02): Plaintext Credentials in Reproduction cURL Commands
+- **Component:** `services/evidence_engine/curl_generator.py:48-52`, `services/evidence_engine/finding_service.py:477-495`, commit `b65eaf3`
+- **Vulnerability Description:** During Phase 2 Run 2 real-stack reporting tests (R6), reproduction cURL generation serialized the raw HTTP request body directly into `--data-raw` parameters without redacting authentication passwords, bearer tokens, or sensitive API secrets. If a finding captured an authentication transaction (such as a login failure, brute-force vulnerability, or BOLA test), the customer-facing penetration testing report contained plaintext user passwords in the reproduction command.
+- **Remediation (b65eaf3 / FIX-10):**
+  1. Updated `generate_reproduction_curl()` to pass the request body through `redact_raw_stream()` when `redact_auth=True`.
+  2. Applied `redact_raw_stream()` across both `raw_request` and `raw_response` in `FindingService.create_finding()` prior to generating forensic reproduction artifacts.
+  3. Added regression unit test `test_generate_reproduction_curl_redacts_body_secrets()` in `tests/unit/test_evidence_engine.py` asserting passwords and tokens in JSON payloads are replaced with `[REDACTED]`.
+
+### 3.12 DEFECT-PROC-2 / P1 (EVID-02): Discrepancy Between Raw WSTG Coverage Evidence and Summary Reports
+- **Component:** `docs/audit/evidence/phase2/r3_wstg_plan_counts.txt`, `docs/audit/evidence/phase2/phase2-summary.md:104-106`, `docs/audit/02-requirement-traceability.md:68`
+- **Process Defect Description:** During the compilation of Phase 2 summary documentation, the metrics for WSTG plan recalculation and coverage (R3) were copied from the historical/pre-remediation artificial test (`efbcd1b`: 44 planned, 60 N/A, 2 failed, 58.5% overall, 4.3% executed). However, the actual machine-captured evidence artifact generated from the running PostgreSQL 16 stack (`docs/audit/evidence/phase2/r3_wstg_plan_counts.txt`, timestamp `2026-11-16T04:15:18Z`) recorded:
+  - Total catalog instances: 106
+  - Planned (applicable): 38
+  - Not Applicable: 68
+  - Passed: 0
+  - Failed: 0
+  - Needs Review: 0
+  - Overall coverage: 64.2% ((0 + 0 + 0 + 68) / 106 * 100)
+  - Executed coverage: 0.0% ((0 + 0 + 0) / (106 - 68) * 100)
+  - Testing health score: 64.2%
+  The claim in `phase2-summary.md` that 2 tests "failed" was erroneous because R3 only executed crawl and plan recalculation; 0 tests were executed during that run.
+- **Remediation:** Reconciled `phase2-summary.md` and `02-requirement-traceability.md` to reflect the authentic raw machine-captured numbers from `r3_wstg_plan_counts.txt`. Logged defect in master register as closed with evidence alignment confirmed.
+
 

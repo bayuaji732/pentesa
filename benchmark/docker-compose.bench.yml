@@ -1,0 +1,196 @@
+# Pentesa Benchmark Environment — Isolated Benchmark Target Topology
+# PENTESA-BENCH-COMPOSE-V1.0
+#
+# NETWORK ISOLATION INVARIANT:
+# All target applications sit strictly on `pentesa-bench-net` configured with `internal: true`.
+# Outbound traffic from targets to the internet is completely blocked at the Docker engine level.
+#
+# IMPORTANT NOTICE ON SCANNER EGRESS & NI-03:
+# The Pentesa API and Worker containers must also attach to an egress bridge network to communicate
+# with the enterprise AI gateway (Azure OpenAI / LiteLLM Proxy). Therefore, Docker-level network
+# isolation does NOT constrain the scanner containers themselves; the fail-closed application-level
+# lab-only guardrail (FIX-08) is the primary barrier preventing tool subprocesses (nuclei, ffuf)
+# from contacting unauthorized hosts until the dedicated Layer-2 egress proxy (NI-03) is built in Phase 9.
+# ONLY targets defined in this file are authorized to be scanned.
+
+services:
+  # ============================================================================
+  # TARGET 1: OWASP Juice Shop (Modern NodeJS / Express / Angular SPA)
+  # ============================================================================
+  target-juiceshop:
+    image: bkimminich/juice-shop:latest@sha256:877fc77b12d72b42e486eb09b6b1711cc56514306d92006b284e7e7cf076a809
+    container_name: bench-juiceshop
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=unsafe
+    networks:
+      - pentesa-bench-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/rest/admin/application-version"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # TARGET 2: Damn Vulnerable Web Application (DVWA - PHP / Apache / MySQL)
+  # Provides both vulnerable and "impossible" (secure) benchmark baselines.
+  # ============================================================================
+  target-dvwa:
+    image: vulnerables/web-dvwa:latest@sha256:dae203fe11646a86937bf04db0079adef295f426da68a92b40e3b181f337daa7
+    container_name: bench-dvwa
+    restart: unless-stopped
+    environment:
+      - PHP_IDE_CONFIG=serverName=dvwa
+    networks:
+      - pentesa-bench-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://127.0.0.1/login.php || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # TARGET 3: OWASP WebGoat (Java / Spring Boot Enterprise Application)
+  # ============================================================================
+  target-webgoat:
+    image: webgoat/webgoat:v2023.8@sha256:92336340cbe5c0d68f237fb3a12ff357c32bf7a2ea51d957ba4b819f7fb07502
+    container_name: bench-webgoat
+    restart: unless-stopped
+    environment:
+      - WEBRUN_PORT=8080
+      - WEBGOAT_PORT=8080
+      - WEBWOLF_PORT=9090
+    networks:
+      - pentesa-bench-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://127.0.0.1:8080/WebGoat/login || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # TARGET 4: crAPI (Completely Ridiculous API - Microservices BOLA/IDOR Target)
+  # ============================================================================
+  crapi-web:
+    image: crapi/crapi-web:v0.3.0@sha256:d8ff72d3f2ea4169738096fc0b9435bce59fcfa36d653ae89ee5e4ecfdf49a50
+    container_name: bench-crapi-web
+    restart: unless-stopped
+    depends_on:
+      - crapi-identity
+      - crapi-community
+      - crapi-workshop
+    networks:
+      - pentesa-bench-net
+
+  crapi-identity:
+    image: crapi/crapi-identity:v0.3.0@sha256:220d9124be330d6768393e87fc42aeb0498a96860d84f938f3fa55b62e49c716
+    container_name: bench-crapi-identity
+    restart: unless-stopped
+    environment:
+      - DB_HOST=crapi-db
+      - DB_PORT=5432
+      - DB_NAME=crapi
+      - DB_USER=crapi
+      - DB_PASSWORD=crapi
+      - JWT_SECRET=crapi_jwt_secret_key_2026
+      - MONGO_HOST=crapi-mongodb
+      - MONGO_PORT=27017
+    depends_on:
+      - crapi-db
+    networks:
+      - pentesa-bench-net
+
+  crapi-community:
+    image: crapi/crapi-community:v0.3.0@sha256:1a1532f80879eb00bb03ec542861eefabde87ca969c3a3dc724b11fba826ee52
+    container_name: bench-crapi-community
+    restart: unless-stopped
+    environment:
+      - DB_HOST=crapi-db
+      - DB_PORT=5432
+      - DB_NAME=crapi
+      - DB_USER=crapi
+      - DB_PASSWORD=crapi
+      - MONGO_HOST=crapi-mongodb
+      - MONGO_PORT=27017
+    depends_on:
+      - crapi-db
+      - crapi-mongodb
+    networks:
+      - pentesa-bench-net
+
+  crapi-workshop:
+    image: crapi/crapi-workshop:v0.3.0@sha256:9058b73fcfcbff995cbfd6990391d1f6634560b73c4fe305ca70678d167eb2e3
+    container_name: bench-crapi-workshop
+    restart: unless-stopped
+    environment:
+      - DB_HOST=crapi-db
+      - DB_PORT=5432
+      - DB_NAME=crapi
+      - DB_USER=crapi
+      - DB_PASSWORD=crapi
+    depends_on:
+      - crapi-db
+    networks:
+      - pentesa-bench-net
+
+  crapi-db:
+    image: postgres:14-alpine@sha256:496e6263cb32b2e1b191c4d924d5462cf3f7b8a7db30be8184ec66c7f6681604
+    container_name: bench-crapi-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=crapi
+      - POSTGRES_USER=crapi
+      - POSTGRES_PASSWORD=crapi
+    networks:
+      - pentesa-bench-net
+
+  crapi-mongodb:
+    image: mongo:4.4.18@sha256:1a84f4791da324c4784a86bdf3b5be5e4318721c56ef9cc3340ec9e11ad73e04
+    container_name: bench-crapi-mongodb
+    restart: unless-stopped
+    networks:
+      - pentesa-bench-net
+
+  crapi-mailhog:
+    image: mailhog/mailhog:v1.0.1@sha256:8d76a3d4d61c69161f003078390b3459c5d01119b4566412f1e403fa8a381273
+    container_name: bench-crapi-mailhog
+    restart: unless-stopped
+    networks:
+      - pentesa-bench-net
+
+  # ============================================================================
+  # TARGET 5: Pentesa Bench (Purpose-Built Paired Vulnerable / Secure App)
+  # Covers SSTI, XXE, Cmd Injection, File Upload, Path Traversal, SSRF, JWT, Race, Business Logic.
+  # ============================================================================
+  target-pentesa-bench:
+    build:
+      context: ./bench_app
+      dockerfile: Dockerfile
+    image: pentesa-bench:latest
+    container_name: bench-pentesa-app
+    restart: unless-stopped
+    networks:
+      - pentesa-bench-net
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://127.0.0.1:8080/healthz\")' || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ============================================================================
+  # SENSOR: Internal Canary Trap (SSRF Sensor)
+  # ============================================================================
+  bench-canary:
+    build:
+      context: ./canary
+      dockerfile: Dockerfile
+    image: pentesa-canary:latest
+    container_name: bench-canary-sensor
+    restart: unless-stopped
+    networks:
+      - pentesa-bench-net
+
+networks:
+  pentesa-bench-net:
+    name: pentesa-bench-net
+    internal: true

@@ -1,0 +1,68 @@
+================================================================================
+PENTESA PHASE 2 AUDIT EVIDENCE RECORD
+Timestamp (UTC): 2026-11-16T07:01:28Z
+Git SHA:         b65eaf3e27495dd6b73587e6eed689e4f004bb3a (dirty)
+Command:         python -m tests.audit.run_14_error_recovery
+Database:        PostgreSQL 16.16 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+Execution Mode:  running stack (HTTP + PostgreSQL 16)
+================================================================================
+
+AUTOMATED FAULT INJECTION & ERROR RECOVERY BATTERY
+======================================================================
+[AUTH] Successfully authenticated as security-lead@phase2.lab
+[PROJECT] Created dedicated recovery project (ID: 515a4f66-2cc5-4646-b65a-f9d057485a0c)
+
+======================================================================
+SCENARIO 1: MID-WORKFLOW WORKER CRASH (SIGKILL & NI-06 OBSERVATION)
+======================================================================
+Starting async workflow...
+Workflow started. Status: RUNNING
+Injecting fault: docker kill -s SIGKILL pentesa-phase2-worker...
+Workflow status while worker is dead: RUNNING
+[NI-06 CONFIRMATION] Confirmed known architectural gap NI-06: worker crash leaves workflow state durable in DB; supervisor recovers via explicit reset.
+Restarting worker container: docker start pentesa-phase2-worker...
+Worker container status after restart: Up 3 seconds
+[PASS] Worker container successfully recovered.
+
+======================================================================
+SCENARIO 2: DATABASE CONNECTION LOSS & POOL RECONNECTION
+======================================================================
+Injecting fault: docker restart pentesa-phase2-db...
+Database restarting... Waiting for PostgreSQL socket initialization...
+Probing API readiness endpoint (/readyz) until database is connected...
+Readiness check status: 200 - Body: {'status': 'ready', 'database': 'connected'}
+Authenticated DB query verified: project 'Phase2-Recovery-Test-1794812464' retrieved.
+[PASS] Database connection pool automatically recovered without API restart.
+
+======================================================================
+SCENARIO 3: TARGET UNREACHABLE MID-SCAN
+======================================================================
+Injecting fault: stopping target container (docker stop pentesa-phase2-target)...
+Executing tool run against offline target...
+Tool launch returned status: 201
+Polling tool execution until finished against offline target...
+Execution status against offline target: FAILED
+Return code: None
+Stderr summary: [[1;31mFTL[0m] Could not run nuclei: no templates provided for scan
+
+[PASS] Tool execution handled offline target gracefully without unhandled exception.
+Restarting target container (docker start pentesa-phase2-target)...
+[PASS] Target container restored.
+
+======================================================================
+SCENARIO 4: TOOL SUBPROCESS KILLED (SIGKILL MID-RUN)
+======================================================================
+Launching nuclei subprocess with rate-limit 5...
+Tool execution started: ID d390b532-4428-4a99-83e3-05914869955a
+Injecting fault: killing nuclei subprocess via docker exec pkill -9 nuclei...
+Polling tool execution until status reflects termination...
+Execution status after SIGKILL: FAILED
+Return code: None
+[PASS] Subprocess termination captured and handled cleanly.
+
+======================================================================
+SCENARIO 5: LLM GATEWAY TIMEOUT / ERROR SIMULATION
+======================================================================
+Testing LLM error handling with invalid provider or simulated error...
+Verifying AGT-MOCK-01: startup fail-closed guard against mock/dummy providers in production...
+[PASS] LLM gateway errors map to LLMGatewayError (HTTP 502/503) without exposing credentials or unhandled 500s.

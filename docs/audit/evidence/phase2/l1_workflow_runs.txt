@@ -1,0 +1,82 @@
+================================================================================
+PENTESA PHASE 2 AUDIT EVIDENCE RECORD
+Timestamp (UTC): 2026-11-16T08:39:47Z
+Git SHA:         b65eaf3e27495dd6b73587e6eed689e4f004bb3a (dirty)
+Command:         python -m tests.audit.run_l1_l4_llm (Item 8.1b)
+Database:        PostgreSQL 16.16 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+Execution Mode:  running stack (HTTP + PostgreSQL 16)
+================================================================================
+
+ITEM 8.1b: MULTI-AGENT WORKFLOW RUNS (3 CONSECUTIVE ASSESSMENTS)
+Model: azure/gpt-5.6-terra-dev-gtw (LiteLLM Live Gateway)
+Target: OWASP Juice Shop (http://target-juiceshop:3000)
+Profile: QUICK (Discovery + WSTG Analysis + Vuln Probe + Reporting)
+======================================================================
+
+--- RUN 1 DETAILS ---
+Project ID        : b3cbbd5c-e01f-490c-af2c-264a4d30c647
+Workflow ID       : 038691ea-6a39-4ed5-a92b-146c67d9c88e
+Terminal Status   : COMPLETED
+Duration          : 90.35s
+Prompt Tokens     : 1,541
+Completion Tokens : 3,755
+Total Tokens      : 5,296
+Incurred Cost     : $0.041404 USD
+Findings Ingested : 1
+WSTG Plan Summary : Planned=0, Passed=0, Failed=0, N/A=0
+Agent Progression:
+  * AGT-01   Project Planning Agent              | Status: COMPLETED  | Tokens:  1054 | Cost: $0.009588
+  * AGT-03   Reconnaissance & Surface Mapping Agent | Status: COMPLETED  | Tokens:   253 | Cost: $0.001623
+  * AGT-05   WSTG Assessment Agent               | Status: COMPLETED  | Tokens:   912 | Cost: $0.008295
+  * AGT-09   Vulnerability Detection Agent       | Status: COMPLETED  | Tokens:   695 | Cost: $0.006260
+  * AGT-07   Authorization Testing Agent         | Status: COMPLETED  | Tokens:   355 | Cost: $0.002808
+  * AGT-11   Vulnerability Validation & Quality Control Agent | Status: COMPLETED  | Tokens:   868 | Cost: $0.002628
+  * AGT-15   PTES Reporting Agent                | Status: COMPLETED  | Tokens:  1159 | Cost: $0.010202
+
+--- RUN 2 DETAILS ---
+Project ID        : aaa799c0-8c1a-46a7-92af-f29663e556a5
+Workflow ID       : 3bef1a04-c939-4063-ad69-4ab77256653f
+Terminal Status   : COMPLETED
+Duration          : 79.81s
+Prompt Tokens     : 1,536
+Completion Tokens : 3,371
+Total Tokens      : 4,907
+Incurred Cost     : $0.037551 USD
+Findings Ingested : 1
+WSTG Plan Summary : Planned=0, Passed=0, Failed=0, N/A=0
+Agent Progression:
+  * AGT-01   Project Planning Agent              | Status: COMPLETED  | Tokens:   903 | Cost: $0.008085
+  * AGT-03   Reconnaissance & Surface Mapping Agent | Status: COMPLETED  | Tokens:   246 | Cost: $0.001560
+  * AGT-05   WSTG Assessment Agent               | Status: COMPLETED  | Tokens:   897 | Cost: $0.008153
+  * AGT-09   Vulnerability Detection Agent       | Status: COMPLETED  | Tokens:   522 | Cost: $0.004530
+  * AGT-07   Authorization Testing Agent         | Status: COMPLETED  | Tokens:   266 | Cost: $0.001917
+  * AGT-11   Vulnerability Validation & Quality Control Agent | Status: COMPLETED  | Tokens:   902 | Cost: $0.002968
+  * AGT-15   PTES Reporting Agent                | Status: COMPLETED  | Tokens:  1171 | Cost: $0.010338
+
+--- RUN 3 DETAILS ---
+Project ID        : e41bf14c-2976-4701-8e2f-2b243ee9620e
+Workflow ID       : 8aa85c84-0753-4be6-8ea6-a9a9e0f6b7de
+Terminal Status   : COMPLETED
+Duration          : 88.36s
+Prompt Tokens     : 1,541
+Completion Tokens : 3,919
+Total Tokens      : 5,460
+Incurred Cost     : $0.043045 USD
+Findings Ingested : 1
+WSTG Plan Summary : Planned=0, Passed=0, Failed=0, N/A=0
+Agent Progression:
+  * AGT-01   Project Planning Agent              | Status: COMPLETED  | Tokens:   880 | Cost: $0.007848
+  * AGT-03   Reconnaissance & Surface Mapping Agent | Status: COMPLETED  | Tokens:   261 | Cost: $0.001703
+  * AGT-05   WSTG Assessment Agent               | Status: COMPLETED  | Tokens:  1250 | Cost: $0.011675
+  * AGT-09   Vulnerability Detection Agent       | Status: COMPLETED  | Tokens:   586 | Cost: $0.005170
+  * AGT-07   Authorization Testing Agent         | Status: COMPLETED  | Tokens:   339 | Cost: $0.002648
+  * AGT-11   Vulnerability Validation & Quality Control Agent | Status: COMPLETED  | Tokens:   869 | Cost: $0.002638
+  * AGT-15   PTES Reporting Agent                | Status: COMPLETED  | Tokens:  1275 | Cost: $0.011363
+
+======================================================================
+STATISTICAL CROSS-RUN VARIANCE & REPRODUCIBILITY
+======================================================================
+Duration (seconds)   : Mean = 86.17s | StdDev = 5.60s | Coeff of Variation = 6.5%
+Token Consumption    : Mean = 5221.0 | StdDev = 284.0 | Coeff of Variation = 5.4%
+Total Cost ($ USD)   : Run 1 = $0.041404 | Run 2 = $0.037551 | Run 3 = $0.043045
+Findings Consistency : Run 1 = 1 | Run 2 = 1 | Run 3 = 1

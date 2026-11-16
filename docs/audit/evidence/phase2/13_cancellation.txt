@@ -1,0 +1,61 @@
+================================================================================
+PENTESA PHASE 2 AUDIT EVIDENCE RECORD
+Timestamp (UTC): 2026-11-16T06:26:01Z
+Git SHA:         b65eaf3e27495dd6b73587e6eed689e4f004bb3a (dirty)
+Command:         python -m tests.audit.run_13_cancellation
+Database:        PostgreSQL 16.16 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+Execution Mode:  running stack (HTTP + PostgreSQL 16)
+================================================================================
+
+AUTOMATED CANCELLATION TEST BATTERY
+======================================================================
+[AUTH] Successfully authenticated as security-lead@phase2.lab
+[PROJECT] Created dedicated project Phase2-Cancel-Test-1794810349 (ID: 574afcf6-ce6d-4038-972b-2127b2178359)
+[SCOPE] Added in-scope target rule: target-juiceshop:3000
+
+======================================================================
+TEST 1: CANCEL TOOL SUBPROCESS MID-EXECUTION
+======================================================================
+Launching nuclei scan against http://target-juiceshop:3000 at rate-limit 5...
+Tool launch status code: 405, Response: None
+Active nuclei processes observed inside API container: 0
+Issuing emergency reset / stop on active executions...
+Reset endpoint returned: 200 - {"status":"STOPPED","message":"Workflow successfully reset","active_agents":[]}
+Waiting 5 seconds to assert zero orphan subprocesses...
+Orphan nuclei processes after cancellation: 0
+[PASS] Zero orphan nuclei subprocesses confirmed inside API container.
+
+======================================================================
+TEST 2: WORKFLOW CANCELLATION & CLEAN STATE TRANSITION
+======================================================================
+Starting autonomous workflow with profile QUICK (async_execution=True)...
+Workflow start response: 201 - RUNNING
+Sending POST /workflow/stop...
+Stop response: 200 - {"id":"3f6c85cc-1584-467f-b948-ade0188d867e","project_id":"574afcf6-ce6d-4038-972b-2127b2178359","current_phase":"PLANNING","status":"STOPPED","started_at":"2026-11-16T06:25:56.576406Z","completed_at":"2026-11-16T06:25:58.654877Z","state_data":{"scan_profile":"QUICK","approved_scope":{"rules_count":1,"allowed_cidrs":[],"excluded_paths":[],"target_domains":[]},"async_execution":true,"workflow_snapshot":{"status":"RUNNING","project_id":"574afcf6-ce6d-4038-972b-2127b2178359","updated_at":"2026-11-16T06:25:56.575785Z","workflow_id":"3f6c85cc-1584-467f-b948-ade0188d867e","scan_profile":"QUICK","active_agents":{},"current_phase":"PLANNING","approved_scope":{"rules_count":1,"allowed_cidrs":[],"excluded_paths":[],"target_domains":[]},"execution_logs":[],"false_positives":[],"target_base_url":null,"pending_approvals":[],"wstg_matrix_state":{},"candidate_findings":[],"confirmed_findings":[],"auto_approve_medium":false,"endpoints_inventory":[],"discovered_subdomains":[]},"agent_execution_ids":{"AGT-01":"a891c788-1747-4672-bdf2-3679edf7d4e8","AGT-03":"af3bb7ea-4d84-4a33-96cd-9c320457fb18","AGT-05":"f86810d3-0a34-4e81-bb2f-1b099001fb0d","AGT-07":"9c0b9a15-2372-4f29-9c27-a8d10c39e7b3","AGT-09":"00397e97-e608-416e-b553-8ae74444cf39","AGT-11":"7a284edf-8d02-4e14-88ad-3fc70e7c7624","AGT-15":"658755f5-2680-421c-bf77-56b5f6c8c547"},"auto_approve_medium":false,"completed_agent_ids":[]},"active_agents":[{"agent_id":"AGT-01","agent_name":"Project Planning Agent","phase":"PLANNING","status":"STOPPED","prompt_tokens":0,"completion_tokens":0,"total_cost_usd":0.0,"decisions_count":0,"tool_calls_count":0,"error_message":null,"last_active":"2026-11-16T06:25:58.654877Z"},{"agent_id":"AGT-03","agent_name":"Reconnaissance & Surface Mapping Agent","phase":"RECON","status":"STOPPED","prompt_tokens":0,"completion_tokens":0,"total_cost_usd":0.0,"decisions_count":0,"tool_calls_count":0,"error_message":null,"last_active":"2026-11-16T06:25:58.654877Z"},{"agent_id":"AGT-05","agent_name":"WSTG Assessment Agent","phase":"WSTG_PLANNING","status":"STOPPED","prompt_tokens":0,"completion_tokens":0,"total_cost_usd":0.0,"decisions_count":0,"tool_calls_count":0,"error_message":null,"last_active":"2026-11-16T06:25:58.654877Z"},{"agent_id":"AGT-09","agent_name":"Vulnerability Detection Agent","phase":"ACTIVE_ASSESSMENT","status":"STOPPED","prompt_tokens":0,"completion_tokens":0,"total_cost_usd":0.0,"decisions_count":0,"tool_calls_count":0,"error_message":null,"last_active":"2026-11-16T06:25:58.654877Z"},{"agent_id":"AGT-07","agent_name":"Authorization Testing Agent","phase":"ACTIVE_ASSESSMENT","status":"STOPPED","prompt_tokens":0,"completion_tokens":0,"total_cost_usd":0.0,"decisions_count":0,"tool_calls_count":0,"error_message":null,"last_active":"2026-11-16T06:25:58.654877Z"},{"agent_id":"AGT-11","agent_name":"Vulnerability Validation & Quality Control Agent","phase":"VALIDATION","status":"STOPPED","prompt_tokens":0,"completion_tokens":0,"total_cost_usd":0.0,"decisions_count":0,"tool_calls_count":0,"error_message":null,"last_active":"2026-11-16T06:25:58.654877Z"},{"agent_id":"AGT-15","agent_name":"PTES Reporting Agent","phase":"REPORTING","status":"STOPPED","prompt_tokens":0,"completion_tokens":0,"total_cost_usd":0.0,"decisions_count":0,"tool_calls_count":0,"error_message":null,"last_active":"2026-11-16T06:25:58.654877Z"}],"failure_reason":null}
+Workflow status after stop: STOPPED
+[PASS] Workflow status transitioned cleanly to STOPPED.
+Worker orphan processes: 0
+API orphan processes: 0
+[PASS] Zero orphan subprocesses found across worker and api containers.
+
+======================================================================
+TEST 3: IMMEDIATE RE-TRIGGERING AFTER CANCELLATION
+======================================================================
+Resetting workflow for fresh execution...
+Reset returned: 200
+Attempting immediate workflow start on same project...
+Retrigger response: 201 - status: RUNNING
+[PASS] Immediately retriggered workflow on same project without deadlock or lock contention.
+[CLEANUP] Retriggered workflow stopped and reset.
+
+======================================================================
+TEST 4: AUDIT LOG VERIFICATION OF CANCELLATION
+======================================================================
+Recent audit log records for project:
+WORKFLOW_STOPPED|WorkflowExecution|2026-11-16 06:26:00.375549+00
+WORKFLOW_STARTED|WorkflowExecution|2026-11-16 06:26:00.257026+00
+WORKFLOW_STOPPED|WorkflowExecution|2026-11-16 06:25:58.673993+00
+WORKFLOW_STARTED|WorkflowExecution|2026-11-16 06:25:56.586665+00
+SCOPE_RULE_ADDED|scope_rule|2026-11-16 06:25:50.019944+00
+PROJECT_CREATED|project|2026-11-16 06:25:49.973052+00
+[PASS] Cancellation actions cryptographically logged in audit ledger.

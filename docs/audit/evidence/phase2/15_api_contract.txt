@@ -1,0 +1,103 @@
+================================================================================
+PENTESA PHASE 2 AUDIT EVIDENCE RECORD
+Timestamp (UTC): 2026-11-16T06:11:43Z
+Git SHA:         b65eaf3e27495dd6b73587e6eed689e4f004bb3a (dirty)
+Command:         python -m tests.audit.run_15_api_contract
+Database:        PostgreSQL 16.16 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+Execution Mode:  running stack (HTTP + PostgreSQL 16)
+================================================================================
+
+API CONTRACT SPECIFICATION AUDIT & SCHEMA DIFF
+======================================================================
+[OK] Fetched OpenAPI schema from running API: title='Pentesa Security Operations API', version='0.1.0'
+Total OpenAPI Endpoints Implemented: 76
+Total Documented Endpoints in docs\11-api-specification.md: 78
+Total Frontend API Route References Found: 21
+
+======================================================================
+SECTION 1: SPECIFICATION CONFORMANCE (DOCS vs RUNNING OPENAPI)
+======================================================================
+Specification Matching Endpoints: 45 / 78 (57.7%)
+
+Documented Endpoints Not Found in Running OpenAPI (33):
+  - [SPEC-UNIMPLEMENTED] DELETE /api/v1/findings/{finding_id}
+  - [SPEC-UNIMPLEMENTED] DELETE /api/v1/projects/{project_id}/scans/schedules/{schedule_id}
+  - [SPEC-UNIMPLEMENTED] DELETE /api/v1/projects/{project_id}/scope/exclusions/{exclusion_id}
+  - [SPEC-UNIMPLEMENTED] DELETE /api/v1/projects/{project_id}/scope/targets/{target_id}
+  - [SPEC-UNIMPLEMENTED] GET    /api/v1/audit/system
+  - [SPEC-UNIMPLEMENTED] GET    /api/v1/findings/{finding_id}
+  - [SPEC-UNIMPLEMENTED] GET    /api/v1/findings/{finding_id}/evidence
+  - [SPEC-UNIMPLEMENTED] GET    /api/v1/findings/{finding_id}/evidence/screenshot
+  - [SPEC-UNIMPLEMENTED] GET    /api/v1/projects/{project_id}/audit
+  - [SPEC-UNIMPLEMENTED] GET    /api/v1/projects/{project_id}/auth-profiles/{profile_id}
+  - [SPEC-UNIMPLEMENTED] GET    /api/v1/projects/{project_id}/callbacks
+  - [SPEC-UNIMPLEMENTED] GET    /api/v1/projects/{project_id}/discovery/status
+  - [SPEC-UNIMPLEMENTED] GET    /api/v1/projects/{project_id}/false-positives
+  - [SPEC-UNIMPLEMENTED] GET    /api/v1/projects/{project_id}/scans/jobs
+  - [SPEC-UNIMPLEMENTED] GET    /api/v1/projects/{project_id}/scans/schedules
+  - [SPEC-UNIMPLEMENTED] GET    /api/v1/projects/{project_id}/scope/exclusions
+  - [SPEC-UNIMPLEMENTED] GET    /api/v1/projects/{project_id}/scope/history
+  - [SPEC-UNIMPLEMENTED] GET    /api/v1/projects/{project_id}/scope/targets
+  - [SPEC-UNIMPLEMENTED] PATCH  /api/v1/findings/{finding_id}
+  - [SPEC-UNIMPLEMENTED] PATCH  /api/v1/projects/{project_id}
+  - [SPEC-UNIMPLEMENTED] POST   /api/v1/auth/logout
+  - [SPEC-UNIMPLEMENTED] POST   /api/v1/findings/{finding_id}/false-positive
+  - [SPEC-UNIMPLEMENTED] POST   /api/v1/findings/{finding_id}/retest
+  - [SPEC-UNIMPLEMENTED] POST   /api/v1/findings/{finding_id}/validate
+  - [SPEC-UNIMPLEMENTED] POST   /api/v1/projects/{project_id}/archive
+  - [SPEC-UNIMPLEMENTED] POST   /api/v1/projects/{project_id}/audit/export
+  - [SPEC-UNIMPLEMENTED] POST   /api/v1/projects/{project_id}/discovery/start
+  - [SPEC-UNIMPLEMENTED] POST   /api/v1/projects/{project_id}/scans/schedules
+  - [SPEC-UNIMPLEMENTED] POST   /api/v1/projects/{project_id}/scope/exclusions
+  - [SPEC-UNIMPLEMENTED] POST   /api/v1/projects/{project_id}/scope/targets
+  - [SPEC-UNIMPLEMENTED] POST   /api/v1/projects/{project_id}/scope/validate
+  - [SPEC-UNIMPLEMENTED] POST   /api/v1/scans/jobs/{job_id}/cancel
+  - [SPEC-UNIMPLEMENTED] PUT    /api/v1/projects/{project_id}/auth-profiles/{profile_id}
+
+Running OpenAPI Endpoints Not Documented in Specification (31):
+  - [SHADOW-API / EXTENSION] DELETE /api/v1/projects/{project_id}/endpoints/{endpoint_id}
+  - [SHADOW-API / EXTENSION] DELETE /api/v1/projects/{project_id}/scope/{rule_id}
+  - [SHADOW-API / EXTENSION] GET    /api/v1/audit-logs
+  - [SHADOW-API / EXTENSION] GET    /api/v1/audit-logs/verify
+  - [SHADOW-API / EXTENSION] GET    /api/v1/projects/{project_id}/agents/approvals
+  - [SHADOW-API / EXTENSION] GET    /api/v1/projects/{project_id}/agents/tool-calls
+  - [SHADOW-API / EXTENSION] GET    /api/v1/projects/{project_id}/attack-surface/graph
+  - [SHADOW-API / EXTENSION] GET    /api/v1/projects/{project_id}/endpoints/{endpoint_id}
+  - [SHADOW-API / EXTENSION] GET    /api/v1/projects/{project_id}/findings/deduplicate
+  - [SHADOW-API / EXTENSION] GET    /api/v1/projects/{project_id}/findings/{finding_id}
+  - [SHADOW-API / EXTENSION] GET    /api/v1/projects/{project_id}/findings/{finding_id}/evidence
+  - [SHADOW-API / EXTENSION] GET    /api/v1/projects/{project_id}/scope
+  - [SHADOW-API / EXTENSION] GET    /api/v1/users
+  - [SHADOW-API / EXTENSION] GET    /api/v1/users/{user_id}
+  - [SHADOW-API / EXTENSION] GET    /healthz
+  - [SHADOW-API / EXTENSION] GET    /readyz
+  - [SHADOW-API / EXTENSION] PATCH  /api/v1/projects/{project_id}/findings/{finding_id}/status
+  - [SHADOW-API / EXTENSION] POST   /api/v1/projects/{project_id}/agents/workflow/reset
+  - [SHADOW-API / EXTENSION] POST   /api/v1/projects/{project_id}/discovery/crawl
+  - [SHADOW-API / EXTENSION] POST   /api/v1/projects/{project_id}/domains
+  - [SHADOW-API / EXTENSION] POST   /api/v1/projects/{project_id}/findings/{finding_id}/false-positive
+  - [SHADOW-API / EXTENSION] POST   /api/v1/projects/{project_id}/findings/{finding_id}/reproduce
+  - [SHADOW-API / EXTENSION] POST   /api/v1/projects/{project_id}/findings/{finding_id}/retest
+  - [SHADOW-API / EXTENSION] POST   /api/v1/projects/{project_id}/scope
+  - [SHADOW-API / EXTENSION] POST   /api/v1/projects/{project_id}/scope/check
+  - [SHADOW-API / EXTENSION] POST   /api/v1/projects/{project_id}/tools/http-test
+  - [SHADOW-API / EXTENSION] POST   /api/v1/reports/verify
+  - [SHADOW-API / EXTENSION] POST   /api/v1/users
+  - [SHADOW-API / EXTENSION] PUT    /api/v1/projects/{project_id}
+  - [SHADOW-API / EXTENSION] PUT    /api/v1/projects/{project_id}/endpoints/{endpoint_id}
+  - [SHADOW-API / EXTENSION] PUT    /api/v1/users/{user_id}
+
+======================================================================
+SECTION 2: FRONTEND CLIENT CONTRACT AUDIT (apps/web vs API)
+======================================================================
+Unique Frontend API Route Paths: 19
+
+Frontend Calls with Unmatched API Routes (0):
+  (None - all frontend calls map cleanly to implemented backend routes)
+
+======================================================================
+SECTION 3: STANDARD ENVELOPES & ERROR SCHEMAS
+======================================================================
+Total OpenAPI Data Models/Schemas: 76
+Error Envelope Schema Defined: True
+Security Schemes Configured: ['HTTPBearer']

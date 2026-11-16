@@ -1,5 +1,5 @@
 # Source: SecLists (Discovery/Web-Content/common.txt)
-# Pinned Commit: 8115582c0b62e49c864a2d8a55928a7e32f518e3
+# Pinned Commit: 0c618cfc28d1e68811b95c61cc9ab05bc10b0a02
 # License: MIT License (Copyright (c) Daniel Miessler)
 # Description: Curated non-intrusive common path discovery wordlist
 .env

@@ -1,0 +1,76 @@
+================================================================================
+PENTESA PHASE 2 AUDIT EVIDENCE RECORD
+Timestamp (UTC): 2026-11-16T06:07:50Z
+Git SHA:         b65eaf3e27495dd6b73587e6eed689e4f004bb3a (dirty)
+Command:         python -m tests.audit.run_12_ui_playwright
+Database:        PostgreSQL 16.16 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+Execution Mode:  running stack (HTTP + PostgreSQL 16)
+================================================================================
+
+
+--- STEP 1: LOGIN PAGE ---
+Navigated to /login. Title: 'Pentesa — Autonomous Penetration Testing Platform'
+Saved screenshot: docs\audit\evidence\phase2\ui_screenshots\01_login_page.png
+Submitted login form. Current URL: http://127.0.0.1:3000/projects
+
+--- STEP 2: PROJECTS DASHBOARD & SELECTION ---
+Saved screenshot: docs\audit\evidence\phase2\ui_screenshots\02_projects_dashboard.png
+Found engagement with findings. Opening engagement...
+Opened engagement. Current URL: http://127.0.0.1:3000/scope
+
+--- STEP 3: CONFIGURE SCOPE ---
+Navigated to /scope. Saved screenshot: docs\audit\evidence\phase2\ui_screenshots\04_scope_configuration.png
+
+--- STEP 4: ATTACK SURFACE DISCOVERY ---
+Navigated to /discovery. Saved screenshot: docs\audit\evidence\phase2\ui_screenshots\05_attack_surface_discovery.png
+
+--- STEP 5: WSTG COVERAGE MATRIX ---
+Navigated to /wstg. Saved screenshot: docs\audit\evidence\phase2\ui_screenshots\06_wstg_coverage_matrix.png
+
+--- STEP 6: MULTI-AGENT WORKFLOW LIVE MONITOR ---
+Navigated to /agents. Saved screenshot: docs\audit\evidence\phase2\ui_screenshots\07_agent_live_monitor.png
+
+--- STEP 7: FINDINGS INVENTORY, FALSE POSITIVE & RETEST ---
+Navigated to /findings. Saved screenshot: docs\audit\evidence\phase2\ui_screenshots\08_findings_inventory.png
+No finding cards found on page (empty findings list).
+
+--- STEP 8: REPORTS CENTER & DOWNLOAD ---
+Navigated to /reports. Saved screenshot: docs\audit\evidence\phase2\ui_screenshots\10_reports_center.png
+
+--- STEP 9: AUDIT LOGS LEDGER ---
+Navigated to /audit-logs. Saved screenshot: docs\audit\evidence\phase2\ui_screenshots\11_audit_log_ledger.png
+
+======================================================================
+FULL ROUTING TABLE VERIFICATION
+======================================================================
+Route: /               | HTTP Status: 200 | Error Boundary: False | Skeleton/Loading Handled: True
+Route: /login          | HTTP Status: 200 | Error Boundary: False | Skeleton/Loading Handled: False
+Route: /projects       | HTTP Status: 200 | Error Boundary: False | Skeleton/Loading Handled: False
+Route: /scope          | HTTP Status: 200 | Error Boundary: False | Skeleton/Loading Handled: False
+Route: /discovery      | HTTP Status: 200 | Error Boundary: False | Skeleton/Loading Handled: False
+Route: /wstg           | HTTP Status: 200 | Error Boundary: False | Skeleton/Loading Handled: True
+Route: /agents         | HTTP Status: 200 | Error Boundary: False | Skeleton/Loading Handled: True
+Route: /findings       | HTTP Status: 200 | Error Boundary: False | Skeleton/Loading Handled: True
+Route: /reports        | HTTP Status: 200 | Error Boundary: False | Skeleton/Loading Handled: True
+Route: /audit-logs     | HTTP Status: 200 | Error Boundary: False | Skeleton/Loading Handled: False
+
+======================================================================
+PLAYWRIGHT DIAGNOSTIC LOG
+======================================================================
+Total Console Warnings/Errors: 18
+  [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found)
+  [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found)
+  [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found)
+  [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found)
+  [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found)
+  [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found)
+  [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found)
+  [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found)
+  [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found)
+  [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found)
+  [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found)
+  [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found)
+  [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found)
+  [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found)
+  [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found)
+Total Failed Network Requests: 0

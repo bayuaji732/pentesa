@@ -80,6 +80,17 @@ class LLMGatewayError(PentesaError, RuntimeError):
         self.status_code = status_code
 
 
+class LLMBudgetExceededError(PentesaError, RuntimeError):
+    """Raised when LLM usage exceeds the configured spend cap ($10.00 / 300k tokens)."""
+
+    def __init__(
+        self,
+        message: str = "LLM budget limit exceeded ($10.00 / 300,000 tokens cap).",
+        details: Optional[Dict[str, Any]] = None
+    ):
+        super().__init__(message, details)
+
+
 # Aliases for naming compatibility
 BadRequestException = BadRequestError
 NotFoundException = ResourceNotFoundError

@@ -1,0 +1,53 @@
+================================================================================
+PENTESA PHASE 2 AUDIT EVIDENCE RECORD
+Timestamp (UTC): 2026-11-16T06:15:27Z
+Git SHA:         b65eaf3e27495dd6b73587e6eed689e4f004bb3a (dirty)
+Command:         python -m tests.audit.run_16_dead_code
+Database:        PostgreSQL 16.16 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+Execution Mode:  running stack (HTTP + PostgreSQL 16)
+================================================================================
+
+DEAD CODE, UNIMPLEMENTED STUBS & PLACEHOLDER AUDIT
+======================================================================
+Total Codebase Hits Scanned: 44
+
+Breakdown by Pattern Type:
+  - MOCK_ENDPOINT     :   12
+  - PASS_STUB         :   32
+
+Breakdown by Audit Severity Classification:
+  - P1 (Critical / Functional Hole)       :    1
+  - P2 (Operational Robustness Gap)       :    0
+  - P3 (Harmless Cleanup / Technical Debt):   43
+
+======================================================================
+P1 FINDINGS: FUNCTIONAL HOLES & PRODUCTION STUBS
+======================================================================
+[MOCK_ENDPOINT] apps\api\routers\agents.py:109
+  Snippet : # AGT-MOCK-01: Proactively validate LLM provider configuration
+  Category: Functional Hole (Mock / Stub Endpoint in Production API)
+
+======================================================================
+P2 FINDINGS: OPERATIONAL ROBUSTNESS GAPS
+======================================================================
+  (None)
+
+======================================================================
+P3 FINDINGS: SAMPLE HARMLESS TECHNICAL DEBT / CLEANUP
+======================================================================
+Total P3 technical debt comments: 43
+  - apps\api\main.py:87 -> # 3. Fail-closed LLM provider validation (AGT-MOCK-01)
+  - apps\api\main.py:89 -> if llm_prov == "mock" and env != "test":
+  - apps\api\main.py:91 -> f"CRITICAL SECURITY CONFIGURATION ERROR: PENTESA_LLM_PROVIDER='mock' is str
+  - services\discovery_engine\crawler.py:351 -> pass
+  - services\discovery_engine\crawler.py:398 -> pass
+  - services\discovery_engine\crawler.py:449 -> pass
+  - services\discovery_engine\crawler.py:464 -> pass
+  - services\discovery_engine\extractor.py:82 -> pass
+  - services\discovery_engine\extractor.py:259 -> pass
+  - services\evidence_engine\finding_service.py:126 -> pass
+  - services\evidence_engine\finding_service.py:444 -> # AGT-MOCK-01: Auto-tag findings created under simulation or mock detection
+  - services\evidence_engine\finding_service.py:446 -> is_mock_active = (getattr(settings, "llm_provider", "") or "").lower() == "
+  - services\evidence_engine\finding_service.py:450 -> or (is_mock_active and (payload.detection_source or "").lower() in ("mock",
+  - services\execution_engine\planner.py:342 -> pass
+  - services\execution_engine\runners.py:172 -> pass

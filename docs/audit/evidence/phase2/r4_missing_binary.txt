@@ -1,0 +1,69 @@
+================================================================================
+PENTESA PHASE 2 AUDIT EVIDENCE RECORD
+Timestamp (UTC): 2026-11-16T04:28:15Z
+Git SHA:         220dd9811d97b875b0157785fc557534efefe018 (dirty)
+Command:         python -m tests.audit.run_r4_real_stack
+Database:        PostgreSQL 16.16 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+Execution Mode:  running stack (HTTP + PostgreSQL 16)
+================================================================================
+
+[AUTH] Logged in as security-lead@phase2.lab
+[PROJECT] Created project ID: d5ab73e0-78f4-43b4-b02a-4023cb45a7db
+[SCOPE] Added in-scope rule for target-juiceshop:3000
+[WSTG] Initialized project WSTG instances
+
+============================================================
+PART A: MISSING NUCLEI BINARY TEST
+============================================================
+[DOCKER] Executed: mv /usr/local/bin/nuclei /usr/local/bin/nuclei.bak in pentesa-phase2-api
+HTTP Status Code: 503 (Expected: 503)
+Response Body:    {"detail":"Security tool binary 'nuclei' is not installed or available on the host system."}
+
+ToolExecution DB Record:
+id                  | tool_name |    status    |                                             stderr_summary                                              
+--------------------------------------+-----------+--------------+---------------------------------------------------------------------------------------------------------
+ 5be1c24b-75c8-4fbf-bfb1-3995a0248104 | nuclei    | NOT_EXECUTED | [ToolNotAvailableError] Security tool binary 'nuclei' is not installed or available on the host system.
+(1 row)
+
+AuditLog DB Record:
+action           | resource_type |                                                                                           details                                                                                           
+----------------------------+---------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ TOOL_EXECUTION_UNAVAILABLE | ToolExecution | {"error": "Security tool binary 'nuclei' is not installed or available on the host system.", "status": "NOT_EXECUTED", "tool_name": "nuclei", "target_url": "http://target-juiceshop:3000"}
+(1 row)
+
+WSTG Test Instances Marked 'Not Executed':
+wstg_id    |    status    |                                                notes                                                 
+--------------+--------------+------------------------------------------------------------------------------------------------------
+ WSTG-INPV-15 | Not Executed | Marked Not Executed: Security tool binary 'nuclei' is not installed or available on the host system.
+ WSTG-CONF-02 | Not Executed | Marked Not Executed: Security tool binary 'nuclei' is not installed or available on the host system.
+ WSTG-BUSL-08 | Not Executed | Marked Not Executed: Security tool binary 'nuclei' is not installed or available on the host system.
+ WSTG-ATHZ-01 | Not Executed | Marked Not Executed: Security tool binary 'nuclei' is not installed or available on the host system.
+ WSTG-CRYP-01 | Not Executed | Marked Not Executed: Security tool binary 'nuclei' is not installed or available on the host system.
+(5 rows)
+[DOCKER] Restored: mv /usr/local/bin/nuclei.bak /usr/local/bin/nuclei in pentesa-phase2-api
+
+============================================================
+PART B: MISSING FFUF BINARY TEST
+============================================================
+[DOCKER] Executed: mv /usr/local/bin/ffuf /usr/local/bin/ffuf.bak in pentesa-phase2-api
+HTTP Status Code: 503 (Expected: 503)
+Response Body:    {"detail":"Security tool binary 'ffuf' is not installed or available on the host system."}
+
+ToolExecution DB Record:
+id                  | tool_name |    status    |                                            stderr_summary                                             
+--------------------------------------+-----------+--------------+-------------------------------------------------------------------------------------------------------
+ 17630ea6-4148-4c04-a0cb-30944e73b6c5 | ffuf      | NOT_EXECUTED | [ToolNotAvailableError] Security tool binary 'ffuf' is not installed or available on the host system.
+(1 row)
+
+AuditLog DB Record:
+action           | resource_type |                                                                                           details                                                                                            
+----------------------------+---------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ TOOL_EXECUTION_UNAVAILABLE | ToolExecution | {"error": "Security tool binary 'ffuf' is not installed or available on the host system.", "status": "NOT_EXECUTED", "tool_name": "ffuf", "target_url": "http://target-juiceshop:3000/FUZZ"}
+(1 row)
+
+WSTG Test Instances Marked 'Not Executed' (ffuf):
+wstg_id    |    status    |                                               notes                                                
+--------------+--------------+----------------------------------------------------------------------------------------------------
+ WSTG-CONF-04 | Not Executed | Marked Not Executed: Security tool binary 'ffuf' is not installed or available on the host system.
+(1 row)
+[DOCKER] Restored: mv /usr/local/bin/ffuf.bak /usr/local/bin/ffuf in pentesa-phase2-api

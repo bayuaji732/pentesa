@@ -164,9 +164,11 @@ async def test_ffuf_positive_control_and_suppression(db_session: AsyncSession, t
     await db_session.refresh(test_project)
 
     service = ToolService(db_session)
+    quick_wl = "/opt/wordlists/common_paths.txt" if os.path.exists("/opt/wordlists/common_paths.txt") else os.path.abspath("integrations/ffuf/wordlists/common_paths.txt")
     req = ToolExecutionRequest(
         tool_name="ffuf",
         target_url=catchall_server,
+        wordlist=quick_wl,
         rate_limit=20,
         timeout_seconds=20
     )

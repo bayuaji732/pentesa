@@ -18,7 +18,8 @@ from database.models.agent import (
 )
 from database.models.project import Project
 from database.models.scope import ScopeRule
-from packages.common.exceptions import ScopeViolationError
+from packages.common.config import settings
+from packages.common.exceptions import LLMBudgetExceededError, ScopeViolationError
 from services.orchestrator.state import PentestWorkflowState
 from services.scope_engine.service import scope_service
 
@@ -86,6 +87,23 @@ class BaseAgent(abc.ABC):
         temperature: Optional[float] = None
     ) -> LLMResponse:
         """Invoke LLM provider and accumulate token & cost telemetry onto AgentExecution."""
+        # Platform-wide budget hard stop ($10.00 / 300k tokens)
+        model_name = (getattr(self.llm, "model", "") or getattr(self.llm, "model_name", "") or "").lower()
+        if settings.llm_budget_enforcement_enabled and self.session and "mock" not in model_name:
+            from sqlalchemy import func
+            stmt = select(
+                func.coalesce(func.sum(AgentExecution.total_cost_usd), 0.0),
+                func.coalesce(func.sum(AgentExecution.prompt_tokens + AgentExecution.completion_tokens), 0)
+            )
+            cost_res = await self.session.execute(stmt)
+            cum_cost, cum_tokens = cost_res.one()
+
+            if cum_cost >= settings.llm_max_budget_usd or cum_tokens >= settings.llm_max_tokens:
+                raise LLMBudgetExceededError(
+                    f"Platform LLM budget cap exceeded: spend=${cum_cost:.4f}/${settings.llm_max_budget_usd:.2f}, "
+                    f"tokens={cum_tokens}/{settings.llm_max_tokens}. Refusing further LLM generation."
+                )
+
         resp = await self.llm.generate(
             prompt=prompt,
             system_prompt=system_prompt if system_prompt is not None else self.system_prompt,

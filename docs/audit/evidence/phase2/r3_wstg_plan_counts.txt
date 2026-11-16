@@ -1,0 +1,70 @@
+================================================================================
+PENTESA PHASE 2 AUDIT EVIDENCE RECORD
+Timestamp (UTC): 2026-11-16T04:15:18Z
+Git SHA:         220dd9811d97b875b0157785fc557534efefe018 (dirty)
+Command:         python -m tests.audit.run_r3_real_stack
+Database:        PostgreSQL 16.16 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+Execution Mode:  running stack (HTTP + PostgreSQL 16)
+================================================================================
+
+[AUTH] Successfully logged in as security-lead@phase2.lab
+[PROJECT] Created project ID: f007239b-e64d-45b6-ae25-e892bd29c6d6
+[SCOPE] Added in-scope rule for target-juiceshop:3000
+
+--- ATTACK SURFACE CRAWL EXECUTION ---
+Crawl Status:               COMPLETED
+Total URLs Visited:         7
+Endpoints Discovered:       12
+Technologies Detected:      0
+Domains Discovered:         1
+
+--- DISCOVERED ENDPOINTS INVENTORY ---
+Total Discovered Endpoints in DB: 12
+  [01] GET target-juiceshop/styles.css (auth_req=False, status=Discovered)
+  [02] GET target-juiceshop/rolldown-runtime-kqx1xuJ_.js (auth_req=False, status=Discovered)
+  [03] GET target-juiceshop/chunk-CajNVifV.js (auth_req=False, status=Discovered)
+  [04] GET target-juiceshop/chunk-CE5v8pBj.js (auth_req=False, status=Discovered)
+  [05] GET target-juiceshop/chunk-3CyVWL1v.js (auth_req=False, status=Discovered)
+  [06] GET target-juiceshop/assets/public/favicon_js.ico (auth_req=False, status=Discovered)
+  [07] GET target-juiceshop/ipinfo.io (auth_req=False, status=Discovered)
+  [08] GET target-juiceshop/js.maxmind.com/js/apis/geoip2/v2.1/geoip2.js (auth_req=False, status=Discovered)
+  [09] GET target-juiceshop/engine.io (auth_req=False, status=Discovered)
+  [10] GET target-juiceshop/basket (auth_req=False, status=Discovered)
+  [11] GET target-juiceshop/ (auth_req=False, status=Discovered)
+  [12] GET target-juiceshop/ftp (auth_req=False, status=Discovered)
+
+--- WSTG TEST PLAN RECALCULATION ---
+Total Instances:            106
+Planned Count (Applicable): 38
+Not Applicable Count:       68
+Endpoints Analyzed:         12
+Summary:                    Recalculated test plan across 12 endpoint(s): 38 Planned, 68 Not Applicable, 0 Failed.
+
+--- EMPIRICAL MATHEMATICAL COVERAGE REPORT ---
+Total Catalog Tests:        106
+Planned Tests:              38
+Not Applicable Tests:       68
+Passed Tests:               0
+Failed Tests:               0
+Needs Review Tests:         0
+Running / Not Started:      0 / 0
+
+API overall_coverage_pct:   64.2%
+Formula Calculated Coverage: 64.2% (Formula: (0 + 0 + 0 + 68) / 106 * 100)
+API executed_coverage_pct:  0.0%
+Formula Executed Coverage:  0.0% (Formula: (0 + 0 + 0) / (106 - 68) * 100)
+API testing_health_score:   64.2%
+
+Category Breakdown:
+  WSTG-APIT   : Total=10, Planned= 0, N/A=10, Passed= 0, Failed= 0, Cov=100.0%, ExecCov=  0.0%
+  WSTG-ATHN   : Total=10, Planned= 2, N/A= 8, Passed= 0, Failed= 0, Cov= 80.0%, ExecCov=  0.0%
+  WSTG-ATHZ   : Total= 4, Planned= 1, N/A= 3, Passed= 0, Failed= 0, Cov= 75.0%, ExecCov=  0.0%
+  WSTG-BUSL   : Total= 9, Planned= 3, N/A= 6, Passed= 0, Failed= 0, Cov= 66.7%, ExecCov=  0.0%
+  WSTG-CLNT   : Total=13, Planned= 9, N/A= 4, Passed= 0, Failed= 0, Cov= 30.8%, ExecCov=  0.0%
+  WSTG-CONF   : Total=11, Planned= 7, N/A= 4, Passed= 0, Failed= 0, Cov= 36.4%, ExecCov=  0.0%
+  WSTG-CRYP   : Total= 4, Planned= 1, N/A= 3, Passed= 0, Failed= 0, Cov= 75.0%, ExecCov=  0.0%
+  WSTG-ERRH   : Total= 2, Planned= 2, N/A= 0, Passed= 0, Failed= 0, Cov=  0.0%, ExecCov=  0.0%
+  WSTG-IDNT   : Total= 5, Planned= 0, N/A= 5, Passed= 0, Failed= 0, Cov=100.0%, ExecCov=  0.0%
+  WSTG-INFO   : Total=10, Planned= 9, N/A= 1, Passed= 0, Failed= 0, Cov= 10.0%, ExecCov=  0.0%
+  WSTG-INPV   : Total=19, Planned= 3, N/A=16, Passed= 0, Failed= 0, Cov= 84.2%, ExecCov=  0.0%
+  WSTG-SESS   : Total= 9, Planned= 1, N/A= 8, Passed= 0, Failed= 0, Cov= 88.9%, ExecCov=  0.0%

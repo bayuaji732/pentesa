@@ -4,7 +4,7 @@ Transforms HTTP request attributes into fully executable, reproducible cURL comm
 """
 
 from typing import Dict, Optional
-from services.evidence_engine.redactor import mask_sensitive_headers
+from services.evidence_engine.redactor import mask_sensitive_headers, redact_raw_stream
 
 
 def escape_shell_arg(arg: str) -> str:
@@ -48,7 +48,8 @@ def generate_reproduction_curl(
 
     # Request Body
     if body and method_upper in {"POST", "PUT", "PATCH", "DELETE"}:
-        cmd_parts.append(f"--data-raw {escape_shell_arg(body)}")
+        clean_body = redact_raw_stream(body) if redact_auth else body
+        cmd_parts.append(f"--data-raw {escape_shell_arg(clean_body)}")
 
     return " \\\n  ".join(cmd_parts)
 

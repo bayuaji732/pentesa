@@ -477,7 +477,9 @@ class FindingService:
 
         # If raw request/response were supplied, attach authentic forensic evidence
         if payload.raw_request and payload.raw_response:
-            parsed_method, parsed_target, parsed_hdrs, parsed_body = _parse_raw_http_request(payload.raw_request)
+            sanitized_req = redact_raw_stream(payload.raw_request)
+            sanitized_resp = redact_raw_stream(payload.raw_response)
+            parsed_method, parsed_target, parsed_hdrs, parsed_body = _parse_raw_http_request(sanitized_req)
             resolved_url = ""
             if parsed_target.lower().startswith(("http://", "https://")):
                 resolved_url = parsed_target
@@ -492,8 +494,6 @@ class FindingService:
                     scheme = await self._resolve_scheme_for_host(project_id, ep_obj.fqdn)
                     resolved_url = f"{ep_origin or f'{scheme}://{ep_obj.fqdn}'}{ep_obj.url_path}"
 
-            sanitized_req = redact_raw_stream(payload.raw_request)
-            sanitized_resp = redact_raw_stream(payload.raw_response)
             method_for_curl = parsed_method or (ep_obj.http_method if ep_obj else "GET")
             repro_curl = payload.reproduction_curl or (
                 generate_reproduction_curl(

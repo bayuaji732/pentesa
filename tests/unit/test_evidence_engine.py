@@ -112,6 +112,19 @@ def test_generate_reproduction_curl():
     assert "sensitive_token_abc_xyz" not in curl_cmd
 
 
+def test_generate_reproduction_curl_redacts_body_secrets():
+    """Verify passwords and tokens in POST bodies are redacted in reproduction cURL commands."""
+    curl_cmd = generate_reproduction_curl(
+        method="POST",
+        url="https://api.target.com/v1/login",
+        headers={"Content-Type": "application/json"},
+        body='{"email": "admin@juice-sh.op", "password": "SuperSecretPassword123!"}',
+        redact_auth=True
+    )
+    assert "SuperSecretPassword123!" not in curl_cmd
+    assert "[REDACTED]" in curl_cmd
+
+
 def test_serialize_raw_http_wire_format():
     """Verify RFC 7230 request and response wire stream formatting."""
     req = serialize_raw_http_request(

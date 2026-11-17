@@ -1,3 +1,5 @@
+name: pentesa-prod
+
 services:
   # ---------------------------------------------------------------------------
   # 1. Pentesa Core API Backend
@@ -11,14 +13,14 @@ services:
     env_file:
       - .env.production
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
       - PENTESA_ENV=production
       - PENTESA_DEBUG=false
       - PENTESA_DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-pentesa_user}:${POSTGRES_PASSWORD:?}@db:5432/${POSTGRES_DB:-pentesa}
       - PENTESA_REDIS_URL=redis://redis:6379/0
-      - PENTESA_SECRET_KEY=${JWT_SECRET:?}
-      - PENTESA_ENCRYPTION_KEY=${PENTESA_ENCRYPTION_KEY:?}
+      - PENTESA_SECRET_KEY=${JWT_SECRET:-${PENTESA_SECRET_KEY:?}}
+      - PENTESA_ENCRYPTION_KEY=${PENTESA_ENCRYPTION_KEY:-${PENTESA_MASTER_KEY:?}}
       - PENTESA_LLM_PROVIDER=${PENTESA_LLM_PROVIDER:-litellm}
       - PENTESA_REPORT_STORAGE_DIR=/app/data/reports
       - PENTESA_EVIDENCE_STORAGE_DIR=/app/data/evidence
@@ -57,8 +59,8 @@ services:
       - PENTESA_DEBUG=false
       - PENTESA_DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-pentesa_user}:${POSTGRES_PASSWORD:?}@db:5432/${POSTGRES_DB:-pentesa}
       - PENTESA_REDIS_URL=redis://redis:6379/0
-      - PENTESA_SECRET_KEY=${JWT_SECRET:?}
-      - PENTESA_ENCRYPTION_KEY=${PENTESA_ENCRYPTION_KEY:?}
+      - PENTESA_SECRET_KEY=${JWT_SECRET:-${PENTESA_SECRET_KEY:?}}
+      - PENTESA_ENCRYPTION_KEY=${PENTESA_ENCRYPTION_KEY:-${PENTESA_MASTER_KEY:?}}
       - PENTESA_LLM_PROVIDER=${PENTESA_LLM_PROVIDER:-litellm}
       - PENTESA_REPORT_STORAGE_DIR=/app/data/reports
       - PENTESA_EVIDENCE_STORAGE_DIR=/app/data/evidence
@@ -90,7 +92,7 @@ services:
     container_name: pentesa-web
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     environment:
       - NODE_ENV=production
       - API_INTERNAL_URL=http://api:8000

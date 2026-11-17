@@ -33,6 +33,8 @@
 | **EVID-01** | **P1** | Process / Audit | `docs/audit/evidence/phase2/verification-round/` | Manual Hand-Editing of Machine-Captured Verification Evidence in efbcd1b | **Closed** | `7987286` (FIX-11) / S3 Script Headers |
 | **SEC-RED-02** | **P1** | Privacy / Leak | `services/evidence_engine/curl_generator.py`, `services/evidence_engine/finding_service.py` | Reproduction cURL Generator Leaks Plaintext Passwords in Request Body | **Closed** | `b65eaf3` (FIX-10) |
 | **EVID-02** | **P1** | Process / Audit | `docs/audit/evidence/phase2/r3_wstg_plan_counts.txt`, `phase2-summary.md` | Discrepancy Between Raw WSTG Coverage Machine Evidence and Summary Reports | **Closed** | Reconciled R3 raw counts (38 planned, 68 N/A, 0 failed) and corrected summary reports |
+| **SEC-LEAK-01** | **P0** | Secrets / Leak | `docker-compose.phase2.yml`, `docs/audit/evidence/phase2/r1_default_admin.txt` | Five Hardcoded Secrets (LiteLLM, DB, Encryption, JWT, Admin Pwd) Committed to Git | **Closed (Rotated & Retired)** | phase2.yml retired via git rm; LiteLLM key rotated upstream; secrets moved to gitignored .env.production |
+| **COMP-STALE-01** | **P3** | Infrastructure | `infrastructure/docker-compose.prod.yml` | Stale Duplicate Production Compose with Hardcoded Password and Container Collisions | Open (Quarantined) | Retained for reference; quarantined/never started; superseded by root docker-compose.yml |
 | **DISCO-SPA-01** | **P2** | Discovery | `services/discovery_engine/fingerprint.py` | Technology Fingerprinter Misses SPAs Lacking Server Headers | Open (Deferred) | Phase 9 (DOM Parsing Roadmap) |
 
 ---
@@ -120,5 +122,28 @@
   - Testing health score: 64.2%
   The claim in `phase2-summary.md` that 2 tests "failed" was erroneous because R3 only executed crawl and plan recalculation; 0 tests were executed during that run.
 - **Remediation:** Reconciled `phase2-summary.md` and `02-requirement-traceability.md` to reflect the authentic raw machine-captured numbers from `r3_wstg_plan_counts.txt`. Logged defect in master register as closed with evidence alignment confirmed.
+
+### 3.13 DEFECT-SEC-3 / P0 (SEC-LEAK-01): Five Hardcoded Secrets Committed to Git Repository
+- **Components:** `docker-compose.phase2.yml` (historical commits `a1af61f`, `5cede9b`, `fbb2e31`, `afad8b1`), `docs/audit/evidence/phase2/r1_default_admin.txt:216`
+- **Vulnerability Description:** The Phase 2 test compose file (`docker-compose.phase2.yml`) and historical Phase 2 execution logs committed five sensitive credentials and encryption keys into the repository:
+  1. **LiteLLM Gateway API Key:** `PENTESA_LITELLM_API_KEY=sk-mCQwNXf15qH4UyLxLVGAQA` (committed in `docker-compose.phase2.yml`).
+  2. **Database Password:** `POSTGRES_PASSWORD: Phase2_Secure_DB_Pass_2026!` (committed in `docker-compose.phase2.yml`).
+  3. **Master Vault Encryption Key:** `PENTESA_ENCRYPTION_KEY=phase2_master_vault_encryption_key_32b_hex!` (committed in `docker-compose.phase2.yml`).
+  4. **JWT Secret Signing Key:** `PENTESA_SECRET_KEY=Phase2_JWT_Secret_Key_32_Bytes_Long_Prod_Ready!` (committed in `docker-compose.phase2.yml`).
+  5. **Bootstrap Admin Password:** `PENTESA_BOOTSTRAP_ADMIN_PASSWORD=CyberSecOps_2026!Str0ng#Auth` (committed in `docker-compose.phase2.yml` and logged in raw HTTP payload capture `docs/audit/evidence/phase2/r1_default_admin.txt:216`).
+- **Remediation & Interim Action:**
+  1. `docker compose -f docker-compose.phase2.yml down` executed without `-v`, and `docker-compose.phase2.yml` was permanently removed from git tracking (`git rm -f docker-compose.phase2.yml` committed in `95eb1f5e`, preserved at tag `phase2-final`).
+  2. The upstream LiteLLM API key was rotated and the leaked key was confirmed revoked (returning HTTP 401).
+  3. New rotated credentials and encryption keys are strictly housed in gitignored `.env.production`.
+  4. Root `docker-compose.yml` strictly enforces mandatory environment variable interpolation (`${VAR:?}`) refusing execution if secrets are missing.
+  5. Raw evidence artifact `docs/audit/evidence/phase2/r1_default_admin.txt` is retained unedited per audit immutability standards; documented in this register.
+
+### 3.14 DEFECT-COMP-1 / P3 (COMP-STALE-01): Stale Duplicate Production Compose with Hardcoded Credentials
+- **Component:** `infrastructure/docker-compose.prod.yml`
+- **Defect Description:** The legacy compose file `infrastructure/docker-compose.prod.yml` represents an obsolete duplicate of the root `docker-compose.yml`. It retains static hardcoded credentials (`POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pentesa_password}`) which are rejected by production startup validation rules, and specifies container names (`pentesa-api`, `pentesa-worker`, `pentesa-web`) that collide directly with root `docker-compose.yml`.
+- **Remediation & Quarantine:**
+  1. Quarantined: The file must NEVER be started or used for deployments or benchmarks.
+  2. Root `docker-compose.yml` serves as the sole authoritative production definition.
+  3. Documentation references in `docs/22` and `docs/23` cataloged; file retained for historical tracking with top-level `name: pentesa-prod`.
 
 

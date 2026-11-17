@@ -1,3 +1,5 @@
+name: pentesa-test
+
 services:
   test-runner:
     build:

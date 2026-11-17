@@ -13,6 +13,8 @@
 # from contacting unauthorized hosts until the dedicated Layer-2 egress proxy (NI-03) is built in Phase 9.
 # ONLY targets defined in this file are authorized to be scanned.
 
+name: pentesa-bench
+
 services:
   # ============================================================================
   # TARGET 1: OWASP Juice Shop (Modern NodeJS / Express / Angular SPA)

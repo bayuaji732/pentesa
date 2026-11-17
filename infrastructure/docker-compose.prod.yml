@@ -1,3 +1,5 @@
+name: pentesa-prod
+
 services:
   # ---------------------------------------------------------------------------
   # 1. Pentesa Core API Backend

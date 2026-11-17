@@ -1,0 +1,91 @@
+================================================================================
+PENTESA BENCHMARK EVIDENCE CAPTURE
+Timestamp (UTC): 2026-11-17T05:25:47Z
+Git SHA: 95eb1f5e3556c6a8665bf122e310c035404a02f2
+Dirty Flag: true
+Exact Command: python benchmark/run_benchmark.py --dry-run && pytest tests/unit/test_baseline_adapter.py tests/unit/test_benchmark_scorer.py
+DB Version: PostgreSQL 16.2
+Execution Stack: Running Stack (Docker Compose)
+Host OS: Windows 11
+Ground Truth SHA-256: f4eb9ecc8420afb1d242738652c283097d494ab3291ee69d2e3438b43634f871
+Score.py SHA-256: 38e4f16145c0b78b936aa526f3eb19b900c70f9f24aed90ec88546ca16f68eb3
+Baseline Adapter SHA-256: bfeff5ef2f4c794597440cfbd9e837f73ce3089ba0436e185e551658246975ae
+Driver SHA-256: cfeef55ab5d9489c3e1876e7d5400335f0457390161bc6f9f39899966cb1bec5
+================================================================================
+
+[GATE B0-1: GROUND TRUTH FROZEN BLOB SHA-256]
+git show gt-frozen-3b:benchmark/ground_truth.yaml | sha256sum: f4eb9ecc8420afb1d242738652c283097d494ab3291ee69d2e3438b43634f871
+VERDICT: MATCH (f4eb9ecc8420afb1d242738652c283097d494ab3291ee69d2e3438b43634f871)
+
+[GATE B0-1: BENCHMARK DRIVER DRY-RUN EXECUTION]
+
+=== EXECUTING BENCHMARK PRE-FLIGHT DRY-RUN ===
+[1/5] Verifying Ground Truth Integrity...
+[+] Ground Truth SHA-256 matches frozen hash: f4eb9ecc8420afb1d242738652c283097d494ab3291ee69d2e3438b43634f871
+[2/5] Testing Allowlist & Scope Guard Logic...
+[+] Allowlist logic verified: 0 false positives, 100% prohibited hosts caught.
+[3/5] Testing SSRF Canary Classification...
+[+] Canary classification logic verified: expected SSRF, secure-case failure, and P0 scanner breach correctly separated.
+[4/5] Testing Cost Log Appending (Dry-Run Mode)...
+[+] Appended cost row for run DRY-RUN-001: $0.0015 (150 tokens), Cumulative: $0.0015 (0.0%)
+[5/5] Testing Scorer Invocation via Synthetic Fixture...
+[+] Scorer self-execution test PASSED.
+
+=== PRE-FLIGHT DRY-RUN COMPLETE: ALL GATES PASSED ===
+
+
+[GATE B0-1: SCORER & ADAPTER UNIT TEST BATTERY]
+============================= test session starts =============================
+platform win32 -- Python 3.12.13, pytest-9.2.0, pluggy-1.7.0 -- C:\Users\User2\Documents\work\pentesa\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\User2\Documents\work\pentesa
+configfile: pyproject.toml
+plugins: anyio-4.16.0, asyncio-1.4.1.post1, cov-7.1.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collecting ... collected 24 items
+
+tests/unit/test_baseline_adapter.py::test_extract_parameter_from_url_or_request PASSED [  4%]
+tests/unit/test_baseline_adapter.py::test_extract_method_from_request PASSED [  8%]
+tests/unit/test_baseline_adapter.py::test_adapt_nuclei_findings PASSED   [ 12%]
+tests/unit/test_baseline_adapter.py::test_adapt_ffuf_findings PASSED     [ 16%]
+tests/unit/test_baseline_adapter.py::test_adapt_combined_baseline PASSED [ 20%]
+tests/unit/test_benchmark_scorer.py::test_normalize_endpoint PASSED      [ 25%]
+tests/unit/test_benchmark_scorer.py::test_normalize_method PASSED        [ 29%]
+tests/unit/test_benchmark_scorer.py::test_normalize_parameter PASSED     [ 33%]
+tests/unit/test_benchmark_scorer.py::test_extract_cwe_id PASSED          [ 37%]
+tests/unit/test_benchmark_scorer.py::test_extract_wstg_category PASSED   [ 41%]
+tests/unit/test_benchmark_scorer.py::test_evaluate_evidence_completeness_perfect PASSED [ 45%]
+tests/unit/test_benchmark_scorer.py::test_evaluate_evidence_completeness_missing_fields PASSED [ 50%]
+tests/unit/test_benchmark_scorer.py::test_finding_matches_ground_truth_exact PASSED [ 54%]
+tests/unit/test_benchmark_scorer.py::test_finding_matches_ground_truth_dynamic_path PASSED [ 58%]
+tests/unit/test_benchmark_scorer.py::test_finding_matches_ground_truth_mismatches PASSED [ 62%]
+tests/unit/test_benchmark_scorer.py::test_scorer_tp_detection_math PASSED [ 66%]
+tests/unit/test_benchmark_scorer.py::test_scorer_strict_vs_adjudicated_precision PASSED [ 70%]
+tests/unit/test_benchmark_scorer.py::test_scorer_unlisted_adjudicated_true_positive PASSED [ 75%]
+tests/unit/test_benchmark_scorer.py::test_scorer_authoritative_bench_app_precision PASSED [ 79%]
+tests/unit/test_benchmark_scorer.py::test_category_equivalence_sqli_at_login PASSED [ 83%]
+tests/unit/test_benchmark_scorer.py::test_scorer_zero_findings PASSED    [ 87%]
+tests/unit/test_benchmark_scorer.py::test_scorer_suppressed_and_refuted_findings PASSED [ 91%]
+tests/unit/test_benchmark_scorer.py::test_scorer_wstg_coverage_formula_executed_over_applicable PASSED [ 95%]
+tests/unit/test_benchmark_scorer.py::test_scorer_cli_execution PASSED    [100%]
+
+============================= 24 passed in 0.67s ==============================
+
+
+[GATE B0-1 & B0-2: IMMUTABLE AUDIT GIT TAGS]
+gt-frozen-3b
+scorer-frozen-3b
+phase2-final
+
+[GATE B0-2: COMPOSE HYGIENE CONFIG VALIDATION]
+Validating docker-compose.yml with .env.production...
+docker-compose.yml exit code: 0
+Validating benchmark/docker-compose.bench.yml...
+docker-compose.bench.yml exit code: 0
+
+[GATE B0-3: SECRETS AUDIT IN EVIDENCE]
+git grep -n 'sk-' -- docs/audit/evidence:
+docs/audit/evidence/phase2/2A-addendum.md:37:This addendum concludes the comprehensive **Phase 2 Part 2A Fix-and-Close and Verification Round** for the Pentesa automated security testing platform. During this session, the audit team corrected the historical evaluation record, investigated all outstanding Step 1 scope and tooling items, implemented and empirically verified fixes **FIX-01 through FIX-09** across dedicated git commits, updated the requirement traceability matrix ([`02-requirement-traceability.md`](../../02-requirement-traceability.md)), defect register ([`03-defect-register.md`](../../03-defect-register.md)), and risk matrix ([`04-risk-matrix.md`](../../04-risk-matrix.md)), and executed a comprehensive regression battery on PostgreSQL 16 with zero outbound internet access.
+docs/audit/evidence/phase2/2A-addendum.md:329:4. Requirement traceability matrix ([`02-requirement-traceability.md`](../../02-requirement-traceability.md)), defect register ([`03-defect-register.md`](../../03-defect-register.md)), and risk matrix ([`04-risk-matrix.md`](../../04-risk-matrix.md)) updated.
+
+AUDIT VERDICT: Zero API keys present in evidence files (only token risk-matrix.md matched).

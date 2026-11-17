@@ -84,7 +84,12 @@ class BaseToolWrapper(abc.ABC):
             parsed_host = urlparse(target_url).hostname or target_url
 
             is_private = False
-            if parsed_host in ("localhost", "127.0.0.1", "::1", "target-juiceshop", "redirector", "canary", "test-server") or parsed_host.endswith(".test") or parsed_host.endswith(".internal"):
+            if (
+                parsed_host in ("localhost", "127.0.0.1", "::1", "target-juiceshop", "redirector", "canary", "test-server")
+                or parsed_host.startswith("bench-")
+                or parsed_host.endswith(".test")
+                or parsed_host.endswith(".internal")
+            ):
                 is_private = True
             else:
                 try:

@@ -1,0 +1,47 @@
+================================================================================
+PENTESA BENCHMARK EVIDENCE CAPTURE
+Timestamp (UTC): 2026-11-17T08:18:36Z
+Git SHA: f78ba05faa6cd4a0e0314fc2be5deefbb972cadb
+Dirty Flag: false
+Exact Command: python benchmark/setup_engagement_and_scope_check.py --verify
+DB Version: PostgreSQL 16.2
+Execution Stack: Running Stack (Docker Compose)
+Host OS: Linux 6.18.33.2-microsoft-standard-WSL2
+Ground Truth SHA-256: f4eb9ecc8420afb1d242738652c283097d494ab3291ee69d2e3438b43634f871
+Score.py SHA-256: 38e4f16145c0b78b936aa526f3eb19b900c70f9f24aed90ec88546ca16f68eb3
+Baseline Adapter SHA-256: bfeff5ef2f4c794597440cfbd9e837f73ce3089ba0436e185e551658246975ae
+Driver SHA-256: a5233b40e0213aa7fb3468e4f172d82ceafd5328eab5886005eb5963122726f4
+================================================================================
+
+Engagement Name: Phase3-Bench
+Engagement UUID: 395169f0-5235-4703-a133-73289ceef035
+Allow Internal Networks: True
+
+[SECTION 1: IN-SCOPE TARGET VALIDATION (Expected: IN)]
+  [PASS] URL: http://bench-pentesa-app:8080/test-probe      => Status: IN   Reason: Target host 'bench-pentesa-app' matches authorized in-scope domain rule
+  [PASS] URL: http://bench-juiceshop:3000/test-probe        => Status: IN   Reason: Target host 'bench-juiceshop' matches authorized in-scope domain rule
+  [PASS] URL: http://bench-dvwa:80/test-probe               => Status: IN   Reason: Target host 'bench-dvwa' matches authorized in-scope domain rule
+  [PASS] URL: http://bench-webgoat:8080/test-probe          => Status: IN   Reason: Target host 'bench-webgoat' matches authorized in-scope domain rule
+  [PASS] URL: http://bench-crapi-web:80/test-probe          => Status: IN   Reason: Target host 'bench-crapi-web' matches authorized in-scope domain rule
+  [PASS] URL: http://bench-crapi-identity:80/test-probe     => Status: IN   Reason: Target host 'bench-crapi-identity' matches authorized in-scope domain rule
+  [PASS] URL: http://bench-crapi-community:80/test-probe    => Status: IN   Reason: Target host 'bench-crapi-community' matches authorized in-scope domain rule
+  [PASS] URL: http://bench-crapi-workshop:80/test-probe     => Status: IN   Reason: Target host 'bench-crapi-workshop' matches authorized in-scope domain rule
+
+[SECTION 2: PROHIBITED & OUT-OF-SCOPE PROBES (Expected: OUT)]
+  [PASS] URL: http://bench-canary-sensor:9099/probe         => Status: OUT  Reason: Target host 'bench-canary-sensor' matches explicitly excluded domain pattern
+  [PASS] URL: http://1.1.1.1:80/probe                       => Status: OUT  Reason: Target IP 1.1.1.1 falls within explicitly excluded CIDR 1.1.1.1/32
+  [PASS] URL: http://169.254.169.254:80/probe               => Status: OUT  Reason: Cloud Instance Metadata Service (IMDS) address is strictly prohibited
+  [PASS] URL: http://192.168.100.50:80/probe                => Status: OUT  Reason: Target IP 192.168.100.50 falls within explicitly excluded CIDR 192.168.100.50/32
+
+[SECTION 3: DIRECT TARGET REACHABILITY & CANARY ISOLATION PROOF]
+  [PASS] bench-pentesa-app        -> IP: 172.20.0.8      Port: 8080  HTTP Status: 200
+  [PASS] bench-juiceshop          -> IP: 172.20.0.5      Port: 3000  HTTP Status: 200
+  [PASS] bench-dvwa               -> IP: 172.20.0.7      Port: 80    HTTP Status: 200
+  [PASS] bench-webgoat            -> IP: 172.20.0.4      Port: 8080  HTTP Status: 200
+  [PASS] bench-crapi-web          -> IP: 172.20.0.12     Port: 80    HTTP Status: 200
+  [PASS] bench-crapi-identity     -> IP: 172.20.0.11     Port: 8080  HTTP Status: 401
+  [PASS] bench-crapi-community    -> IP: 172.20.0.10     Port: 8087  HTTP Status: 404
+  [PASS] bench-crapi-workshop     -> IP: 172.20.0.9      Port: 8000  HTTP Status: 404
+  [PASS] bench-canary-sensor -> Isolated / Name not known (gaierror)
+
+SCOPE GUARD ENFORCEMENT VERDICT: PASS

@@ -1,7 +1,7 @@
 ================================================================================
 PENTESA PHASE 3 AUDIT EVIDENCE RECORD — GROUND TRUTH VERIFICATION
-Timestamp (UTC): 2026-11-16T14:36:45Z
-Git SHA:         b65eaf3e27495dd6b73587e6eed689e4f004bb3a (dirty)
+Timestamp (UTC): 2026-11-17T08:10:42Z
+Git SHA:         f78ba05faa6cd4a0e0314fc2be5deefbb972cadb (dirty)
 Command:         python benchmark/verify_ground_truth.py --ground-truth benchmark/ground_truth.yaml
 Execution Mode:  Deterministic In-Process / Target Verification
 ================================================================================

@@ -106,6 +106,16 @@ async def api_reset():
     return {"status": "success", "message": "State and seeded data reset successfully."}
 
 
+@app.get("/api/state", tags=["System"])
+async def api_state():
+    """Returns application state and seeded files for state hash comparison."""
+    return {
+        "state": state,
+        "uploads": sorted(os.listdir(UPLOADS_DIR)),
+        "public_files": sorted(os.listdir(PUBLIC_FILES_DIR))
+    }
+
+
 # ---------------------------------------------------------------------------
 # 1. SSTI (Server-Side Template Injection) - WSTG-INPV-18 / CWE-1336
 # ---------------------------------------------------------------------------

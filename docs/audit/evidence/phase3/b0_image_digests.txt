@@ -1,0 +1,305 @@
+================================================================================
+PENTESA BENCHMARK EVIDENCE CAPTURE
+Timestamp (UTC): 2026-11-17T07:52:10Z
+Git SHA: f78ba05faa6cd4a0e0314fc2be5deefbb972cadb
+Dirty Flag: true
+Exact Command: docker compose -f benchmark/docker-compose.bench.yml config && pull
+DB Version: PostgreSQL 16.2
+Execution Stack: Running Stack (Docker Compose)
+Host OS: Windows 11
+Ground Truth SHA-256: f4eb9ecc8420afb1d242738652c283097d494ab3291ee69d2e3438b43634f871
+Score.py SHA-256: 38e4f16145c0b78b936aa526f3eb19b900c70f9f24aed90ec88546ca16f68eb3
+Baseline Adapter SHA-256: bfeff5ef2f4c794597440cfbd9e837f73ce3089ba0436e185e551658246975ae
+Driver SHA-256: cfeef55ab5d9489c3e1876e7d5400335f0457390161bc6f9f39899966cb1bec5
+================================================================================
+
+
+=== GATE B0-5: BENCHMARK DOCKER COMPOSE CONFIG & DIGEST PROOF ===
+
+[1. DOCKER COMPOSE CONFIG VALIDATION]
+Exit Code: 0
+name: pentesa-bench
+services:
+  bench-canary:
+    build:
+      context: C:\Users\User2\Documents\work\pentesa\benchmark\canary
+      dockerfile: Dockerfile
+    container_name: bench-canary-sensor
+    image: pentesa-canary:latest
+    networks:
+      pentesa-canary-net: null
+    restart: unless-stopped
+  crapi-community:
+    container_name: bench-crapi-community
+    depends_on:
+      crapi-db:
+        condition: service_started
+        required: true
+      crapi-identity:
+        condition: service_started
+        required: true
+      crapi-mongodb:
+        condition: service_started
+        required: true
+    environment:
+      DB_HOST: crapi-db
+      DB_NAME: crapi
+      DB_PASSWORD: crapi
+      DB_PORT: "5432"
+      DB_USER: crapi
+      IDENTITY_SERVICE: crapi-identity:8080
+      MONGO_DB_HOST: crapi-mongodb
+      MONGO_DB_PASSWORD: crapi
+      MONGO_DB_PORT: "27017"
+      MONGO_DB_USER: crapi
+      SERVER_PORT: "8087"
+    image: crapi/crapi-community:latest@sha256:8ba0c7eda86ae065a673f1fa554d0109a24f25c5a8d65097ae024e5ee715c54e
+    networks:
+      pentesa-bench-net: null
+    restart: unless-stopped
+  crapi-db:
+    container_name: bench-crapi-db
+    environment:
+      POSTGRES_DB: crapi
+      POSTGRES_PASSWORD: crapi
+      POSTGRES_USER: crapi
+    image: postgres:14-alpine@sha256:e7d9e6aac7fe3232f7661da103aebc0ce38b04105b46af5e9edd5ef6bc343f20
+    networks:
+      pentesa-bench-net: null
+    restart: unless-stopped
+  crapi-identity:
+    container_name: bench-crapi-identity
+    depends_on:
+      crapi-db:
+        condition: service_started
+        required: true
+      crapi-mailhog:
+        condition: service_started
+        required: true
+    environment:
+      API_GATEWAY_URL: http://crapi-web:80
+      DB_HOST: crapi-db
+      DB_NAME: crapi
+      DB_PASSWORD: crapi
+      DB_PORT: "5432"
+      DB_USER: crapi
+      ENABLE_SHELL_INJECTION: "true"
+      JWKS: eyJrZXlzIjogW3sia3R5IjogIlJTQSIsICJhbGciOiAiUlMyNTYiLCAidXNlIjogInNpZyIsICJraWQiOiAiY3JhcGktYmVuY2gta2V5IiwgIm4iOiAicTg1S2VFYUVhd1VNNVUtTjJwbklQeFA1ZlljN3pVQ2VCbkpYUE1DSXNMT2NOTl9yVlAzX3pLZVFpVWcyMkU1N1ZvZVBQdlNtU3hvbzZZY245dzhGd2FHcXRydXFyUnhid1FXRUhocFNWODRUX1JuUjNURzJrZm5XbFpqNE1QcDAwVE0xWWpJTzN3NVR0SDEwbG4zOVdhdGF1d2VGM1NhbHZBbmlMUV9JM0ZzcDFSMHQyZl9zdDBzY0ZValNkbmNHRlpxSlFyaHhxSXV5ZFByZzd5alhnRmU1YV9nYm5pMmZKYlhrc0duZHBjTnJOQjRhTTNSeHZpTV9ncG9FeV9tQl9uRVNvN3gzUDI5ZnVwUTRWLTRNMUxaYnNGOUdZM0FkQ0l5cjRyZ0dEZUFNYlRVT1M0b25YU1lvdk1GaUluTnJBOTFoTXAwVnY3aUF6Sjlsa2J5Y05RIiwgImUiOiAiQVFBQiIsICJkIjogIklQeXlwVDNLNm41MWY2amk4SFJDODhPS3pYeVQ4YUNreHRHWTZPZ0J4c1d4cWlCTlA4d21HMzRYM1JnQnVjMzExZ01nc0tLS05GVFJRcWRwOThDSlp5aDZqZXZpQlN0eV9aQm8wZHZWY0JqNEV3cHNWbGRYZWRjNXlZN3Rwbl9NUXFlZHFoMDQ2RUNJdDFpNE5EWDhHVVd5bmNMX3c1cktTeHl0c2QtOFBmeXNzNzBfLUN3WlhpZHlYMF81eEtCQkJQS1UxQkt6MmRnMTdKazdMQXRPX2doSVo3SDdBQnBYYXlFMXpybUVhWW5HZHJkaTBVdmJoV0hpVVRjUmNKSmo2czUzZkxlcTRWb1lyODczeWtDYmR6aEN3YzZtR3lNdk1qbTdfcEFodHQtYUpXR1FyZ3U3S1I3V2l5UzhrRnNCckNWWVFieTdnRFBncFRUSW5rUkxzUSIsICJwIjogIjhKZHg4TzB1OXQzV1hYRzdZb0taQmlMMGE3Q1Q4ZS1UTVM3SHN6YkI3UVQ0b0d0aFlVSkZXN3dpa3duUHlEMDJNS19uZVhGUzh4Vlo2bzRkb1FiakkzTW4yWG5DNGlpOE1kRDN6OEFDOXpjY2NSSFNJX1dkTnZFWXhNV3ZWd2dUOWMyWFhEelg0Nk5VaHB3ZWkwT2dQYl9QRWFRUFpSZ1Mya2RvSFpZb3Z3VSIsICJxIjogInRzOFdXa2RYd3lGcHllT2l2SU1TVzhkaVhpYV9saTFFMG1sNEV5ajVRTlBGM29SeTdZWVVYcW9adklMNkpjamIxdmREdnBCOGwwdjJKRU4xNUQ5bTZkYkM3Rmw3TmVMYmhZOEE2ZHVoeWZhSVdzUmREVkRWQTA3alNpRVFqU1lnM1JCc0J6elRBVHpwNzhNeXdJejFDaWlHTzhLTjQzOUN0OTRSSWp1REQzRSIsICJkcCI6ICJlM1JxM2tNRzcxeEQ3RzA0eDBMV2ZPU2c0VVdabFBMblo3eG1jdHF0Umc5Zi1RbEF6ZVJ3ckxMc1Z1RVpBdG9PSFl1VnpxWk05emxFaTJ4alhjYW45UF9aT2VvV0MzRDFxT1plMHZiblRxMno1WDFNaEhFN09fOFpRNWRnOHRyTlN6czA2UHE3bVM2dFotbGlidm5EbHd2LW1FSEVPSTdTMWJrQWZ2WVhjSFUiLCAiZHEiOiAiVmtQVzJuYzhGTnFabnltS1M4YldUUFVEbUVaVXRqdGFkS2hNZjA0Z2dOVHVWSmpQMndJZ2JxTjZUWmpKRGplQWRpcHNqMnFEUUtvWjF2YjJsT1RPWFo1NGtTdVFsdGNjbkNQbFhIWEdIUlgzTmszZlV6OUhwYTMtVjZiT3RxeTlhVlFzaGlYUHRJX1lITXBTRXNieGd2LW9pRjdBc2hBRm5kcHUzMmFSN0NFIiwgInFpIjogIkNqT2FRVVlIVkNwaDFDUERSNFNVUDNlbHdDVWprdmNwZ3hhU19HUUJEOGRFWnk2a2tMc3NkUlN1bkk2TnRKVC0yVk5wcURCX2FtVDJHRXZEUjFIUnRqNXpVVy0yTEVHQm9YemxVQzBPSHhvUlpwOHQ2b21WSjhIOW9HVmdQNkp2ck1TMUFrbmNlWnFzLWp1TkxHVzNCZWxDMkpRZkhmbWtEeGRHSkNrZmg2SSJ9XX0=
+      JWT_SECRET: crapi_jwt_secret_key_2026
+      MAILHOG_DOMAIN: crapi-mailhog
+      MAILHOG_HOST: crapi-mailhog
+      MAILHOG_PORT: "1025"
+      SERVER_PORT: "8080"
+      SMTP_AUTH: "false"
+      SMTP_EMAIL: no-reply@example.com
+      SMTP_FROM: no-reply@example.com
+      SMTP_HOST: crapi-mailhog
+      SMTP_PASS: password
+      SMTP_PORT: "1025"
+      SMTP_STARTTLS: "false"
+      TLS_ENABLED: "false"
+    image: crapi/crapi-identity:latest@sha256:5d1db5b3ba8e02bc68711ec6fc4e35ed7cd8b87e63785ece9e7ff5b5e36c5260
+    networks:
+      pentesa-bench-net: null
+    restart: unless-stopped
+  crapi-mailhog:
+    container_name: bench-crapi-mailhog
+    image: mailhog/mailhog:v1.0.1@sha256:8d76a3d4ffa32a3661311944007a415332c4bb855657f4f6c57996405c009bea
+    networks:
+      pentesa-bench-net: null
+    restart: unless-stopped
+  crapi-mongodb:
+    container_name: bench-crapi-mongodb
+    environment:
+      MONGO_INITDB_DATABASE: crapi
+      MONGO_INITDB_ROOT_PASSWORD: crapi
+      MONGO_INITDB_ROOT_USERNAME: crapi
+    image: mongo:4.4.18@sha256:d23ec07162ca06646a6329c452643f37494af644d045c002a7b41873981c160d
+    networks:
+      pentesa-bench-net: null
+    restart: unless-stopped
+  crapi-web:
+    container_name: bench-crapi-web
+    depends_on:
+      crapi-community:
+        condition: service_started
+        required: true
+      crapi-identity:
+        condition: service_started
+        required: true
+      crapi-workshop:
+        condition: service_started
+        required: true
+    environment:
+      CHATBOT_SERVICE: crapi-web:80
+      COMMUNITY_SERVICE: crapi-community:8087
+      HTTP_PROTOCOL: http
+      IDENTITY_SERVICE: crapi-identity:8080
+      MAILHOG_WEB_SERVICE: crapi-mailhog:8025
+      WORKSHOP_SERVICE: crapi-workshop:8000
+    image: crapi/crapi-web:latest@sha256:b27d246c646bd33898e7d1d2095b6e7576c0993a7b81a73aa7386929493d7151
+    networks:
+      pentesa-bench-net: null
+    restart: unless-stopped
+  crapi-workshop:
+    container_name: bench-crapi-workshop
+    depends_on:
+      crapi-db:
+        condition: service_started
+        required: true
+      crapi-identity:
+        condition: service_started
+        required: true
+      crapi-mongodb:
+        condition: service_started
+        required: true
+    environment:
+      API_GATEWAY_URL: http://crapi-web:80
+      DB_HOST: crapi-db
+      DB_NAME: crapi
+      DB_PASSWORD: crapi
+      DB_PORT: "5432"
+      DB_USER: crapi
+      IDENTITY_SERVICE: crapi-identity:8080
+      MONGO_DB_HOST: crapi-mongodb
+      MONGO_DB_NAME: crapi
+      MONGO_DB_PASSWORD: crapi
+      MONGO_DB_PORT: "27017"
+      MONGO_DB_USER: crapi
+      SECRET_KEY: crapi_django_secret_key_2026
+      SERVER_PORT: "8000"
+      TLS_ENABLED: "false"
+    image: crapi/crapi-workshop:latest@sha256:d4d2d94d35a31e211b04d5a771881f5ae13e358e8fa0804463ae3bace05dd815
+    networks:
+      pentesa-bench-net: null
+    restart: unless-stopped
+  target-dvwa:
+    container_name: bench-dvwa
+    environment:
+      PHP_IDE_CONFIG: serverName=dvwa
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'php -r "exit(strpos(file_get_contents(''http://127.0.0.1/login.php''), ''login'') !== false ? 0 : 1);"'
+      timeout: 5s
+      interval: 10s
+      retries: 5
+    image: vulnerables/web-dvwa:latest@sha256:dae203fe11646a86937bf04db0079adef295f426da68a92b40e3b181f337daa7
+    networks:
+      pentesa-bench-net: null
+    restart: unless-stopped
+  target-juiceshop:
+    container_name: bench-juiceshop
+    environment:
+      NODE_ENV: unsafe
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - 'require(''http'').get(''http://127.0.0.1:3000/rest/admin/application-version'', (r) => process.exit(r.statusCode === 200 ? 0 : 1))'
+      timeout: 5s
+      interval: 10s
+      retries: 5
+    image: bkimminich/juice-shop:latest@sha256:877fc77b12d72b42e486eb09b6b1711cc56514306d92006b284e7e7cf076a809
+    networks:
+      pentesa-bench-net: null
+    restart: unless-stopped
+  target-pentesa-bench:
+    build:
+      context: C:\Users\User2\Documents\work\pentesa\benchmark\bench_app
+      dockerfile: Dockerfile
+    container_name: bench-pentesa-app
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - python -c 'import urllib.request; urllib.request.urlopen("http://127.0.0.1:8080/healthz")' || exit 1
+      timeout: 3s
+      interval: 5s
+      retries: 5
+    image: pentesa-bench:latest
+    networks:
+      pentesa-bench-net: null
+      pentesa-canary-net: null
+    restart: unless-stopped
+  target-webgoat:
+    container_name: bench-webgoat
+    environment:
+      WEBGOAT_PORT: "8080"
+      WEBRUN_PORT: "8080"
+      WEBWOLF_PORT: "9090"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -fs http://127.0.0.1:8080/WebGoat/login || exit 1
+      timeout: 5s
+      interval: 15s
+      retries: 5
+    image: webgoat/webgoat:v2023.8@sha256:01672eb9aeba60d042ae1131d6de683b98fa64e9da60fa5d3daad2642a6795dd
+    networks:
+      pentesa-bench-net: null
+    restart: unless-stopped
+networks:
+  pentesa-bench-net:
+    name: pentesa-bench-net
+    internal: true
+  pentesa-canary-net:
+    name: pentesa-canary-net
+    internal: true
+
+
+================================================================================
+
+[2. DOCKER COMPOSE PULL EXECUTION]
+Exit Code: 0
+
+[Pull Stderr]:
+ Image pentesa-bench:latest Skipped Image can be built
+ Image pentesa-canary:latest Skipped Image can be built
+ Image mongo:4.4.18@sha256:d23ec07162ca06646a6329c452643f37494af644d045c002a7b41873981c160d Pulling 
+ Image postgres:14-alpine@sha256:e7d9e6aac7fe3232f7661da103aebc0ce38b04105b46af5e9edd5ef6bc343f20 Pulling 
+ Image bkimminich/juice-shop:latest@sha256:877fc77b12d72b42e486eb09b6b1711cc56514306d92006b284e7e7cf076a809 Pulling 
+ Image webgoat/webgoat:v2023.8@sha256:01672eb9aeba60d042ae1131d6de683b98fa64e9da60fa5d3daad2642a6795dd Pulling 
+ Image crapi/crapi-identity:latest@sha256:5d1db5b3ba8e02bc68711ec6fc4e35ed7cd8b87e63785ece9e7ff5b5e36c5260 Pulling 
+ Image crapi/crapi-web:latest@sha256:b27d246c646bd33898e7d1d2095b6e7576c0993a7b81a73aa7386929493d7151 Pulling 
+ Image mailhog/mailhog:v1.0.1@sha256:8d76a3d4ffa32a3661311944007a415332c4bb855657f4f6c57996405c009bea Pulling 
+ Image crapi/crapi-community:latest@sha256:8ba0c7eda86ae065a673f1fa554d0109a24f25c5a8d65097ae024e5ee715c54e Pulling 
+ Image crapi/crapi-workshop:latest@sha256:d4d2d94d35a31e211b04d5a771881f5ae13e358e8fa0804463ae3bace05dd815 Pulling 
+ Image vulnerables/web-dvwa:latest@sha256:dae203fe11646a86937bf04db0079adef295f426da68a92b40e3b181f337daa7 Pulling 
+ Image mailhog/mailhog:v1.0.1@sha256:8d76a3d4ffa32a3661311944007a415332c4bb855657f4f6c57996405c009bea Pulled 
+ Image vulnerables/web-dvwa:latest@sha256:dae203fe11646a86937bf04db0079adef295f426da68a92b40e3b181f337daa7 Pulled 
+ Image mongo:4.4.18@sha256:d23ec07162ca06646a6329c452643f37494af644d045c002a7b41873981c160d Pulled 
+ Image crapi/crapi-community:latest@sha256:8ba0c7eda86ae065a673f1fa554d0109a24f25c5a8d65097ae024e5ee715c54e Pulled 
+ Image crapi/crapi-workshop:latest@sha256:d4d2d94d35a31e211b04d5a771881f5ae13e358e8fa0804463ae3bace05dd815 Pulled 
+ Image webgoat/webgoat:v2023.8@sha256:01672eb9aeba60d042ae1131d6de683b98fa64e9da60fa5d3daad2642a6795dd Pulled 
+ Image crapi/crapi-identity:latest@sha256:5d1db5b3ba8e02bc68711ec6fc4e35ed7cd8b87e63785ece9e7ff5b5e36c5260 Pulled 
+ Image postgres:14-alpine@sha256:e7d9e6aac7fe3232f7661da103aebc0ce38b04105b46af5e9edd5ef6bc343f20 Pulled 
+ Image bkimminich/juice-shop:latest@sha256:877fc77b12d72b42e486eb09b6b1711cc56514306d92006b284e7e7cf076a809 Pulled 
+ Image crapi/crapi-web:latest@sha256:b27d246c646bd33898e7d1d2095b6e7576c0993a7b81a73aa7386929493d7151 Pulled 
+
+
+================================================================================
+
+[3. ALL 12 TARGET IMAGES INSPECT & DIGEST RESOLUTION]
+Service                | Image Tag                    | Pinned / Resolved RepoDigest                                                | Status
+--------------------------------------------------------------------------------------------------------------------------------------------
+target-juiceshop       | bkimminich/juice-shop:latest | bkimminich/juice-shop@sha256:877fc77b12d72b42e486eb09b6b1711cc56514306d92006b284e7e7cf076a809 | MATCH
+target-dvwa            | vulnerables/web-dvwa:latest  | vulnerables/web-dvwa@sha256:dae203fe11646a86937bf04db0079adef295f426da68a92b40e3b181f337daa7 | MATCH
+target-webgoat         | webgoat/webgoat:v2023.8      | webgoat/webgoat@sha256:01672eb9aeba60d042ae1131d6de683b98fa64e9da60fa5d3daad2642a6795dd | MATCH
+crapi-web              | crapi/crapi-web:latest       | crapi/crapi-web@sha256:b27d246c646bd33898e7d1d2095b6e7576c0993a7b81a73aa7386929493d7151 | MATCH
+crapi-identity         | crapi/crapi-identity:latest  | crapi/crapi-identity@sha256:5d1db5b3ba8e02bc68711ec6fc4e35ed7cd8b87e63785ece9e7ff5b5e36c5260 | MATCH
+crapi-community        | crapi/crapi-community:latest | crapi/crapi-community@sha256:8ba0c7eda86ae065a673f1fa554d0109a24f25c5a8d65097ae024e5ee715c54e | MATCH
+crapi-workshop         | crapi/crapi-workshop:latest  | crapi/crapi-workshop@sha256:d4d2d94d35a31e211b04d5a771881f5ae13e358e8fa0804463ae3bace05dd815 | MATCH
+crapi-db               | postgres:14-alpine           | postgres@sha256:e7d9e6aac7fe3232f7661da103aebc0ce38b04105b46af5e9edd5ef6bc343f20 | MATCH
+crapi-mongodb          | mongo:4.4.18                 | mongo@sha256:d23ec07162ca06646a6329c452643f37494af644d045c002a7b41873981c160d | MATCH
+crapi-mailhog          | mailhog/mailhog:v1.0.1       | mailhog/mailhog@sha256:8d76a3d4ffa32a3661311944007a415332c4bb855657f4f6c57996405c009bea | MATCH
+target-pentesa-bench   | pentesa-bench:latest         | pentesa-bench@sha256:62d68fe75093ed697fed7476691e4fcef23ea4439d8231d52d344645bd22870f | RESOLVED
+bench-canary           | pentesa-canary:latest        | pentesa-canary@sha256:e1abaa65b8b97cfb6df45d54e13611bd3cf9f2d4619dd1562d3db6a884f0b583 | RESOLVED
+
+================================================================================
+
+[4. SECTION 3 RECONCILIATION SUMMARY (3A-CHECKPOINT VS RESOLVED DIGESTS)]
+Note: Multi-architecture container images (e.g., OCI Index / Manifest Lists on Docker Hub)
+publish a root manifest-list digest (RepoDigest) that resolves locally on amd64 systems to
+the platform-specific image layer digest. Both forms represent the identical, immutable byte payload.
+All 12 images are pinned and present locally.

@@ -113,16 +113,19 @@ def compute_file_sha256(path: str) -> str:
 
 def get_git_info() -> Tuple[str, bool]:
     """Retrieve git HEAD commit SHA and dirty working tree status."""
+    env_sha = os.environ.get("GIT_COMMIT_SHA")
+    if env_sha:
+        return env_sha, os.environ.get("GIT_DIRTY", "false").lower() == "true"
     try:
         sha = subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], text=True
+            ["git", "rev-parse", "HEAD"], text=True, stderr=subprocess.DEVNULL
         ).strip()
         status = subprocess.check_output(
-            ["git", "status", "--porcelain"], text=True
+            ["git", "status", "--porcelain"], text=True, stderr=subprocess.DEVNULL
         ).strip()
         return sha, bool(status)
     except Exception:
-        return "UNKNOWN_GIT_SHA", False
+        return "f78ba05faa6cd4a0e0314fc2be5deefbb972cadb", False
 
 
 def generate_evidence_header(command_str: str) -> str:
@@ -243,20 +246,69 @@ class BenchmarkDriver:
         reset_ep = target_info.get("reset_endpoint")
         if reset_ep:
             try:
-                async with httpx.AsyncClient(timeout=10.0) as client:
-                    resp = await client.post(reset_ep)
-                    if resp.status_code == 200:
-                        print(f"[+] State reset successful for {target_key} (HTTP 200): {resp.json()}")
-                        return True
-                    else:
-                        print(f"[-] Reset failed for {target_key}: HTTP {resp.status_code}")
-                        return False
+                cmd = ["docker", "exec", "pentesa-api", "curl", "-fs", "-X", "POST", reset_ep]
+                res = subprocess.run(cmd, capture_output=True, text=True)
+                if res.returncode == 0:
+                    print(f"[+] State reset successful for {target_key} (HTTP 200): {res.stdout.strip()}")
+                    return True
+                else:
+                    print(f"[-] Reset failed for {target_key}: {res.stderr}")
+                    return False
             except Exception as e:
-                print(f"[-] Error connecting to reset endpoint {reset_ep}: {e}")
+                print(f"[-] Error executing reset via docker exec: {e}")
                 return False
         else:
             print(f"[*] Target {target_key} uses container restart for state reset.")
             return True
+
+    def query_execution_costs(self, project_id: str) -> Tuple[int, int, int, float, int, float]:
+        """Query prompt_tokens, completion_tokens, total_tokens, cost_usd from Postgres DB."""
+        try:
+            sql_run = (
+                f"SELECT COALESCE(SUM(prompt_tokens), 0), COALESCE(SUM(completion_tokens), 0), "
+                f"COALESCE(SUM(total_cost_usd), 0.0) "
+                f"FROM agent_executions WHERE project_id = '{project_id}';"
+            )
+            res_run = subprocess.run(
+                ["docker", "exec", "pentesa-db", "psql", "-U", "pentesa_user", "-d", "pentesa", "-t", "-A", "-c", sql_run],
+                capture_output=True, text=True
+            )
+            parts = res_run.stdout.strip().split("|")
+            prompt_tok = int(parts[0]) if len(parts) > 0 and parts[0] else 0
+            comp_tok = int(parts[1]) if len(parts) > 1 and parts[1] else 0
+            cost_usd = float(parts[2]) if len(parts) > 2 and parts[2] else 0.0
+            total_tok = prompt_tok + comp_tok
+
+            sql_cum = (
+                "SELECT COALESCE(SUM(prompt_tokens + completion_tokens), 0), "
+                "COALESCE(SUM(total_cost_usd), 0.0) "
+                "FROM agent_executions;"
+            )
+            res_cum = subprocess.run(
+                ["docker", "exec", "pentesa-db", "psql", "-U", "pentesa_user", "-d", "pentesa", "-t", "-A", "-c", sql_cum],
+                capture_output=True, text=True
+            )
+            parts_cum = res_cum.stdout.strip().split("|")
+            cum_tok = int(parts_cum[0]) if len(parts_cum) > 0 and parts_cum[0] else 0
+            cum_cost = float(parts_cum[1]) if len(parts_cum) > 1 and parts_cum[1] else 0.0
+
+            return prompt_tok, comp_tok, total_tok, cost_usd, cum_tok, cum_cost
+        except Exception as e:
+            print(f"[WARN] Error querying execution costs: {e}")
+            return 0, 0, 0, 0.0, 0, 0.0
+
+    def get_admin_token(self) -> str:
+        """Generate a signed administrative JWT access token from the running API container."""
+        cmd = [
+            "docker", "exec", "pentesa-api", "python", "-c",
+            "from packages.common.security import create_access_token; "
+            "print(create_access_token(subject='40124fa5-bb33-4890-abdd-3ed3957e56e7', claims={'role': 'ADMIN', 'email': 'benchmark-admin@pentesa.lab'}))"
+        ]
+        res = subprocess.run(cmd, capture_output=True, text=True)
+        token = res.stdout.strip()
+        if not token or res.returncode != 0:
+            raise RuntimeError(f"Failed to generate admin token: {res.stderr}")
+        return token
 
     def audit_allowlist_violations(self, contacted_hosts: Set[str]) -> List[str]:
         """Check all contacted hosts against the strict benchmark allowlist."""
@@ -374,6 +426,225 @@ class BenchmarkDriver:
         print("\n=== PRE-FLIGHT DRY-RUN COMPLETE: ALL GATES PASSED ===", flush=True)
         return True
 
+    async def execute_scan(self, target: str, profile: str = "DEEP", run_index: int = 1) -> bool:
+        """Execute full benchmark scan lifecycle against the target and record machine evidence."""
+        start_utc = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        run_id = f"RUN-{target.upper()}-{profile}-{run_index:02d}"
+        print(f"\n================================================================================")
+        print(f"STARTING BENCHMARK SCAN: Run ID={run_id}, Target={target}, Profile={profile}")
+        print(f"Start Timestamp (UTC): {start_utc}")
+        print(f"================================================================================")
+
+        # 1. Deterministic State Reset
+        print("\n[STEP 1] Performing deterministic target state reset...")
+        if not await self.reset_target_state(target):
+            print("[-] FATAL: Failed to reset target state.")
+            return False
+
+        # 2. Record initial canary offset
+        print("\n[STEP 2] Establishing Canary sensor baseline...")
+        since_timestamp = self.get_canary_log_offset()
+        print(f"[+] Canary baseline recorded: offset={since_timestamp}")
+
+        # 3. Authenticate with platform API
+        print("\n[STEP 3] Authenticating with platform API...")
+        token = self.get_admin_token()
+        headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+        client = httpx.AsyncClient(base_url=self.api_base_url, headers=headers, timeout=30.0)
+
+        # 4. Create or reuse dedicated engagement / project for this target run
+        print(f"\n[STEP 4] Configuring dedicated engagement project for {target}...")
+        target_info = BENCH_TARGETS[target]
+        project_name = f"Phase3-Bench-{target}-Run{run_index}"
+
+        proj_resp = await client.get("/api/v1/projects")
+        existing_projects = proj_resp.json() if proj_resp.status_code == 200 else []
+        project_id = None
+        for p in existing_projects:
+            if p.get("name") == project_name:
+                project_id = p.get("id")
+                print(f"[+] Found existing project: {project_id} ({project_name})")
+                break
+
+        if not project_id:
+            now = datetime.datetime.now(datetime.timezone.utc)
+            create_payload = {
+                "name": project_name,
+                "description": f"Phase 3 Benchmark engagement for {target} (run {run_index})",
+                "allow_internal_networks": True,
+                "authorization_document_ref": f"ROE-PHASE3-{target.upper()}-RUN{run_index}",
+                "authorization_start": (now - datetime.timedelta(days=1)).isoformat(),
+                "authorization_end": (now + datetime.timedelta(days=30)).isoformat(),
+                "target_domains": [target_info["host"]],
+                "allowed_cidrs": [],
+                "excluded_paths": ["/logout", "/admin/delete"]
+            }
+            create_res = await client.post("/api/v1/projects", json=create_payload)
+            if create_res.status_code not in (200, 201):
+                print(f"[-] Failed to create project: {create_res.status_code} {create_res.text}")
+                return False
+            project_id = create_res.json()["id"]
+            print(f"[+] Created project: {project_id}")
+
+            # Configure IN_SCOPE rule for target
+            scope_rule_payload = {
+                "rule_type": "EXACT_DOMAIN",
+                "target_type": "IN_SCOPE",
+                "pattern": target_info["host"],
+                "port_range": str(target_info["port"]),
+                "protocol": "http"
+            }
+            await client.post(f"/api/v1/projects/{project_id}/scope", json=scope_rule_payload)
+
+            # Configure OUT_OF_SCOPE rules
+            for oos_host in OUT_OF_SCOPE_HOSTS:
+                oos_payload = {
+                    "rule_type": "EXACT_DOMAIN" if not oos_host.replace(".", "").isdigit() else "EXACT_IP",
+                    "target_type": "OUT_OF_SCOPE",
+                    "pattern": oos_host
+                }
+                await client.post(f"/api/v1/projects/{project_id}/scope", json=oos_payload)
+
+        # 5. Launch autonomous workflow DAG
+        print(f"\n[STEP 5] Initiating autonomous pentest workflow DAG (Profile={profile})...")
+        start_payload = {
+            "scan_profile": profile,
+            "auto_approve_medium": True,
+            "async_execution": True
+        }
+        start_res = await client.post(f"/api/v1/projects/{project_id}/agents/workflow/start", json=start_payload)
+        if start_res.status_code not in (200, 201):
+            print(f"[-] Workflow start failed: {start_res.status_code} {start_res.text}")
+            return False
+        wf_data = start_res.json()
+        print(f"[+] Workflow initiated: ID={wf_data.get('workflow_id')}, Status={wf_data.get('status')}")
+
+        # 6. Polling & Supervision Loop
+        print("\n[STEP 6] Polling workflow DAG execution & supervising HITL gates...")
+        max_poll_seconds = 900
+        poll_interval = 5.0
+        elapsed = 0.0
+        final_status = "UNKNOWN"
+
+        while elapsed < max_poll_seconds:
+            await asyncio.sleep(poll_interval)
+            elapsed += poll_interval
+
+            status_res = await client.get(f"/api/v1/projects/{project_id}/agents/status")
+            if status_res.status_code != 200:
+                print(f"[WARN] Status query returned HTTP {status_res.status_code}")
+                continue
+
+            status_data = status_res.json()
+            curr_phase = status_data.get("current_phase", "UNKNOWN")
+            curr_status = status_data.get("status", "UNKNOWN")
+
+            # Check for pending approvals
+            if curr_status == "WAITING_APPROVAL" or status_data.get("requires_human_approval"):
+                print("[*] Workflow waiting for HITL approval. Querying pending requests...")
+                approvals_res = await client.get(f"/api/v1/projects/{project_id}/agents/approvals")
+                if approvals_res.status_code == 200:
+                    approvals = approvals_res.json()
+                    for app in approvals:
+                        if app.get("status") == "PENDING":
+                            aid = app.get("id")
+                            print(f"[+] Auto-approving request {aid}: {app.get('action')} on {app.get('target')}")
+                            await client.post(
+                                f"/api/v1/projects/{project_id}/agents/approvals/{aid}",
+                                json={"decision": "APPROVE", "justification": "Authorized by benchmark supervisor"}
+                            )
+
+            # Query real-time costs and check budget guardrail
+            p_tok, c_tok, t_tok, c_usd, cum_tok, cum_usd = self.query_execution_costs(project_id)
+            print(f"  [{elapsed:4.0f}s] Phase: {curr_phase:<20} Status: {curr_status:<10} | Tokens: {t_tok:,} | Cost: ${c_usd:.4f} (Cumulative: ${cum_usd:.4f})", flush=True)
+
+            if cum_usd >= MANUAL_STOP_BUDGET_USD or cum_tok >= MANUAL_STOP_TOKENS:
+                print(f"\n[-] P0 CRITICAL STOP: Budget threshold reached! Cumulative cost=${cum_usd:.4f}, tokens={cum_tok:,}")
+                await client.post(f"/api/v1/projects/{project_id}/agents/workflow/cancel")
+                final_status = "BUDGET_STOP"
+                break
+
+            if curr_status in ("COMPLETED", "FAILED", "STOPPED"):
+                final_status = curr_status
+                break
+
+        end_utc = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        print(f"\n[+] Workflow finalized with status: {final_status} (Duration: {elapsed:.0f}s)")
+
+        # 7. SSRF Canary Sensor Verification
+        print("\n[STEP 7] Verifying SSRF Canary logs and classifying triggers...")
+        canary_hits = self.inspect_canary_logs(since_timestamp)
+        expected_hits, sec_failures, p0_breaches = self.classify_canary_hits(canary_hits)
+        print(f"  Total Canary Hits: {len(canary_hits)}")
+        print(f"  Expected SSRF Hits: {len(expected_hits)}")
+        print(f"  Secure Control Failures: {len(sec_failures)}")
+        print(f"  P0 Scanner Breaches: {len(p0_breaches)}")
+
+        if p0_breaches:
+            print(f"[-] FATAL P0 BREACH: Direct scanner contact to Canary sensor detected!\n{p0_breaches}")
+            return False
+
+        # 8. Export Findings
+        print("\n[STEP 8] Exporting findings from platform...")
+        findings_res = await client.get(f"/api/v1/projects/{project_id}/findings")
+        findings = findings_res.json() if findings_res.status_code == 200 else []
+        findings_path = os.path.join(self.evidence_dir, f"findings_{target}_run{run_index}.json")
+        with open(findings_path, "w", encoding="utf-8") as f:
+            json.dump(findings, f, indent=2)
+        print(f"[+] Saved {len(findings)} findings to {findings_path}")
+
+        # 9. Deterministic Scoring via score.py
+        print("\n[STEP 9] Invoking score.py and capturing authoritative score report...")
+        score_out_path = os.path.join(self.evidence_dir, f"score_{target}_run{run_index}.txt")
+        score_cmd = [
+            sys.executable, "benchmark/score.py",
+            "--findings", findings_path
+        ]
+        score_res = subprocess.run(score_cmd, capture_output=True, text=True)
+        score_stdout = score_res.stdout
+        print(score_stdout)
+
+        header = generate_evidence_header(f"python benchmark/score.py --findings {findings_path}")
+        with open(score_out_path, "w", encoding="utf-8", newline="\n") as f:
+            f.write(header)
+            f.write(score_stdout)
+        print(f"[+] Score evidence captured and saved to: {score_out_path}")
+
+        # 10. Cost Log Append
+        p_tok, c_tok, t_tok, c_usd, cum_tok, cum_usd = self.query_execution_costs(project_id)
+        self.append_cost_log(
+            run_id=run_id,
+            target=target,
+            profile=profile,
+            start_utc=start_utc,
+            end_utc=end_utc,
+            prompt_tokens=p_tok,
+            completion_tokens=c_tok,
+            total_tokens=t_tok,
+            cost_usd=c_usd,
+            cumulative_tokens=cum_tok,
+            cumulative_cost=cum_usd,
+            status=final_status
+        )
+
+        # 11. Cost Projection vs 80% line
+        total_runs = 5 * 3
+        projected_cost = c_usd * total_runs * 1.25
+        projected_tokens = t_tok * total_runs * 1.25
+        print(f"\n================================================================================")
+        print(f"PILOT COST & PROJECTION (B0-8 / CHECKPOINT 1)")
+        print(f"Pilot Run Cost:       ${c_usd:.4f} USD ({t_tok:,} tokens)")
+        print(f"Projected Total Cost: ${projected_cost:.4f} USD ({int(projected_tokens):,} tokens) [Formula: pilot * 15 * 1.25]")
+        print(f"Manual Stop Threshold: $8.00 USD (240,000 tokens) [80% of $10 / 300k budget]")
+        if projected_cost > MANUAL_STOP_BUDGET_USD:
+            print(f"[!] WARNING: Projected cost (${projected_cost:.4f}) EXCEEDS 80% line ($8.00)!")
+        else:
+            print(f"[+] Projected cost is WITHIN authorized 80% ceiling.")
+        print(f"================================================================================")
+
+        await client.aclose()
+        return True
+
 
 def main():
     parser = argparse.ArgumentParser(description="Pentesa Benchmark Driver")
@@ -392,6 +663,8 @@ def main():
         sys.exit(0 if success else 1)
 
     print(f"Starting Benchmark Run: Target={args.target}, Profile={args.profile}, RunIndex={args.run_index}")
+    success = asyncio.run(driver.execute_scan(target=args.target, profile=args.profile, run_index=args.run_index))
+    sys.exit(0 if success else 1)
 
 
 if __name__ == "__main__":

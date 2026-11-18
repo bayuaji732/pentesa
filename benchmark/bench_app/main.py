@@ -66,7 +66,8 @@ INITIAL_STATE = {
     "coupons": {"WELCOME2026": {"discount": 20, "used": False}},
     "user_balance": 100.0,
     "inventory": {"item_101": {"name": "Audit License", "price": 50.0, "stock": 10}},
-    "redeemed_coupons_count": 0
+    "redeemed_coupons_count": 0,
+    "workflows": {}
 }
 
 state = {}
@@ -79,7 +80,8 @@ def reset_state():
         "coupons": {"WELCOME2026": {"discount": 20, "used": False}},
         "user_balance": 100.0,
         "inventory": {"item_101": {"name": "Audit License", "price": 50.0, "stock": 10}},
-        "redeemed_coupons_count": 0
+        "redeemed_coupons_count": 0,
+        "workflows": {}
     }
 
 reset_state()
@@ -719,5 +721,75 @@ async def api_secure():
             }
         ]
     }
+
+
+# ---------------------------------------------------------------------------
+# 16. Workflow State Inconsistency - WSTG-BUSL-06 / CWE-840
+# ---------------------------------------------------------------------------
+
+class WorkflowInitRequest(BaseModel):
+    item_id: str
+    quantity: int = 1
+
+class WorkflowActionRequest(BaseModel):
+    order_id: str
+
+@app.post("/workflow/order", tags=["Workflow State"])
+async def workflow_create_order(req: WorkflowInitRequest):
+    """Step 1: Initialize purchase workflow, creating pending order."""
+    item = state["inventory"].get(req.item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found.")
+    order_id = f"WF-{len(state.get('workflows', {})) + 1:04d}"
+    state.setdefault("workflows", {})[order_id] = {
+        "item_id": req.item_id,
+        "quantity": req.quantity,
+        "status": "PENDING_PAYMENT",
+        "total": item["price"] * req.quantity
+    }
+    return {
+        "order_id": order_id,
+        "status": "PENDING_PAYMENT",
+        "total": state["workflows"][order_id]["total"]
+    }
+
+@app.post("/workflow/pay", tags=["Workflow State"])
+async def workflow_pay_order(req: WorkflowActionRequest):
+    """Step 2: Process payment and update order state to PAID."""
+    wf = state.get("workflows", {}).get(req.order_id)
+    if not wf:
+        raise HTTPException(status_code=404, detail="Order not found.")
+    wf["status"] = "PAID"
+    return {"order_id": req.order_id, "status": "PAID"}
+
+@app.post("/workflow/complete", tags=["Workflow State"])
+async def workflow_complete_vulnerable(req: WorkflowActionRequest):
+    """VULNERABLE: Completes order without checking that payment step occurred."""
+    wf = state.get("workflows", {}).get(req.order_id)
+    if not wf:
+        raise HTTPException(status_code=404, detail="Order not found.")
+    # Flaw: Omits verification that wf['status'] == 'PAID'
+    wf["status"] = "COMPLETED"
+    return {
+        "status": "COMPLETED",
+        "order_id": req.order_id,
+        "shipped": True,
+        "flaw": "Circumvention of payment workflow succeeded."
+    }
+
+@app.post("/workflow/secure-complete", tags=["Workflow State"])
+async def workflow_complete_secure(req: WorkflowActionRequest):
+    """SECURE: Enforces strict state machine transition (order must be PAID)."""
+    wf = state.get("workflows", {}).get(req.order_id)
+    if not wf:
+        raise HTTPException(status_code=404, detail="Order not found.")
+    if wf.get("status") != "PAID":
+        raise HTTPException(
+            status_code=400,
+            detail="Workflow state violation: order must be PAID before completion."
+        )
+    wf["status"] = "COMPLETED"
+    return {"status": "COMPLETED", "order_id": req.order_id, "shipped": True}
+
 
 

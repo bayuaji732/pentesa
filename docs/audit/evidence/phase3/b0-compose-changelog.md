@@ -113,3 +113,16 @@ networks:
    docker exec pentesa-api curl -fs http://bench-pentesa-app:8080/healthz
    # Output: {"status":"ok","app":"pentesa-bench","version":"1.0.0"}
    ```
+
+---
+
+## 4. Phase 4 Test Fixture Addition: Workflow State Inconsistency (Step 2)
+
+To satisfy Phase 4 testing requirements for Workflow State Inconsistency (Area 7 / `WSTG-BUSL-06` / `CWE-840`) without modifying the frozen Phase 3 ground truth, the following test endpoints were added to `benchmark/bench_app/main.py`:
+- `POST /workflow/order`: Initializes purchase workflow, creates pending order with status `PENDING_PAYMENT`.
+- `POST /workflow/pay`: Records payment, transitions order status to `PAID`.
+- `POST /workflow/complete` (**Vulnerable Variant**): Completes order and confirms shipment without verifying that order status is `PAID` (permits payment step circumvention).
+- `POST /workflow/secure-complete` (**Secure Control Variant**): Strictly validates that order status is `PAID`; returns HTTP 400 Bad Request on workflow sequence circumvention.
+- **Deterministic Reset**: `INITIAL_STATE` and `reset_state()` in `benchmark/bench_app/main.py` include `"workflows": {}`, deterministically cleared upon calling `/api/reset`.
+- **Image Rebuilt**: `target-pentesa-bench` image rebuilt and container `bench-pentesa-app` restarted cleanly.
+

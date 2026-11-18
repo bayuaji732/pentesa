@@ -1,0 +1,398 @@
+version: 2.0.0-phase4
+benchmark_metadata:
+  description: Pentesa Phase 4 Ground Truth Matrix — Advanced Pentest Validation
+  categories_covered: 5
+  vulnerable_cases: 7
+  secure_control_cases: 7
+  total_cases: 14
+  target_applications:
+    - name: Pentesa Bench
+      role: Paired Vulnerable / Secure Microservice (Race, Business Logic, Workflow, BOLA)
+    - name: OWASP Juice Shop
+      role: Two-User Authenticated Basket IDOR Target
+    - name: crAPI
+      role: Two-User Authenticated Microservices BOLA Target (Vehicle Location & Workshop Orders)
+
+cases:
+  # ---------------------------------------------------------------------------
+  # 1. Pentesa Bench: Business Logic Anomaly (Price Tampering)
+  # ---------------------------------------------------------------------------
+  - id: GT-P4-PB-BUSL-01-V
+    app: pentesa-bench
+    endpoint: /order/checkout
+    method: POST
+    parameter: client_price
+    category: Business logic vulnerabilities
+    wstg_id: WSTG-BUSL-01
+    cwe: CWE-840
+    vulnerable: true
+    identities_involved: Single User / Unauthenticated Client
+    expected_outcome_class: FLAGGED_FOR_HUMAN_REVIEW
+    deterministic_tool_capability: Fails / Ineffective. Standard DAST scanners send random strings or fuzz values; they lack semantic understanding of monetary values and client-side pricing authority.
+    known_vulnerability_condition: Server trusts client_price parameter submitted in JSON body, allowing items to be purchased for $0.01.
+    expected_secure_behavior: Price calculated strictly server-side from catalog database; client-supplied price parameters ignored.
+    expected_discovery_result: POST endpoint /order/checkout identified with client_price parameter in schema.
+    expected_agent_behavior: Agent detects price manipulation anomaly and flags it as FLAGGED_FOR_HUMAN_REVIEW rather than auto-exploiting destructively.
+    expected_reproduction_evidence: HTTP POST confirming item purchased at client_price $0.01 with HTTP 200 OK.
+    expected_severity: HIGH
+    expected_false_positive_behavior: Should not be reported if client_price is ignored or validated against database price.
+    pass_fail_criteria: PASS if finding flags /order/checkout client_price manipulation and classifies as FLAGGED_FOR_HUMAN_REVIEW.
+    reference_poc:
+      curl: "curl -s -X POST -H 'Content-Type: application/json' -d '{\"item_id\":\"item_101\",\"quantity\":1,\"client_price\":0.01}' 'http://bench-pentesa-app:8080/order/checkout'"
+      json:
+        item_id: item_101
+        quantity: 1
+        client_price: 0.01
+    expected_vulnerable_signature: 'total_charged": 0.01'
+
+  - id: GT-P4-PB-BUSL-01-S
+    app: pentesa-bench
+    endpoint: /order/secure
+    method: POST
+    parameter: client_price
+    category: Business logic vulnerabilities
+    wstg_id: WSTG-BUSL-01
+    cwe: CWE-840
+    vulnerable: false
+    identities_involved: Single User / Unauthenticated Client
+    expected_outcome_class: SECURE_NO_FINDING
+    deterministic_tool_capability: Correctly reports no issue because server charges catalog price ($50.00).
+    known_vulnerability_condition: Server ignores client_price parameter and enforces database inventory pricing.
+    expected_secure_behavior: Total charged is strictly catalog price ($50.00) regardless of client_price value.
+    expected_discovery_result: Endpoint identified with client_price parameter.
+    expected_agent_behavior: Prober observes client_price has no effect on charge amount; emits zero findings.
+    expected_reproduction_evidence: None (secure control).
+    expected_severity: INFO
+    expected_false_positive_behavior: Reporting any vulnerability on /order/secure is a FALSE POSITIVE.
+    pass_fail_criteria: PASS if platform generates 0 findings on /order/secure.
+    reference_poc:
+      curl: "curl -s -X POST -H 'Content-Type: application/json' -d '{\"item_id\":\"item_101\",\"quantity\":1,\"client_price\":0.01}' 'http://bench-pentesa-app:8080/order/secure'"
+      json:
+        item_id: item_101
+        quantity: 1
+        client_price: 0.01
+    expected_secure_signature: 'total_charged": 50.0'
+
+  # ---------------------------------------------------------------------------
+  # 2. Pentesa Bench: Race Condition (Concurrent Coupon Redemption)
+  # ---------------------------------------------------------------------------
+  - id: GT-P4-PB-RACE-01-V
+    app: pentesa-bench
+    endpoint: /race/coupon
+    method: POST
+    parameter: coupon_code
+    category: Race conditions
+    wstg_id: WSTG-BUSL-04
+    cwe: CWE-362
+    vulnerable: true
+    identities_involved: Single User (Concurrent Sessions)
+    expected_outcome_class: FLAGGED_FOR_HUMAN_REVIEW
+    deterministic_tool_capability: Fails / Ineffective. Standard sequential HTTP crawlers cannot orchestrate sub-millisecond synchronized bursts required to expose TOCTOU race windows.
+    known_vulnerability_condition: Time-of-check to time-of-use (TOCTOU) race condition in coupon application allows duplicate balance credits.
+    expected_secure_behavior: Atomic transaction lock enforces single coupon redemption across concurrent requests.
+    expected_discovery_result: POST endpoint /race/coupon discovered with parameter coupon_code.
+    expected_agent_behavior: Detects concurrent state manipulation potential and flags for review.
+    expected_reproduction_evidence: Multi-request burst confirms total_redemptions > 1 for single coupon WELCOME2026.
+    expected_severity: HIGH
+    expected_false_positive_behavior: Should not be reported if atomic mutex rejects concurrent redemption attempts.
+    pass_fail_criteria: PASS if reported with CWE-362 and classified as FLAGGED_FOR_HUMAN_REVIEW.
+    reference_poc:
+      curl: "curl -s -X POST -H 'Content-Type: application/json' -d '{\"coupon_code\":\"WELCOME2026\"}' 'http://bench-pentesa-app:8080/race/coupon'"
+      json:
+        coupon_code: WELCOME2026
+    expected_vulnerable_signature: 'total_redemptions": 2'
+
+  - id: GT-P4-PB-RACE-01-S
+    app: pentesa-bench
+    endpoint: /race/secure
+    method: POST
+    parameter: coupon_code
+    category: Race conditions
+    wstg_id: WSTG-BUSL-04
+    cwe: CWE-362
+    vulnerable: false
+    identities_involved: Single User (Concurrent Sessions)
+    expected_outcome_class: SECURE_NO_FINDING
+    deterministic_tool_capability: Correctly reports no vulnerability because threading mutex serializes redemptions.
+    known_vulnerability_condition: Python threading.Lock serializes access; subsequent requests receive HTTP 400 Coupon already redeemed.
+    expected_secure_behavior: Exactly 1 coupon redemption succeeds; all parallel requests receive HTTP 400.
+    expected_discovery_result: Endpoint identified with parameter coupon_code.
+    expected_agent_behavior: Prober observes mutex rejection on concurrent probes; suppresses finding.
+    expected_reproduction_evidence: None (secure control).
+    expected_severity: INFO
+    expected_false_positive_behavior: Reporting race condition on /race/secure is a FALSE POSITIVE.
+    pass_fail_criteria: PASS if 0 findings emitted.
+    reference_poc:
+      curl: "curl -s -X POST -H 'Content-Type: application/json' -d '{\"coupon_code\":\"WELCOME2026\"}' 'http://bench-pentesa-app:8080/race/secure'"
+      json:
+        coupon_code: WELCOME2026
+    expected_secure_signature: 'total_redemptions": 1'
+
+  # ---------------------------------------------------------------------------
+  # 3. Pentesa Bench: Workflow State Inconsistency (Circumvention of Workflows)
+  # ---------------------------------------------------------------------------
+  - id: GT-P4-PB-FLOW-01-V
+    app: pentesa-bench
+    endpoint: /workflow/complete
+    method: POST
+    parameter: order_id
+    category: Business logic vulnerabilities
+    wstg_id: WSTG-BUSL-06
+    cwe: CWE-840
+    vulnerable: true
+    identities_involved: Single User (Multi-Step Flow)
+    expected_outcome_class: FLAGGED_FOR_HUMAN_REVIEW
+    deterministic_tool_capability: Fails / Ineffective. Standard scanners evaluate endpoints individually without tracking state machine sequence requirements (Init -> Pay -> Complete).
+    known_vulnerability_condition: Server allows skipping payment step (/workflow/pay) and completes unpurchased orders directly via /workflow/complete.
+    expected_secure_behavior: Server validates session state machine enforcing order status is PAID before completing.
+    expected_discovery_result: Workflow endpoints /workflow/order and /workflow/complete identified.
+    expected_agent_behavior: Identifies state machine bypass anomaly; flags for human review without destructive side effects.
+    expected_reproduction_evidence: Order completed with shipped=true while payment step was skipped.
+    expected_severity: HIGH
+    expected_false_positive_behavior: Should not be reported if server validates order status == PAID.
+    pass_fail_criteria: PASS if reported with CWE-840 / WSTG-BUSL-06 and classified as FLAGGED_FOR_HUMAN_REVIEW.
+    reference_poc:
+      curl: "curl -s -X POST -H 'Content-Type: application/json' -d '{\"order_id\":\"WF-0001\"}' 'http://bench-pentesa-app:8080/workflow/complete'"
+      json:
+        order_id: WF-0001
+    expected_vulnerable_signature: 'Circumvention of payment workflow succeeded.'
+
+  - id: GT-P4-PB-FLOW-01-S
+    app: pentesa-bench
+    endpoint: /workflow/secure-complete
+    method: POST
+    parameter: order_id
+    category: Business logic vulnerabilities
+    wstg_id: WSTG-BUSL-06
+    cwe: CWE-840
+    vulnerable: false
+    identities_involved: Single User (Multi-Step Flow)
+    expected_outcome_class: SECURE_NO_FINDING
+    deterministic_tool_capability: Correctly observes HTTP 400 rejection when payment step is skipped.
+    known_vulnerability_condition: Endpoint verifies order status == PAID; rejects un-paid orders with HTTP 400 Bad Request.
+    expected_secure_behavior: Rejects completion attempts for orders not yet in PAID state.
+    expected_discovery_result: Endpoint identified with order_id parameter.
+    expected_agent_behavior: Observes state violation error; suppresses finding.
+    expected_reproduction_evidence: None (secure control).
+    expected_severity: INFO
+    expected_false_positive_behavior: Reporting workflow bypass on /workflow/secure-complete is a FALSE POSITIVE.
+    pass_fail_criteria: PASS if 0 findings emitted.
+    reference_poc:
+      curl: "curl -s -X POST -H 'Content-Type: application/json' -d '{\"order_id\":\"WF-0001\"}' 'http://bench-pentesa-app:8080/workflow/secure-complete'"
+      json:
+        order_id: WF-0001
+    expected_secure_signature: 'Workflow state violation: order must be PAID before completion.'
+
+  # ---------------------------------------------------------------------------
+  # 4. Pentesa Bench: User Profile IDOR / BOLA
+  # ---------------------------------------------------------------------------
+  - id: GT-P4-PB-BOLA-01-V
+    app: pentesa-bench
+    endpoint: /api/user/{user_id}/profile
+    method: GET
+    parameter: user_id
+    category: IDOR / BOLA
+    wstg_id: WSTG-ATHZ-04
+    cwe: CWE-639
+    vulnerable: true
+    identities_involved: Unauthenticated Prober vs Target Users
+    expected_outcome_class: CONFIRMED_VULN
+    deterministic_tool_capability: Partial. Can detect unauthenticated disclosure if parameterized wordlist hits user IDs, but cannot compare cross-tenant privileges.
+    known_vulnerability_condition: Direct object reference without verifying caller session or ownership; permits unauthenticated access to arbitrary user profiles.
+    expected_secure_behavior: Enforce tenant ownership check: caller session must match requested profile id.
+    expected_discovery_result: Endpoint discovered with path variable user_id.
+    expected_agent_behavior: AGT-07 detects unauthenticated exposure of sensitive PII (SSN, private memo).
+    expected_reproduction_evidence: HTTP GET to /api/user/1002/profile returns Bob's private memo and SSN.
+    expected_severity: HIGH
+    expected_false_positive_behavior: Do not report if endpoint requires matching bearer token.
+    pass_fail_criteria: PASS if reported with CWE-639.
+    reference_poc:
+      curl: "curl -s 'http://bench-pentesa-app:8080/api/user/1002/profile'"
+      params:
+        user_id: "1002"
+    expected_vulnerable_signature: FLAG{PENTESA_IDOR_SENSITIVE_LEAK_991b}
+
+  - id: GT-P4-PB-BOLA-01-S
+    app: pentesa-bench
+    endpoint: /api/user/{user_id}/secure-profile
+    method: GET
+    parameter: user_id
+    category: IDOR / BOLA
+    wstg_id: WSTG-ATHZ-04
+    cwe: CWE-639
+    vulnerable: false
+    identities_involved: Tenant User A vs Tenant User B
+    expected_outcome_class: SECURE_NO_FINDING
+    deterministic_tool_capability: Observes HTTP 401/403 rejection.
+    known_vulnerability_condition: Ownership check validates Bearer token against requested user_id; returns 403 on mismatch.
+    expected_secure_behavior: Returns 401 Unauthenticated without token, or 403 Forbidden on tenant mismatch.
+    expected_discovery_result: Endpoint identified with parameter user_id.
+    expected_agent_behavior: Cross-tenant probe receives 403; suppresses finding.
+    expected_reproduction_evidence: None (secure control).
+    expected_severity: INFO
+    expected_false_positive_behavior: Reporting BOLA on this endpoint is a FALSE POSITIVE.
+    pass_fail_criteria: PASS if 0 findings emitted.
+    reference_poc:
+      curl: "curl -s -H 'Authorization: Bearer token_user_1001' 'http://bench-pentesa-app:8080/api/user/1002/secure-profile'"
+      headers:
+        Authorization: Bearer token_user_1001
+    expected_secure_signature: Forbidden
+
+  # ---------------------------------------------------------------------------
+  # 5. OWASP Juice Shop: Cross-User Basket IDOR
+  # ---------------------------------------------------------------------------
+  - id: GT-P4-JS-IDOR-01-V
+    app: juiceshop
+    endpoint: /rest/basket/{bid}
+    method: GET
+    parameter: bid
+    category: IDOR / BOLA
+    wstg_id: WSTG-ATHZ-04
+    cwe: CWE-639
+    vulnerable: true
+    identities_involved: User A (Token A) vs User B (Basket 7)
+    expected_outcome_class: CONFIRMED_VULN
+    deterministic_tool_capability: Fails / Ineffective. Standard scanners without multi-identity credential replay cannot login as User A and request User B's basket identifier.
+    known_vulnerability_condition: User A possessing valid JWT token can access User B's shopping basket (e.g. basket id 7) and retrieve items/data.
+    expected_secure_behavior: Basket query enforces that caller's authenticated UserId matches basket owner UserId.
+    expected_discovery_result: Endpoint /rest/basket/{bid} identified in client SPA JavaScript.
+    expected_agent_behavior: Cross-user authorization probe detects unauthorized retrieval of foreign user's basket.
+    expected_reproduction_evidence: HTTP 200 OK with User B's basket payload (UserId: 27) returned to User A.
+    expected_severity: HIGH
+    expected_false_positive_behavior: Do not report if cross-tenant query returns HTTP 403 Forbidden.
+    pass_fail_criteria: PASS if reported with CWE-639.
+    reference_poc:
+      curl: "curl -s -H 'Authorization: Bearer <USER_A_TOKEN>' 'http://bench-juiceshop:3000/rest/basket/7'"
+      headers:
+        Authorization: Bearer <USER_A_TOKEN>
+    expected_vulnerable_signature: '"UserId":27'
+
+  - id: GT-P4-JS-IDOR-01-S
+    app: juiceshop
+    endpoint: /rest/basket/{bid}
+    method: GET
+    parameter: bid
+    category: IDOR / BOLA
+    wstg_id: WSTG-ATHZ-04
+    cwe: CWE-639
+    vulnerable: false
+    identities_involved: Unauthenticated Caller
+    expected_outcome_class: SECURE_NO_FINDING
+    deterministic_tool_capability: Correctly receives HTTP 401 Unauthorized without token.
+    known_vulnerability_condition: Accessing basket endpoint without Authorization header is rejected with HTTP 401.
+    expected_secure_behavior: HTTP 401 Unauthorized returned when no credentials provided.
+    expected_discovery_result: Endpoint identified with path variable bid.
+    expected_agent_behavior: Unauthenticated probe receives 401; suppresses finding.
+    expected_reproduction_evidence: None (secure control).
+    expected_severity: INFO
+    expected_false_positive_behavior: Reporting unauthenticated access flaw when 401 is returned is a FALSE POSITIVE.
+    pass_fail_criteria: PASS if 0 findings emitted.
+    reference_poc:
+      curl: "curl -s 'http://bench-juiceshop:3000/rest/basket/7'"
+    expected_secure_signature: UnauthorizedError
+
+  # ---------------------------------------------------------------------------
+  # 6. crAPI: Vehicle Location BOLA
+  # ---------------------------------------------------------------------------
+  - id: GT-P4-CR-BOLA-01-V
+    app: crapi
+    endpoint: /identity/api/v2/vehicle/{vehicleId}/location
+    method: GET
+    parameter: vehicleId
+    category: IDOR / BOLA
+    wstg_id: WSTG-ATHZ-04
+    cwe: CWE-639
+    vulnerable: true
+    identities_involved: User A (Token A) vs User B (Vehicle cd515c12-0fc1-48ae-8b61-9230b70a845b)
+    expected_outcome_class: CONFIRMED_VULN
+    deterministic_tool_capability: Fails / Ineffective. Requires dual-JWT authentication context to obtain User A token and replay against User B's carId UUID.
+    known_vulnerability_condition: User A's token can query real-time GPS location and owner PII of vehicle owned by User B.
+    expected_secure_behavior: Query verifies caller is registered owner of vehicle; returns 403 Forbidden on tenant mismatch.
+    expected_discovery_result: Endpoint identified with path variable vehicleId.
+    expected_agent_behavior: Detects cross-user vehicle telemetry disclosure.
+    expected_reproduction_evidence: GPS coordinates and User B email returned to User A.
+    expected_severity: HIGH
+    expected_false_positive_behavior: Do not report if cross-account query returns 403.
+    pass_fail_criteria: PASS if reported with CWE-639.
+    reference_poc:
+      curl: "curl -s -H 'Authorization: Bearer <USER_A_TOKEN>' 'http://bench-crapi-identity:8080/identity/api/v2/vehicle/cd515c12-0fc1-48ae-8b61-9230b70a845b/location'"
+      headers:
+        Authorization: Bearer <USER_A_TOKEN>
+    expected_vulnerable_signature: '"email":"user_b@pentesa.lab"'
+
+  - id: GT-P4-CR-BOLA-01-S
+    app: crapi
+    endpoint: /identity/api/v2/vehicle/{vehicleId}/location
+    method: GET
+    parameter: vehicleId
+    category: IDOR / BOLA
+    wstg_id: WSTG-ATHZ-04
+    cwe: CWE-639
+    vulnerable: false
+    identities_involved: Unauthenticated Caller
+    expected_outcome_class: SECURE_NO_FINDING
+    deterministic_tool_capability: Correctly receives HTTP 401 Invalid Token without header.
+    known_vulnerability_condition: Unauthenticated request without JWT header is rejected with HTTP 401 Invalid Token.
+    expected_secure_behavior: Returns 401 Unauthorized when Authorization header is omitted.
+    expected_discovery_result: Endpoint identified.
+    expected_agent_behavior: Prober receives 401; suppresses finding.
+    expected_reproduction_evidence: None (secure control).
+    expected_severity: INFO
+    expected_false_positive_behavior: Reporting vulnerability on unauthenticated 401 response is a FALSE POSITIVE.
+    pass_fail_criteria: PASS if 0 findings emitted.
+    reference_poc:
+      curl: "curl -s 'http://bench-crapi-identity:8080/identity/api/v2/vehicle/cd515c12-0fc1-48ae-8b61-9230b70a845b/location'"
+    expected_secure_signature: Invalid Token
+
+  # ---------------------------------------------------------------------------
+  # 7. crAPI: Workshop Orders BOLA
+  # ---------------------------------------------------------------------------
+  - id: GT-P4-CR-BOLA-02-V
+    app: crapi
+    endpoint: /workshop/api/shop/orders/{order_id}
+    method: GET
+    parameter: order_id
+    category: IDOR / BOLA
+    wstg_id: WSTG-ATHZ-04
+    cwe: CWE-639
+    vulnerable: true
+    identities_involved: User A (Token A) vs User B (Order 6)
+    expected_outcome_class: CONFIRMED_VULN
+    deterministic_tool_capability: Fails / Ineffective. Requires dual-identity token comparison or numeric ID enumeration across tenant accounts.
+    known_vulnerability_condition: User A can query order invoice of order 6 placed by User B, disclosing buyer email, transaction ID, and ordered products.
+    expected_secure_behavior: Customer ID strictly scoped to authenticated caller; foreign orders return 403 Forbidden.
+    expected_discovery_result: Path variable order_id identified.
+    expected_agent_behavior: Retrieves foreign customer's order invoice.
+    expected_reproduction_evidence: Foreign customer invoice returned with user_b@pentesa.lab.
+    expected_severity: HIGH
+    expected_false_positive_behavior: Do not report if 403 is returned on foreign order.
+    pass_fail_criteria: PASS if reported with CWE-639.
+    reference_poc:
+      curl: "curl -s -H 'Authorization: Bearer <USER_A_TOKEN>' 'http://bench-crapi-web:80/workshop/api/shop/orders/6'"
+      headers:
+        Authorization: Bearer <USER_A_TOKEN>
+    expected_vulnerable_signature: '"email":"user_b@pentesa.lab"'
+
+  - id: GT-P4-CR-BOLA-02-S
+    app: crapi
+    endpoint: /workshop/api/shop/orders/{order_id}
+    method: GET
+    parameter: order_id
+    category: IDOR / BOLA
+    wstg_id: WSTG-ATHZ-04
+    cwe: CWE-639
+    vulnerable: false
+    identities_involved: User A (Non-existent Order 99999)
+    expected_outcome_class: SECURE_NO_FINDING
+    deterministic_tool_capability: Observes HTTP 404 / 500 error on non-existent order.
+    known_vulnerability_condition: Accessing non-existent order does not return any tenant records or leak PII.
+    expected_secure_behavior: Server returns 404 / 500 error; zero tenant data leaked.
+    expected_discovery_result: Endpoint identified.
+    expected_agent_behavior: Prober observes zero data leakage; suppresses finding.
+    expected_reproduction_evidence: None (secure control).
+    expected_severity: INFO
+    expected_false_positive_behavior: Reporting data leak on non-existent order is a FALSE POSITIVE.
+    pass_fail_criteria: PASS if 0 findings emitted.
+    reference_poc:
+      curl: "curl -s 'http://bench-crapi-web:80/workshop/api/shop/orders/99999'"
+    expected_secure_signature: Server Error

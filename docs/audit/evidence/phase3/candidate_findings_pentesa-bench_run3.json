@@ -1,0 +1,15 @@
+[
+  {
+    "title": "Missing Security Headers (CSP, XFO, XCTO)",
+    "cwe_id": "CWE-693",
+    "source": "wstg_agent",
+    "wstg_id": "WSTG-CLNT-09",
+    "severity": "Low",
+    "target_url": "http://bench-pentesa-app:8080",
+    "description": "HTTP responses from http://bench-pentesa-app:8080 lack recommended defensive security headers: Content-Security-Policy, X-Content-Type-Options, X-Frame-Options.",
+    "raw_request": "GET / HTTP/1.1\r\nHost: bench-pentesa-app:8080\r\nUser-Agent: Pentesa-WSTG-Prober\r\n\r\n",
+    "status_code": 404,
+    "raw_response": "HTTP/1.1 404\r\ndate: Wed, 18 Nov 2026 04:09:24 GMT\r\nserver: uvicorn\r\ncontent-length: 22\r\ncontent-type: application/json",
+    "reproduction_curl": "curl -i -s 'http://bench-pentesa-app:8080'"
+  }
+]

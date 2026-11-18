@@ -1,0 +1,28 @@
+[
+  {
+    "title": "Missing Security Headers (CSP, XFO, XCTO)",
+    "cwe_id": "CWE-693",
+    "source": "wstg_agent",
+    "wstg_id": "WSTG-CLNT-09",
+    "severity": "Low",
+    "target_url": "http://bench-crapi-web",
+    "description": "HTTP responses from http://bench-crapi-web lack recommended defensive security headers: Content-Security-Policy, X-Content-Type-Options, X-Frame-Options.",
+    "raw_request": "GET / HTTP/1.1\r\nHost: bench-crapi-web\r\nUser-Agent: Pentesa-WSTG-Prober\r\n\r\n",
+    "status_code": 200,
+    "raw_response": "HTTP/1.1 200\r\nserver: openresty/1.27.1.2\r\ndate: Wed, 18 Nov 2026 04:33:34 GMT\r\ncontent-type: text/html\r\ncontent-length: 1207\r\nlast-modified: Mon, 22 Sep 2025 18:05:09 GMT\r\nconnection: keep-alive\r\netag: \"68d18fd5-4b7\"\r\naccept-ranges: bytes",
+    "reproduction_curl": "curl -i -s 'http://bench-crapi-web'"
+  },
+  {
+    "title": "Exposed Environment Configuration File (.env)",
+    "cwe_id": "CWE-200",
+    "source": "check_runner",
+    "wstg_id": "WSTG-CONF-04",
+    "severity": "Critical",
+    "matched_at": "http://bench-crapi-web/.env",
+    "description": "Environment secrets file exposed unauthenticated at http://bench-crapi-web/.env.",
+    "raw_request": "GET /.env HTTP/1.1\r\nHost: bench-crapi-web\r\n\r\n",
+    "status_code": 200,
+    "raw_response": "HTTP/1.1 200\r\nContent-Type: application/octet-stream\r\n\r\nDB_NAME=crapi\nDB_USER=crapi\nDB_PASSWORD=crapi\nDB_HOST=postgresdb\nDB_PORT=5432\nSERVER_PORT=8080\nMONGO_DB_HOST=mongodb\nMONGO_DB_PORT=27017\nMONGO_DB_USER=crapi\nMONGO_DB_PASSWORD=crapi\nMONGO_DB_NAME=crapi\n",
+    "reproduction_curl": "curl -i -s 'http://bench-crapi-web/.env'"
+  }
+]

@@ -1,10 +1,10 @@
 # Pentesa — Requirement-to-Implementation Traceability Matrix
 
-> **Document Identifier:** PENTESA-AUDIT-02-TRACEABILITY-V1.2  
-> **Audit Phase:** Phase 2 — Functional & Integration Testing (Part 2B Conclusion)  
+> **Document Identifier:** PENTESA-AUDIT-02-TRACEABILITY-V1.3  
+> **Audit Phase:** Phase 3 — Pentest Effectiveness Benchmark Conclusion  
 > **Auditors:** Independent Principal Software Architect, Senior AppSec Engineer, Senior Penetration Tester, Security QA Engineer  
 > **Date:** November 2026  
-> **Methodology:** Direct Source Code Inspection + Automated Running-Stack Test Verification  
+> **Methodology:** Direct Source Code Inspection + Isolated Running-Stack Vulnerability Benchmarking  
 
 ---
 
@@ -52,7 +52,7 @@
 | **FR-DS-01** | Subdomain enumeration (`subfinder`, passive DNS) | `services/discovery_engine/service.py` | **Partially Verified** | Handled via Python discovery; external `subfinder` binary runner not implemented. |
 | **FR-DS-02** | Scope-aware web crawling supporting HTML & SPA endpoints | `services/discovery_engine/crawler.py` | **Verified** | Python `httpx` + `BeautifulSoup4` crawler with scope check on every URL. |
 | **FR-DS-03** | Endpoint extraction from HTML forms, JS bundles, OpenAPI specs | `services/discovery_engine/extractor.py` | **Verified** | 9 unit tests passed in `test_parameter_extraction.py` (forms, JSON, JS, OpenAPI, robots, sitemap). |
-| **FR-DS-04** | Hidden path and content discovery (`ffuf`) | `integrations/ffuf/runner.py`<br>`services/execution_engine/tools/wordlists/common.txt` | **Partially Verified** | Smoke check matched 4/4 canonical paths; controlled fuzzing verified against Juice Shop (Part 2A check 7.2). Pinned wordlist bundled into image via FIX-05 (`7e80f6d`). Real fuzzing recall benchmark deferred to Phase 3. |
+| **FR-DS-04** | Hidden path and content discovery (`ffuf`) | `integrations/ffuf/runner.py`<br>`services/execution_engine/tools/wordlists/common.txt` | **Partially Verified** | Smoke check matched 4/4 canonical paths; controlled fuzzing verified against Juice Shop. In Phase 3 benchmarking, ffuf baseline successfully discovered hidden paths across all 5 benchmark targets. However, the discovery engine crawler does not invoke ffuf automatically when blind crawling headless targets returning 404 on `/` with zero HTML links (`pentesa-bench`), resulting in zero discovered endpoints. Documented as `P2-RECON-01` in roadmap. |
 | **FR-DS-05** | Centralized Endpoint Inventory with parameters and schema | `database/models/discovery.py`<br>`apps/api/routers/discovery.py`<br>`apps/web/src/app/discovery/page.tsx` | **Verified** | Endpoints and parameters persisted to DB and rendered in UI with methods, parameters, and auth flags. |
 | **FR-DS-06** | Technology fingerprinting identifying frameworks and servers | `services/discovery_engine/fingerprint.py` | **Partially Verified** | Unit tests pass in `test_technology_detection.py`, but technology fingerprinter misses SPAs lacking server headers (DISCO-SPA-01 open, deferred to Phase 9 DOM parsing roadmap). |
 
@@ -74,8 +74,8 @@
 
 | Req ID | Requirement Description | Implementation Files | Status | Execution Evidence / Verification Notes |
 |---|---|---|---|---|
-| **FR-ST-01** | Tool execution wrapper for Nuclei with scope validation | `integrations/nuclei/runner.py`<br>`apps/api/routers/tools.py` | **Partially Verified** | Nuclei pipeline and parser verified; finding ingestion confirmed via fixture template. Pinned templates baked into Docker image and per-probe timeout separated from subprocess execution timeout via FIX-05 (`7e80f6d`). Real vulnerability detection against live CVEs deferred to Phase 3. |
-| **FR-ST-02** | Tool execution wrappers for httpx, katana, ffuf | `integrations/ffuf/runner.py`<br>`apps/api/routers/tools.py` | **Partially Verified** | Ffuf binary v2.1.0 verified with controlled fuzzing; production wordlist bundled via FIX-05 (`7e80f6d`). Katana/httpx CLI runners absent (NI-04). |
+| **FR-ST-01** | Tool execution wrapper for Nuclei with scope validation | `integrations/nuclei/runner.py`<br>`apps/api/routers/tools.py` | **Partially Verified** | Nuclei pipeline, parser, and finding ingestion verified. Pinned templates baked into Docker image and per-probe timeout separated from subprocess execution timeout via FIX-05 (`7e80f6d`). In Phase 3 benchmarking, Nuclei baseline detected exposures on Juice Shop (7 findings including Swagger API, robots.txt), DVWA (11 findings), and crAPI (5 findings). Zero out-of-scope or canary hits confirmed across all runs. |
+| **FR-ST-02** | Tool execution wrappers for httpx, katana, ffuf | `integrations/ffuf/runner.py`<br>`apps/api/routers/tools.py` | **Partially Verified** | Ffuf binary v2.1.0 verified with controlled fuzzing; production wordlist verified. In Phase 3 benchmarking, ffuf discovered paths across all 5 benchmark targets. Katana/httpx CLI runners absent (NI-04). |
 | **FR-ST-03** | Custom Python security check harness | `services/execution_engine/tools/http_client.py`<br>`agents/authorization/authz_agent.py`<br>`agents/vulnerability/vuln_agent.py` | **Verified** | Python-based HTTP prober with header injection, CORS, and IDOR testing active. |
 | **FR-ST-04** | Strict process sandboxing: Zero dynamic shell execution from LLM | `services/execution_engine/tools/base.py` | **Verified** | `create_subprocess_exec` uses typed `argv: List[str]`; shell strings strictly prohibited. |
 | **FR-ST-05** | Global and per-target rate limiting | `services/execution_engine/tools/base.py`<br>`integrations/ffuf/runner.py` | **Partially Verified** | Rate limiting benchmark verified against Juice Shop logs (nuclei: 5.04, 10.15, 20.30 req/s; ffuf: 4.98, 9.95, 19.92 req/s). However, `/http-test` endpoint is unthrottled in API spec and awaits global rate limiting in Phase 9. |
@@ -97,9 +97,9 @@
 
 | Req ID | Requirement Description | Implementation Files | Status | Execution Evidence / Verification Notes |
 |---|---|---|---|---|
-| **FR-VV-01** | 10-step finding lifecycle | `database/models/finding.py`<br>`apps/api/routers/findings.py` | **Verified** | `FindingStatusHistory` tracks transitions from Detected to Confirmed/False Positive. |
-| **FR-VV-02** | Evidence artifact collection (raw bytes, headers, curl command) | `services/evidence_engine/collector.py`<br>`services/evidence_engine/curl_generator.py` | **Verified** | `test_generate_reproduction_curl`, `test_serialize_raw_http_wire_format` passed. Plaintext credential leak in cURL body resolved via FIX-10 (`b65eaf3`). Evidence: `docs/audit/evidence/phase2/r6_reporting.txt`. |
-| **FR-VV-03** | Evidence integrity: SHA-256 hash for request/response pairs | `services/evidence_engine/hasher.py` | **Verified** | `test_compute_evidence_hash` passed. |
+| **FR-VV-01** | 10-step finding lifecycle | `database/models/finding.py`<br>`apps/api/routers/findings.py` | **Verified** | `FindingStatusHistory` tracks transitions from Detected to Confirmed/False Positive. In Phase 3 benchmarking, candidate findings from probers remained unpromoted for passive header issues (documented as `P2-FIND-01`), but active probers successfully transitioned confirmed exploits with full reproduction evidence and SHA-256 digests when endpoints were seeded. |
+| **FR-VV-02** | Evidence artifact collection (raw bytes, headers, curl command) | `services/evidence_engine/collector.py`<br>`services/evidence_engine/curl_generator.py` | **Verified** | `test_generate_reproduction_curl`, `test_serialize_raw_http_wire_format` passed. Plaintext credential leak in cURL body resolved via FIX-10 (`b65eaf3`). In Phase 3 benchmarking, confirmed findings on seeded `pentesa-bench` captured raw HTTP request, raw HTTP response, and runnable reproduction curl command with request/response SHA-256 hashes. |
+| **FR-VV-03** | Evidence integrity: SHA-256 hash for request/response pairs | `services/evidence_engine/hasher.py` | **Verified** | `test_compute_evidence_hash` passed. In Phase 3 benchmarking, request_hash_sha256 and response_hash_sha256 computed and persisted for every confirmed finding. |
 | **FR-VV-04** | Sensitive data masking: automatically redact cards, passwords, tokens | `services/evidence_engine/redactor.py` | **Verified** | 3 unit tests passed (`test_mask_sensitive_headers`, `test_redact_raw_stream_credentials`, `test_redact_raw_stream_credit_card`). Body redaction in reproduction commands enforced via FIX-10 (`b65eaf3`). |
 | **FR-VV-05** | Automated reproduction harness: re-execute minimal payloads | `agents/validation/validation_agent.py` | **Verified** | Validation agent executes independent reproduction before confirming. |
 

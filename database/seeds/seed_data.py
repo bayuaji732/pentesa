@@ -48,25 +48,26 @@ async def seed_initial_data(session: AsyncSession) -> None:
     # 1. Populate/refresh official WSTG Catalog
     await seed_wstg_catalog(session)
 
-    # 2. Check if any admin account already exists
-    admin_stmt = select(User).where(User.role == "ADMIN")
-    existing_admin = (await session.execute(admin_stmt)).first()
-    if existing_admin:
-        return
-
     bootstrap_flag = os.getenv("PENTESA_BOOTSTRAP_ADMIN", "").lower() in ("1", "true", "yes")
     bootstrap_email = os.getenv("PENTESA_BOOTSTRAP_ADMIN_EMAIL")
     bootstrap_pwd = os.getenv("PENTESA_BOOTSTRAP_ADMIN_PASSWORD")
 
-    # 2b. Refuse startup if bootstrap flag is enabled but credentials are missing
-    if bootstrap_flag and (not bootstrap_email or not bootstrap_pwd):
-        raise ValueError(
-            "SEC-PWD-01: PENTESA_BOOTSTRAP_ADMIN is enabled but PENTESA_BOOTSTRAP_ADMIN_EMAIL "
-            "or PENTESA_BOOTSTRAP_ADMIN_PASSWORD is missing. Both must be provided."
-        )
+    # 2. Handle explicit bootstrap admin creation if requested
+    if bootstrap_flag or bootstrap_email:
+        if not bootstrap_email or not bootstrap_pwd:
+            raise ValueError(
+                "SEC-PWD-01: PENTESA_BOOTSTRAP_ADMIN is enabled but PENTESA_BOOTSTRAP_ADMIN_EMAIL "
+                "or PENTESA_BOOTSTRAP_ADMIN_PASSWORD is missing. Both must be provided."
+            )
 
-    # 3. Handle explicit bootstrap credentials
-    if bootstrap_email and bootstrap_pwd:
+        # Idempotency check: verify if this bootstrap admin already exists
+        target_email = bootstrap_email.strip().lower()
+        user_stmt = select(User).where(User.email == target_email)
+        existing_bootstrap_user = (await session.execute(user_stmt)).scalar_one_or_none()
+        if existing_bootstrap_user:
+            logger.info(f"Bootstrap admin account already exists: {target_email}. Skipping creation (idempotent).")
+            return
+
         is_strong, reason = is_strong_password(bootstrap_pwd)
         if not is_strong:
             raise ValueError(
@@ -75,7 +76,7 @@ async def seed_initial_data(session: AsyncSession) -> None:
 
         admin_user = User(
             id=uuid.uuid4(),
-            email=bootstrap_email.strip().lower(),
+            email=target_email,
             password_hash=hash_password(bootstrap_pwd),
             full_name="System Administrator",
             role="ADMIN",
@@ -83,7 +84,13 @@ async def seed_initial_data(session: AsyncSession) -> None:
         )
         session.add(admin_user)
         await session.commit()
-        logger.info(f"Successfully bootstrapped initial admin account: {bootstrap_email}")
+        logger.info(f"Successfully bootstrapped initial admin account: {target_email}")
+        return
+
+    # 3. Check if any admin account already exists
+    admin_stmt = select(User).where(User.role == "ADMIN")
+    existing_admin = (await session.execute(admin_stmt)).first()
+    if existing_admin:
         return
 
     # 4. Handle development demo data seeding

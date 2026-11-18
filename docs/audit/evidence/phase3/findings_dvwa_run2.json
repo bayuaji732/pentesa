@@ -1,0 +1,37 @@
+[
+  {
+    "id": "cd62cee4-fe76-48af-bf7d-5b146d005bbb",
+    "project_id": "92e01a61-4f06-49e2-b6dd-7375c4a6f2ee",
+    "endpoint_id": null,
+    "wstg_id": "WSTG-CLNT-09",
+    "title": "Missing Security Headers (CSP, XFO, XCTO)",
+    "description": "HTTP responses from http://bench-dvwa lack recommended defensive security headers: Content-Security-Policy, X-Content-Type-Options, X-Frame-Options.",
+    "severity": "Low",
+    "status": "Confirmed",
+    "confidence": "Confirmed",
+    "cvss_score": null,
+    "cvss_vector": null,
+    "cwe_id": "CWE-693",
+    "owasp_category": null,
+    "affected_parameter": null,
+    "detection_source": "wstg_agent",
+    "remediation_guidance": null,
+    "business_impact": null,
+    "is_simulated": false,
+    "created_at": "2026-11-18T04:28:34.098515Z",
+    "updated_at": "2026-11-18T04:28:34.098519Z",
+    "evidence": [
+      {
+        "id": "f70d2444-1d50-42de-8d07-09b3711ba37c",
+        "finding_id": "cd62cee4-fe76-48af-bf7d-5b146d005bbb",
+        "raw_request": "GET / HTTP/1.1\r\nHost: bench-dvwa\r\nUser-Agent: Pentesa-WSTG-Prober\r\n\r\n",
+        "raw_response": "HTTP/1.1 200\r\ndate: Wed, 18 Nov 2026 04:27:29 GMT\r\nserver: Apache/2.4.25 (Debian)\r\nexpires: Tue, 23 Jun 2009 12:00:00 GMT\r\ncache-control: no-cache, must-revalidate\r\npragma: no-cache\r\nvary: Accept-Encoding\r\ncontent-encoding: gzip\r\ncontent-length: 699\r\nkeep-alive: timeout=5, max=99\r\nconnection: Keep-Alive\r\ncontent-type: text/html;charset=utf-8",
+        "reproduction_curl": "curl -i -s 'http://bench-dvwa'",
+        "request_hash_sha256": "2aceebee0c212387c3d320dd7ba3f2cfe064bbbdde6e59494b09e444696dd815",
+        "response_hash_sha256": "1ff1eb0cead1131d47a7291eb7db79721657f6cc00f932e291f3e1bd6712b58e",
+        "screenshot_path": null,
+        "captured_at": "2026-11-18T04:28:34.100382Z"
+      }
+    ]
+  }
+]

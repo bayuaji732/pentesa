@@ -22,6 +22,7 @@ This changelog documents all configuration adjustments performed under Gate B0-2
 | `benchmark/docker-compose.bench.yml` | Namespacing | Added top-level `name: pentesa-bench` | Establishes dedicated benchmark target namespace. |
 | `docker-compose.phase2.yml` | Namespacing & Retirement | Added `name: pentesa-lab`, torn down without `-v`, then removed via `git rm -f` | Retired historical Phase 2 stack to eliminate hardcoded secrets in working tree; preserved at tag `phase2-final`. |
 | `infrastructure/docker-compose.prod.yml` | Defect Logging | Added `name: pentesa-prod`; logged as P3 defect (stale / duplicate) | Marked stale due to hardcoded default passwords rejected by startup validation; duplicate of root file. |
+| `docker-compose.override.yml` | Network Attachment | Created override attaching `api` and `worker` to external `pentesa-bench-net` | Replaces manual `docker network connect` commands with deterministic compose overlay. |
 
 ---
 
@@ -77,3 +78,38 @@ index 0bc37c7..6119e7b 100644
        - NODE_ENV=production
        - API_INTERNAL_URL=http://api:8000
 ```
+
+
+---
+
+## 3. Step 3 Reproducibility Proof: Automated Benchmark Network Attachment
+
+To eliminate manual `docker network connect` operations during benchmark cycles, `docker-compose.override.yml` was established:
+```yaml
+services:
+  api:
+    networks:
+      - pentesa-bench-net
+  worker:
+    networks:
+      - pentesa-bench-net
+
+networks:
+  pentesa-bench-net:
+    name: pentesa-bench-net
+    external: true
+```
+
+### Verification & Teardown Proof:
+1. **Safety Guard Enforced**: Teardown attempt via `reset_bench.py` against `docker-compose.yml` (`pentesa-prod`) was strictly rejected by the safety guard:
+   ```text
+   CRITICAL SAFETY VIOLATION: Refusing to run 'down -v'!
+   Expected compose project name 'pentesa-bench', but observed 'pentesa-prod'.
+   ```
+2. **Benchmark Stack Recreated**: The benchmark stack was brought down (`docker compose -f benchmark/docker-compose.bench.yml -p pentesa-bench down`) and recreated (`up -d`).
+3. **Automatic DNS & Reachability Confirmed**:
+   With no manual network connect commands, `pentesa-api` queried `bench-pentesa-app:8080`:
+   ```bash
+   docker exec pentesa-api curl -fs http://bench-pentesa-app:8080/healthz
+   # Output: {"status":"ok","app":"pentesa-bench","version":"1.0.0"}
+   ```

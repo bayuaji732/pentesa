@@ -1,0 +1,72 @@
+[
+  {
+    "id": "40a72d1c-3ac2-413a-bafd-30ce9254bb23",
+    "project_id": "b9fd329d-536c-4e33-924e-7c077fc42a65",
+    "endpoint_id": null,
+    "wstg_id": "WSTG-INPV-05",
+    "title": "SQL Injection in Product Search Parameter",
+    "description": "Error-based SQL injection confirmed on /rest/products/search?q= returning database syntax details or HTTP 500.",
+    "severity": "Critical",
+    "status": "Confirmed",
+    "confidence": "Confirmed",
+    "cvss_score": null,
+    "cvss_vector": null,
+    "cwe_id": "CWE-89",
+    "owasp_category": null,
+    "affected_parameter": "q",
+    "detection_source": "check_runner",
+    "remediation_guidance": null,
+    "business_impact": null,
+    "is_simulated": false,
+    "created_at": "2026-11-18T04:24:32.629072Z",
+    "updated_at": "2026-11-18T04:24:32.629074Z",
+    "evidence": [
+      {
+        "id": "1412052b-0347-4122-b03a-af06c89c9e74",
+        "finding_id": "40a72d1c-3ac2-413a-bafd-30ce9254bb23",
+        "raw_request": "GET /rest/products/search?q=%27%29%29 HTTP/1.1\r\nHost: bench-juiceshop:3000\r\n\r\n",
+        "raw_response": "HTTP/1.1 500\r\n\r\n<html>\n  <head>\n    <meta charset='utf-8'> \n    <title>Error: SQLITE_ERROR: near &quot;)&quot;: syntax error</title>\n    <style>* {\n  margin: 0;\n  padding: 0;\n  outline: 0;\n}\n\nbody {\n  padding: 80px 100px;\n  font: 13px \"Helvetica Neue\", \"Lucida Grande\", \"Arial\";\n  background: #ECE9E9 -webkit-gradient(linear, 0% 0%, 0% 100%, from(#fff), to(#ECE9E9));\n  background: #ECE9E9 -moz-linear-gradient(top, #fff, #ECE9E9);\n  background-repeat: no-repeat;\n  color: #555;\n  -webkit-font-smoothing: antialiased;\n}\nh1, h2 {\n  font-size: 22px;\n  color: #343434;\n}\nh1 em, h2 em {\n  padding: 0 5px;\n  font-weight: normal;\n}\nh1 {\n  font-size: 60px;\n}\nh2 {\n  margin-top: 10px;\n}\nul li {\n  list-style: none;\n}\n#stacktrace {\n  margin-left: 60px;\n}\n</style>\n  </head>\n  <body>\n    <div id=\"wrapper\">\n      <h1>OWASP Jui",
+        "reproduction_curl": "curl -i -s \"http://bench-juiceshop:3000/rest/products/search?q=%27%29%29\"",
+        "request_hash_sha256": "3f7add33786b087e3ced7e1c5edbb1048a5976087629d9aac262efaac72a7ea9",
+        "response_hash_sha256": "44496371a09d23786b53b8ce3e4d08a36f9d1219f32107481b2888e094710306",
+        "screenshot_path": null,
+        "captured_at": "2026-11-18T04:24:32.631070Z"
+      }
+    ]
+  },
+  {
+    "id": "f1965d27-2114-4b2a-b4fd-79403f9c9f0c",
+    "project_id": "b9fd329d-536c-4e33-924e-7c077fc42a65",
+    "endpoint_id": null,
+    "wstg_id": "WSTG-CONF-02",
+    "title": "Missing Security Headers (CSP, XFO, XCTO)",
+    "description": "HTTP responses from http://bench-juiceshop:3000 lack recommended defensive security headers: Content-Security-Policy.",
+    "severity": "Low",
+    "status": "Confirmed",
+    "confidence": "Confirmed",
+    "cvss_score": null,
+    "cvss_vector": null,
+    "cwe_id": "CWE-693",
+    "owasp_category": null,
+    "affected_parameter": null,
+    "detection_source": "wstg_agent",
+    "remediation_guidance": null,
+    "business_impact": null,
+    "is_simulated": false,
+    "created_at": "2026-11-18T04:24:31.280106Z",
+    "updated_at": "2026-11-18T04:24:31.280109Z",
+    "evidence": [
+      {
+        "id": "51ba199e-99f8-4836-ab93-e6814134bd32",
+        "finding_id": "f1965d27-2114-4b2a-b4fd-79403f9c9f0c",
+        "raw_request": "GET / HTTP/1.1\r\nHost: bench-juiceshop:3000\r\nUser-Agent: Pentesa-WSTG-Prober\r\n\r\n",
+        "raw_response": "HTTP/1.1 200\r\naccess-control-allow-origin: *\r\nx-content-type-options: nosniff\r\nx-frame-options: SAMEORIGIN\r\nfeature-policy: payment 'self'\r\nx-recruiting: /#/jobs\r\naccept-ranges: bytes\r\ncache-control: public, max-age=0\r\nlast-modified: Sun, 08 Nov 2026 19:11:10 GMT\r\netag: W/\"2700-1a1bc9258b0\"\r\ncontent-type: text/html; charset=UTF-8\r\nvary: Accept-Encoding\r\ncontent-encoding: gzip\r\ndate: Wed, 18 Nov 2026 04:23:20 GMT\r\nconnection: keep-alive\r\nkeep-alive: timeout=5\r\ntransfer-encoding: chunked",
+        "reproduction_curl": "curl -i -s 'http://bench-juiceshop:3000'",
+        "request_hash_sha256": "ba784b5d89ad7911aff7608be055a23b82086f9a387f5e0844635dcb82984eb7",
+        "response_hash_sha256": "6695af7e1733ac6d2b8316f9ac6c3963517b8fb222b0221c2cd29af20f42bb19",
+        "screenshot_path": null,
+        "captured_at": "2026-11-18T04:24:31.282441Z"
+      }
+    ]
+  }
+]

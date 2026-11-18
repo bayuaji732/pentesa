@@ -126,7 +126,7 @@
 ### 3.13 DEFECT-SEC-3 / P0 (SEC-LEAK-01): Five Hardcoded Secrets Committed to Git Repository
 - **Components:** `docker-compose.phase2.yml` (historical commits `a1af61f`, `5cede9b`, `fbb2e31`, `afad8b1`), `docs/audit/evidence/phase2/r1_default_admin.txt:216`
 - **Vulnerability Description:** The Phase 2 test compose file (`docker-compose.phase2.yml`) and historical Phase 2 execution logs committed five sensitive credentials and encryption keys into the repository:
-  1. **LiteLLM Gateway API Key:** `PENTESA_LITELLM_API_KEY=sk-mCQwNXf15qH4UyLxLVGAQA` (committed in `docker-compose.phase2.yml`).
+  1. **LiteLLM Gateway API Key:** `PENTESA_LITELLM_API_KEY=sk-key` (committed in `docker-compose.phase2.yml`).
   2. **Database Password:** `POSTGRES_PASSWORD: Phase2_Secure_DB_Pass_2026!` (committed in `docker-compose.phase2.yml`).
   3. **Master Vault Encryption Key:** `PENTESA_ENCRYPTION_KEY=phase2_master_vault_encryption_key_32b_hex!` (committed in `docker-compose.phase2.yml`).
   4. **JWT Secret Signing Key:** `PENTESA_SECRET_KEY=Phase2_JWT_Secret_Key_32_Bytes_Long_Prod_Ready!` (committed in `docker-compose.phase2.yml`).

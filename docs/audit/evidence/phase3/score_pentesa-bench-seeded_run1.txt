@@ -1,0 +1,468 @@
+================================================================================
+PENTESA BENCHMARK EVIDENCE CAPTURE
+Timestamp (UTC): 2026-11-18T04:13:42Z
+Git SHA: 55c0a099f9e61b740f0e8028da05ac0d9f467f7f
+Dirty Flag: true
+Exact Command: python benchmark/score.py --findings docs/audit/evidence/phase3\findings_pentesa-bench-seeded_run1.json
+DB Version: PostgreSQL 16.2
+Execution Stack: Running Stack (Docker Compose)
+Host OS: Windows 11
+Ground Truth SHA-256: f4eb9ecc8420afb1d242738652c283097d494ab3291ee69d2e3438b43634f871
+Score.py SHA-256: 38e4f16145c0b78b936aa526f3eb19b900c70f9f24aed90ec88546ca16f68eb3
+Baseline Adapter SHA-256: bfeff5ef2f4c794597440cfbd9e837f73ce3089ba0436e185e551658246975ae
+Driver SHA-256: 214a57d75671b30f768ffb6fc65fa51daf3cc1e08866bf9bf57eeb6567ba036c
+================================================================================
+
+{
+  "benchmark_summary": {
+    "total_ground_truth_cases": 63,
+    "vulnerable_cases_count": 45,
+    "secure_cases_count": 18,
+    "total_findings_evaluated": 2
+  },
+  "detection_metrics": {
+    "true_positives": 0,
+    "false_positives": 2,
+    "false_negatives": 45,
+    "secure_cases_false_positives": 0,
+    "unlisted_findings_count": 2,
+    "unlisted_adjudicated_tp": 0,
+    "unlisted_adjudicated_fp": 2,
+    "precision": 0.0,
+    "strict_precision": 0.0,
+    "adjudicated_precision": 0.0,
+    "recall": 0.0,
+    "f1_score": 0.0,
+    "adjudicated_f1_score": 0.0,
+    "false_positive_rate_secure": 0.0
+  },
+  "authoritative_bench_metrics": {
+    "target": "pentesa-bench",
+    "authority_status": "AUTHORITATIVE (ground truth is complete with paired positive/negative controls)",
+    "benchmark_cases_count": 42,
+    "vulnerable_cases_count": 26,
+    "secure_cases_count": 16,
+    "true_positives": 0,
+    "false_negatives": 26,
+    "secure_control_false_positives": 0,
+    "unlisted_findings": 0,
+    "strict_precision": 0.0,
+    "adjudicated_precision": 0.0,
+    "recall": 0.0,
+    "f1_score": 0.0
+  },
+  "third_party_precision_notice": {
+    "authority_status": "INFORMATIONAL_ONLY (recall is authoritative; third-party unlisted findings require reference PoC adjudication)",
+    "targets": [
+      "juiceshop",
+      "crapi",
+      "dvwa"
+    ]
+  },
+  "quality_and_reliability_metrics": {
+    "reproduction_success_rate": 0.0,
+    "mean_evidence_completeness_pct": 46.7,
+    "wstg_coverage_pct": 118.42,
+    "wstg_executed_tests": 45,
+    "wstg_applicable_tests": 38,
+    "wstg_total_catalog_tests": 106,
+    "wstg_catalog_coverage_pct": 42.45,
+    "execution_reliability": 1.0,
+    "total_runs": 1,
+    "completed_runs": 1,
+    "timeouts": 0,
+    "crashes": 0
+  },
+  "breakdown": {
+    "true_positives_detail": [],
+    "false_negatives_detail": [
+      {
+        "gt_id": "GT-SQLI-01-V",
+        "app": "pentesa-bench",
+        "category": "SQL Injection",
+        "endpoint": "/sqli/search",
+        "expected_severity": "HIGH",
+        "description": "Direct SQLite string interpolation: SELECT id, name, description, price FROM products WHERE name LIKE '%{q}%'."
+      },
+      {
+        "gt_id": "GT-SQLI-02-V",
+        "app": "juiceshop",
+        "category": "SQL Injection",
+        "endpoint": "/rest/products/search",
+        "expected_severity": "HIGH",
+        "description": "Unsanitized product search query concatenated into raw SQLite query string."
+      },
+      {
+        "gt_id": "GT-SQLI-03-V",
+        "app": "dvwa",
+        "category": "SQL Injection",
+        "endpoint": "/vulnerabilities/sqli/",
+        "expected_severity": "HIGH",
+        "description": "DVWA low/medium security concatenates raw input into MySQL query."
+      },
+      {
+        "gt_id": "GT-XSS-01-V",
+        "app": "pentesa-bench",
+        "category": "XSS",
+        "endpoint": "/xss/reflect",
+        "expected_severity": "HIGH",
+        "description": "Parameter 'name' reflected unescaped directly in HTML response."
+      },
+      {
+        "gt_id": "GT-XSS-02-V",
+        "app": "dvwa",
+        "category": "XSS",
+        "endpoint": "/vulnerabilities/xss_r/",
+        "expected_severity": "HIGH",
+        "description": "DVWA low/medium reflects unsanitized 'name' parameter inside <pre> tag."
+      },
+      {
+        "gt_id": "GT-XSS-03-V",
+        "app": "pentesa-bench",
+        "category": "XSS",
+        "endpoint": "/xss/reflect",
+        "expected_severity": "HIGH",
+        "description": "Attribute/event handler injection via <img> tag in parameter 'name'."
+      },
+      {
+        "gt_id": "GT-SSRF-01-V",
+        "app": "pentesa-bench",
+        "category": "SSRF",
+        "endpoint": "/ssrf/fetch",
+        "expected_severity": "CRITICAL",
+        "description": "Fetches arbitrary user-supplied URL without DNS resolution or private IP checks."
+      },
+      {
+        "gt_id": "GT-SSRF-02-V",
+        "app": "pentesa-bench",
+        "category": "SSRF",
+        "endpoint": "/ssrf/fetch",
+        "expected_severity": "HIGH",
+        "description": "Loopback service probe via 127.0.0.1:8080 internal health endpoint."
+      },
+      {
+        "gt_id": "GT-SSRF-03-V",
+        "app": "crapi",
+        "category": "SSRF",
+        "endpoint": "/workshop/api/merchant/contact_mechanic",
+        "expected_severity": "CRITICAL",
+        "description": "crAPI mechanic contact endpoint forwards request to arbitrary internal host."
+      },
+      {
+        "gt_id": "GT-IDOR-01-V",
+        "app": "pentesa-bench",
+        "category": "IDOR / BOLA",
+        "endpoint": "/api/user/{user_id}/profile",
+        "expected_severity": "HIGH",
+        "description": "Direct object reference without verifying caller session against requested user_id."
+      },
+      {
+        "gt_id": "GT-IDOR-02-V",
+        "app": "crapi",
+        "category": "IDOR / BOLA",
+        "endpoint": "/identity/api/v2/vehicle/{vehicleId}/location",
+        "expected_severity": "HIGH",
+        "description": "crAPI vehicle tracking endpoint permits User A to query GPS location of vehicle owned by User B."
+      },
+      {
+        "gt_id": "GT-IDOR-03-V",
+        "app": "crapi",
+        "category": "IDOR / BOLA",
+        "endpoint": "/workshop/api/shop/orders/{order_id}",
+        "expected_severity": "HIGH",
+        "description": "crAPI workshop order retrieval permits arbitrary order ID query across customers."
+      },
+      {
+        "gt_id": "GT-BAC-01-V",
+        "app": "pentesa-bench",
+        "category": "Broken Access Control",
+        "endpoint": "/admin/config",
+        "expected_severity": "HIGH",
+        "description": "Administrative configuration accessible unauthenticated without bearer token."
+      },
+      {
+        "gt_id": "GT-BAC-02-V",
+        "app": "juiceshop",
+        "category": "Broken Access Control",
+        "endpoint": "/rest/admin/application-configuration",
+        "expected_severity": "HIGH",
+        "description": "Juice Shop unauthenticated application configuration exposure."
+      },
+      {
+        "gt_id": "GT-BAC-03-V",
+        "app": "crapi",
+        "category": "Broken Access Control",
+        "endpoint": "/identity/api/v2/user/videos/convert_video",
+        "expected_severity": "HIGH",
+        "description": "crAPI administrative function accessible by normal authenticated users (BFLA)."
+      },
+      {
+        "gt_id": "GT-AUTH-01-V",
+        "app": "pentesa-bench",
+        "category": "Authentication weaknesses",
+        "endpoint": "/auth/login",
+        "expected_severity": "HIGH",
+        "description": "Accepts well-known default credentials (admin:admin) without password change enforcement."
+      },
+      {
+        "gt_id": "GT-AUTH-02-V",
+        "app": "crapi",
+        "category": "Authentication weaknesses",
+        "endpoint": "/identity/api/auth/v2/check-otp",
+        "expected_severity": "HIGH",
+        "description": "crAPI OTP verification lacks rate limiting or account lockout, allowing unthrottled brute force."
+      },
+      {
+        "gt_id": "GT-AUTH-03-V",
+        "app": "dvwa",
+        "category": "Authentication weaknesses",
+        "endpoint": "/vulnerabilities/brute/",
+        "expected_severity": "MEDIUM",
+        "description": "DVWA brute force endpoint has zero attempt capping or account lockout."
+      },
+      {
+        "gt_id": "GT-JWT-01-V",
+        "app": "pentesa-bench",
+        "category": "JWT weaknesses",
+        "endpoint": "/jwt/profile",
+        "expected_severity": "CRITICAL",
+        "description": "Accepts JWT tokens with algorithm 'none', bypassing signature verification."
+      },
+      {
+        "gt_id": "GT-JWT-02-V",
+        "app": "pentesa-bench",
+        "category": "JWT weaknesses",
+        "endpoint": "/jwt/profile",
+        "expected_severity": "HIGH",
+        "description": "JWT secret signed with trivial dictionary key 'secret123' allowing offline cracking."
+      },
+      {
+        "gt_id": "GT-JWT-03-V",
+        "app": "crapi",
+        "category": "JWT weaknesses",
+        "endpoint": "/identity/api/auth/v2/check-verify-token",
+        "expected_severity": "CRITICAL",
+        "description": "crAPI JWT signature validation bypass via key confusion."
+      },
+      {
+        "gt_id": "GT-UPLD-01-V",
+        "app": "pentesa-bench",
+        "category": "File upload vulnerabilities",
+        "endpoint": "/upload/file",
+        "expected_severity": "CRITICAL",
+        "description": "Accepts arbitrary executable file extensions (.php, .py, .sh) and saves to web-accessible directory."
+      },
+      {
+        "gt_id": "GT-UPLD-02-V",
+        "app": "dvwa",
+        "category": "File upload vulnerabilities",
+        "endpoint": "/vulnerabilities/upload/",
+        "expected_severity": "CRITICAL",
+        "description": "DVWA low/medium allows uploading arbitrary PHP script."
+      },
+      {
+        "gt_id": "GT-UPLD-03-V",
+        "app": "pentesa-bench",
+        "category": "File upload vulnerabilities",
+        "endpoint": "/upload/file",
+        "expected_severity": "HIGH",
+        "description": "Double extension bypass (.php.jpg) accepted as executable."
+      },
+      {
+        "gt_id": "GT-TRAV-01-V",
+        "app": "pentesa-bench",
+        "category": "Path traversal",
+        "endpoint": "/files/read",
+        "expected_severity": "HIGH",
+        "description": "Directory traversal via ../ sequences allows reading arbitrary files outside base directory."
+      },
+      {
+        "gt_id": "GT-TRAV-02-V",
+        "app": "dvwa",
+        "category": "Path traversal",
+        "endpoint": "/vulnerabilities/fi/",
+        "expected_severity": "HIGH",
+        "description": "DVWA file inclusion accepts ../../../../etc/passwd in 'page' parameter."
+      },
+      {
+        "gt_id": "GT-TRAV-03-V",
+        "app": "pentesa-bench",
+        "category": "Path traversal",
+        "endpoint": "/files/read",
+        "expected_severity": "HIGH",
+        "description": "Nested traversal sequence (....//....//) bypasses naive string replace."
+      },
+      {
+        "gt_id": "GT-CMDI-01-V",
+        "app": "pentesa-bench",
+        "category": "Command injection",
+        "endpoint": "/cmd/ping",
+        "expected_severity": "CRITICAL",
+        "description": "Parameter 'host' concatenated into shell=True subprocess execution string."
+      },
+      {
+        "gt_id": "GT-CMDI-02-V",
+        "app": "dvwa",
+        "category": "Command injection",
+        "endpoint": "/vulnerabilities/exec/",
+        "expected_severity": "CRITICAL",
+        "description": "DVWA command injection concatenates input directly into shell_exec."
+      },
+      {
+        "gt_id": "GT-CMDI-03-V",
+        "app": "pentesa-bench",
+        "category": "Command injection",
+        "endpoint": "/cmd/ping",
+        "expected_severity": "CRITICAL",
+        "description": "Pipe operator (|) command injection."
+      },
+      {
+        "gt_id": "GT-SSTI-01-V",
+        "app": "pentesa-bench",
+        "category": "SSTI",
+        "endpoint": "/ssti/render",
+        "expected_severity": "HIGH",
+        "description": "Jinja2 template rendered directly from user string: Template(f'...{name}...')."
+      },
+      {
+        "gt_id": "GT-SSTI-02-V",
+        "app": "pentesa-bench",
+        "category": "SSTI",
+        "endpoint": "/ssti/render",
+        "expected_severity": "HIGH",
+        "description": "Object traversal via template expression {{request.app.state}}."
+      },
+      {
+        "gt_id": "GT-SSTI-03-V",
+        "app": "webgoat",
+        "category": "SSTI",
+        "endpoint": "/WebGoat/SSTI",
+        "expected_severity": "HIGH",
+        "description": "WebGoat SSTI exercise evaluates user template expression."
+      },
+      {
+        "gt_id": "GT-XXE-01-V",
+        "app": "pentesa-bench",
+        "category": "XXE",
+        "endpoint": "/xxe/parse",
+        "expected_severity": "HIGH",
+        "description": "lxml XMLParser configured with resolve_entities=True and dtd_validation=True."
+      },
+      {
+        "gt_id": "GT-XXE-02-V",
+        "app": "webgoat",
+        "category": "XXE",
+        "endpoint": "/WebGoat/xxe/simple",
+        "expected_severity": "HIGH",
+        "description": "WebGoat XXE simple parser processes external entity declaration."
+      },
+      {
+        "gt_id": "GT-XXE-03-V",
+        "app": "pentesa-bench",
+        "category": "XXE",
+        "endpoint": "/xxe/parse",
+        "expected_severity": "CRITICAL",
+        "description": "Out-of-band SSRF via XXE entity referencing canary sensor: http://bench-canary:9099/trap/xxe."
+      },
+      {
+        "gt_id": "GT-APIS-01-V",
+        "app": "crapi",
+        "category": "API security weaknesses",
+        "endpoint": "/workshop/api/shop/orders/all",
+        "expected_severity": "MEDIUM",
+        "description": "Excessive data exposure: returns all customer orders including PII and payment tokens."
+      },
+      {
+        "gt_id": "GT-APIS-02-V",
+        "app": "pentesa-bench",
+        "category": "API security weaknesses",
+        "endpoint": "/api/v1/orders/all",
+        "expected_severity": "HIGH",
+        "description": "Unfiltered database dump exposing customer credit cards and internal gateway tokens."
+      },
+      {
+        "gt_id": "GT-APIS-03-V",
+        "app": "crapi",
+        "category": "API security weaknesses",
+        "endpoint": "/community/api/v2/community/posts/recent",
+        "expected_severity": "LOW",
+        "description": "Recent posts API exposes author internal database identifiers and private email addresses."
+      },
+      {
+        "gt_id": "GT-RACE-01-V",
+        "app": "pentesa-bench",
+        "category": "Race conditions",
+        "endpoint": "/race/coupon",
+        "expected_severity": "HIGH",
+        "description": "Time-of-check to time-of-use (TOCTOU) concurrency flaw allows redeeming single-use coupon multiple times."
+      },
+      {
+        "gt_id": "GT-RACE-02-V",
+        "app": "pentesa-bench",
+        "category": "Race conditions",
+        "endpoint": "/race/coupon",
+        "expected_severity": "HIGH",
+        "description": "Concurrent balance crediting exceeds authorized promotional value."
+      },
+      {
+        "gt_id": "GT-RACE-03-V",
+        "app": "pentesa-bench",
+        "category": "Race conditions",
+        "endpoint": "/order/checkout",
+        "expected_severity": "HIGH",
+        "description": "Inventory depletion race: concurrent checkout requests exceed total stock."
+      },
+      {
+        "gt_id": "GT-BUSL-01-V",
+        "app": "pentesa-bench",
+        "category": "Business logic vulnerabilities",
+        "endpoint": "/order/checkout",
+        "expected_severity": "HIGH",
+        "description": "Trusts client-supplied price parameter, allowing purchasers to set item price to $0.01."
+      },
+      {
+        "gt_id": "GT-BUSL-02-V",
+        "app": "pentesa-bench",
+        "category": "Business logic vulnerabilities",
+        "endpoint": "/order/checkout",
+        "expected_severity": "HIGH",
+        "description": "Negative quantity permitted (-5 items), causing wallet balance to increase fraudulently."
+      },
+      {
+        "gt_id": "GT-BUSL-03-V",
+        "app": "juiceshop",
+        "category": "Business logic vulnerabilities",
+        "endpoint": "/api/BasketItems/",
+        "expected_severity": "HIGH",
+        "description": "Juice Shop basket allows negative item quantities to reduce total cart value."
+      }
+    ],
+    "secure_cases_false_positives_detail": [],
+    "unlisted_findings_detail": [
+      {
+        "type": "UNLISTED_FINDING",
+        "finding_id": "585303cd-39a7-4fe3-91b4-798a162d420a",
+        "target": "",
+        "endpoint": "",
+        "title": "Reflected Cross-Site Scripting (XSS) in 'name' Parameter (/ssti/render)",
+        "category": "",
+        "cwe": "CWE-79",
+        "adjudication_status": "FALSE_POSITIVE",
+        "is_adjudicated_tp": false,
+        "poc": ""
+      },
+      {
+        "type": "UNLISTED_FINDING",
+        "finding_id": "c03b79af-b606-4868-8e76-3b54bcd1b67c",
+        "target": "",
+        "endpoint": "",
+        "title": "SQL Injection in 'q' Parameter (/sqli/search)",
+        "category": "",
+        "cwe": "CWE-89",
+        "adjudication_status": "FALSE_POSITIVE",
+        "is_adjudicated_tp": false,
+        "poc": ""
+      }
+    ]
+  }
+}

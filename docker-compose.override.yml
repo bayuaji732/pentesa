@@ -1,0 +1,17 @@
+# Pentesa Benchmark Integration Override
+# Connects API and Worker services to the isolated benchmark target network (pentesa-bench-net)
+# Eliminates manual 'docker network connect' steps.
+
+services:
+  api:
+    networks:
+      - pentesa-bench-net
+
+  worker:
+    networks:
+      - pentesa-bench-net
+
+networks:
+  pentesa-bench-net:
+    name: pentesa-bench-net
+    external: true

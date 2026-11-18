@@ -1,0 +1,15 @@
+[
+  {
+    "title": "Missing Security Headers (CSP, XFO, XCTO)",
+    "cwe_id": "CWE-693",
+    "source": "wstg_agent",
+    "wstg_id": "WSTG-CLNT-09",
+    "severity": "Low",
+    "target_url": "http://bench-dvwa",
+    "description": "HTTP responses from http://bench-dvwa lack recommended defensive security headers: Content-Security-Policy, X-Content-Type-Options, X-Frame-Options.",
+    "raw_request": "GET / HTTP/1.1\r\nHost: bench-dvwa\r\nUser-Agent: Pentesa-WSTG-Prober\r\n\r\n",
+    "status_code": 200,
+    "raw_response": "HTTP/1.1 200\r\ndate: Wed, 18 Nov 2026 04:27:29 GMT\r\nserver: Apache/2.4.25 (Debian)\r\nexpires: Tue, 23 Jun 2009 12:00:00 GMT\r\ncache-control: no-cache, must-revalidate\r\npragma: no-cache\r\nvary: Accept-Encoding\r\ncontent-encoding: gzip\r\ncontent-length: 699\r\nkeep-alive: timeout=5, max=99\r\nconnection: Keep-Alive\r\ncontent-type: text/html;charset=utf-8",
+    "reproduction_curl": "curl -i -s 'http://bench-dvwa'"
+  }
+]

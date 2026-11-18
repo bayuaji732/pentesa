@@ -1,0 +1,64 @@
+{
+  "benchmark_metadata": {
+    "type": "deterministic_baseline",
+    "tools": [
+      "nuclei",
+      "ffuf"
+    ],
+    "target": "http://bench-pentesa-app:8080"
+  },
+  "execution_telemetry": {
+    "scheduled_runs": 1,
+    "completed_runs": 1,
+    "timeouts": 0,
+    "crashes": 0,
+    "applicable_wstg_tests": 38,
+    "executed_wstg_tests": 2
+  },
+  "findings": [
+    {
+      "id": "BASELINE-FFUF-001",
+      "target": "http://bench-pentesa-app:8080",
+      "endpoint": "/docs",
+      "method": "GET",
+      "parameter": "N/A",
+      "wstg_id": "WSTG-CONF-04",
+      "cwe_id": 538,
+      "category": "deterministic_baseline_ffuf",
+      "title": "Discovered Path: /docs",
+      "detection_source": "ffuf",
+      "reproduction_procedure": "Request discovered path with ffuf parameters: curl -i -s 'http://bench-pentesa-app:8080/docs'",
+      "reproduction_curl": "curl -i -s 'http://bench-pentesa-app:8080/docs'",
+      "reproduction_verified": true,
+      "actual_evidence": "Discovered HTTP 200 with length 1050",
+      "severity": "LOW",
+      "severity_justification": "Exposed endpoint discovered via brute-force fuzzing.",
+      "confidence": "CONFIRMED",
+      "false_positive_assessment": "Verified non-404 response with content delta.",
+      "remediation": "Restrict access or delete unreferenced endpoints.",
+      "validation_status": "CONFIRMED"
+    },
+    {
+      "id": "BASELINE-FFUF-002",
+      "target": "http://bench-pentesa-app:8080",
+      "endpoint": "/healthz",
+      "method": "GET",
+      "parameter": "N/A",
+      "wstg_id": "WSTG-CONF-04",
+      "cwe_id": 538,
+      "category": "deterministic_baseline_ffuf",
+      "title": "Discovered Path: /healthz",
+      "detection_source": "ffuf",
+      "reproduction_procedure": "Request discovered path with ffuf parameters: curl -i -s 'http://bench-pentesa-app:8080/healthz'",
+      "reproduction_curl": "curl -i -s 'http://bench-pentesa-app:8080/healthz'",
+      "reproduction_verified": true,
+      "actual_evidence": "Discovered HTTP 200 with length 55",
+      "severity": "LOW",
+      "severity_justification": "Exposed endpoint discovered via brute-force fuzzing.",
+      "confidence": "CONFIRMED",
+      "false_positive_assessment": "Verified non-404 response with content delta.",
+      "remediation": "Restrict access or delete unreferenced endpoints.",
+      "validation_status": "CONFIRMED"
+    }
+  ]
+}

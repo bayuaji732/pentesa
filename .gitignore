@@ -53,6 +53,7 @@ Thumbs.db
 scratch/
 .env.*
 !.env.example
+!.env.production.example
 
 # Runtime data & generated deliverables
 data/reports/

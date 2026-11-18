@@ -34,6 +34,7 @@
 | **SEC-RED-02** | **P1** | Privacy / Leak | `services/evidence_engine/curl_generator.py`, `services/evidence_engine/finding_service.py` | Reproduction cURL Generator Leaks Plaintext Passwords in Request Body | **Closed** | `b65eaf3` (FIX-10) |
 | **EVID-02** | **P1** | Process / Audit | `docs/audit/evidence/phase2/r3_wstg_plan_counts.txt`, `phase2-summary.md` | Discrepancy Between Raw WSTG Coverage Machine Evidence and Summary Reports | **Closed** | Reconciled R3 raw counts (38 planned, 68 N/A, 0 failed) and corrected summary reports |
 | **SEC-LEAK-01** | **P0** | Secrets / Leak | `docker-compose.phase2.yml`, `docs/audit/evidence/phase2/r1_default_admin.txt` | Five Hardcoded Secrets (LiteLLM, DB, Encryption, JWT, Admin Pwd) Committed to Git | **Closed (Rotated & Retired)** | phase2.yml retired via git rm; LiteLLM key rotated upstream; secrets moved to gitignored .env.production |
+| **P1-FIND-02** | **P1** | Data Contract | `packages/schemas/finding.py`, `apps/api/routers/findings.py` | `FindingResponse` Schema Serializes `endpoint_id` but Omits Root `endpoint` and `method` Strings | Open (Documented) | Phase 9 (Finding Schema Normalization & Endpoint Join) |
 | **COMP-STALE-01** | **P3** | Infrastructure | `infrastructure/docker-compose.prod.yml` | Stale Duplicate Production Compose with Hardcoded Password and Container Collisions | Open (Quarantined) | Retained for reference; quarantined/never started; superseded by root docker-compose.yml |
 | **DISCO-SPA-01** | **P2** | Discovery | `services/discovery_engine/fingerprint.py` | Technology Fingerprinter Misses SPAs Lacking Server Headers | Open (Deferred) | Phase 9 (DOM Parsing Roadmap) |
 
@@ -145,5 +146,35 @@
   1. Quarantined: The file must NEVER be started or used for deployments or benchmarks.
   2. Root `docker-compose.yml` serves as the sole authoritative production definition.
   3. Documentation references in `docs/22` and `docs/23` cataloged; file retained for historical tracking with top-level `name: pentesa-prod`.
+
+### 3.15 DEFECT-FIND-1 / P1 (P1-FIND-02): Finding Response Schema Omits Root Endpoint and Method Strings
+- **Components:** `packages/schemas/finding.py` (`FindingResponse`), `apps/api/routers/findings.py`, `database/models/finding.py`
+- **Severity:** **P1 (High / Core Data Contract Breach)**
+- **Audit Phase & Standard:** Discovered in Phase 3 benchmarking; governed by Phase 7 finding evidence completeness criteria (Fields #3 and #4: endpoint path and HTTP method are mandatory in every finding).
+- **Root Cause Analysis:**
+  The FastAPI finding serialization schema (`FindingResponse` in `packages/schemas/finding.py`) defines `endpoint_id: Optional[UUID] = None` but omits denormalized `endpoint: Optional[str] = None` and `method: Optional[str] = None` fields. Furthermore, the underlying SQLAlchemy model `database/models/finding.py` names the parameter column `affected_parameter` (singular), whereas external tooling, reporting consumers, and benchmark scoring engines look for `endpoint`, `method`, and `parameter` / `affected_parameters` (plural).
+  Because the API server returns JSON objects without root-level `endpoint` and `method` strings, deterministic benchmark scorers and automated reporting engines cannot map confirmed vulnerabilities to test catalogs, resulting in legitimate true positives being treated as UNLISTED (or false positives under strict scoring).
+- **Empirical Evidence:**
+  - Finding artifact `docs/audit/evidence/phase3/findings_pentesa-bench-seeded_run1.json` contains confirmed exploits on `/sqli/search` and `/ssti/render`, but `endpoint` and `method` fields are completely absent at the root of each finding object.
+  - Frozen scorer output `docs/audit/evidence/phase3/score_pentesa-bench-seeded_run1.txt` records:
+    ```json
+    {
+      "type": "UNLISTED_FINDING",
+      "target": "",
+      "endpoint": "",
+      "title": "SQL Injection in 'q' Parameter (/sqli/search)",
+      "adjudication_status": "FALSE_POSITIVE"
+    }
+    ```
+- **Remediation Specification (Phase 9 Implementation):**
+  1. In `packages/schemas/finding.py`, add `endpoint: Optional[str] = None`, `target: Optional[str] = None`, and `method: Optional[str] = None` to `FindingResponse`.
+  2. In `apps/api/routers/findings.py`, perform an outer join against `Endpoint` to populate root `endpoint` path and `method`, or fallback to parsing the first line of `FindingEvidence.raw_request`.
+  3. In `FindingResponse`, alias or duplicate `affected_parameter` to `parameter` to ensure cross-standard compatibility.
+- **Regression Test:**
+  Add `tests/unit/test_finding_schema_serialization.py` asserting that `FindingResponse.model_validate(mock_finding).model_dump()` contains valid string values for `endpoint`, `method`, and `parameter`.
+- **Acceptance Criteria:**
+  1. `GET /api/v1/projects/{id}/findings` returns JSON objects where `endpoint` is a non-empty string starting with `/` whenever an endpoint or raw HTTP request is linked.
+  2. `method` is a valid HTTP verb string (`GET`, `POST`, `PUT`, `DELETE`, etc.).
+  3. `benchmark/score.py` correctly parses and matches finding endpoints against ground truth without secondary post-processing.
 
 

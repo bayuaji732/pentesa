@@ -77,15 +77,16 @@ This document catalogs identified improvements, technical debt, and recommended 
 
 ---
 
-### P2-FIND-02: Finding API Model Serialization Omits Root Endpoint and Method Strings
+### P1-FIND-02: Finding API Model Serialization Omits Root Endpoint and Method Strings
 - **Category**: Findings Management & API Schema Integration
-- **Severity**: P2 (Important Data Contract Improvement)
+- **Severity**: P1 (Core Data Contract Defect — Phase 7 Mandate)
 - **Status**: Documented; Scheduled for Phase 9 implementation.
 - **Problem Statement**:
   The `FindingResponse` schema in `packages/schemas/finding.py` and API router `GET /api/v1/projects/{project_id}/findings` serialize `endpoint_id: Optional[UUID]`, but omit denormalized `endpoint: Optional[str]`, `target: Optional[str]`, and `method: Optional[str]`. Consequently, standard external tools, benchmark scorers (including the Phase 3 frozen `score.py`), and downstream reporting consumers receive empty endpoint strings when inspecting finding objects directly unless they perform a secondary join across `endpoints` and `evidence`.
 - **Proposed Solution**:
   1. Add denormalized or property-backed fields `endpoint: Optional[str] = None`, `target: Optional[str] = None`, and `method: Optional[str] = None` to `FindingResponse`.
   2. In the findings query router, join `Endpoint` table to populate path and method, or extract fallback values from `FindingEvidence.raw_request`.
+  3. Alias or mirror `affected_parameter` to `parameter`.
 
 ---
 

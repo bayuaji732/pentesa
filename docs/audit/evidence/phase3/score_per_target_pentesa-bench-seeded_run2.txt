@@ -1,0 +1,63 @@
+================================================================================
+PENTESA BENCHMARK EVIDENCE CAPTURE
+Timestamp (UTC): 2026-11-18T07:49:51Z
+Git SHA: 1823e363687c60fd2538e6ecf18dcaae45137c2d
+Dirty Flag: true
+Exact Command: python benchmark/score_per_target.py --findings docs/audit/evidence/phase3\findings_pentesa-bench-seeded_run2.json --app pentesa-bench
+DB Version: PostgreSQL 16.2
+Execution Stack: Running Stack (Docker Compose)
+Host OS: Windows 11
+Ground Truth SHA-256: f4eb9ecc8420afb1d242738652c283097d494ab3291ee69d2e3438b43634f871
+Score.py SHA-256: 38e4f16145c0b78b936aa526f3eb19b900c70f9f24aed90ec88546ca16f68eb3
+Score_per_target.py SHA-256: 54fa05b6fc61f67675980089969986fdb79e98c2eba8f14dfa77f7e324944b2e
+================================================================================
+
+{
+  "target_app": "pentesa-bench",
+  "scoring_mode": "STRICT_RAW (as serialized by API)",
+  "ground_truth_summary": {
+    "target_total_cases": 42,
+    "target_vulnerable_cases": 26,
+    "target_secure_cases": 16,
+    "distinct_wstg_categories": 16
+  },
+  "detection_metrics": {
+    "true_positives": 0,
+    "false_positives_strict": 2,
+    "false_negatives": 26,
+    "secure_cases_false_positives": 0,
+    "unlisted_findings_count": 2,
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1_score": 0.0,
+    "false_positive_rate_secure": 0.0
+  },
+  "wstg_metrics": {
+    "executed_wstg_tests": 26,
+    "applicable_target_wstg_tests": 16,
+    "total_catalog_tests": 106,
+    "wstg_target_coverage_pct": 162.5,
+    "wstg_catalog_coverage_pct": 24.53
+  },
+  "details": {
+    "tp_cases": [],
+    "fn_cases_count": 26,
+    "secure_fp_cases": [],
+    "unlisted_cases": [
+      {
+        "finding_id": "7776e626-d22e-4940-be6f-a565dad6b6ff",
+        "title": "SQL Injection in 'q' Parameter (/sqli/search)",
+        "endpoint": "",
+        "wstg_id": "WSTG-INPV-05",
+        "cwe_id": "CWE-89"
+      },
+      {
+        "finding_id": "3838f7e2-3be8-4661-9d23-009dd23e903f",
+        "title": "Reflected Cross-Site Scripting (XSS) in 'name' Parameter (/ssti/secure)",
+        "endpoint": "",
+        "wstg_id": "WSTG-INPV-01",
+        "cwe_id": "CWE-79"
+      }
+    ]
+  }
+}

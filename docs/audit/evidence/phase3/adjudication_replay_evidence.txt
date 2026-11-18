@@ -1,0 +1,88 @@
+================================================================================
+PENTESA BENCHMARK EVIDENCE CAPTURE
+Timestamp (UTC): 2026-11-18T07:49:07Z
+Git SHA: 1823e363687c60fd2538e6ecf18dcaae45137c2d
+Dirty Flag: true
+Exact Command: python benchmark/adjudicate_seeded_findings.py
+DB Version: PostgreSQL 16.2
+Execution Stack: Running Stack (Docker Compose)
+Host OS: Windows 11
+Ground Truth SHA-256: f4eb9ecc8420afb1d242738652c283097d494ab3291ee69d2e3438b43634f871
+Score.py SHA-256: 38e4f16145c0b78b936aa526f3eb19b900c70f9f24aed90ec88546ca16f68eb3
+Adjudication Script SHA-256: e6ad7938b389d381ad36fe3e837089df8210fba4444a97a0aa5b0fe7c56ea18d
+================================================================================
+
+# EMPIRICAL ADJUDICATION REPORT: CONFIRMED SEEDED FINDINGS
+
+Target Environment: http://bench-pentesa-app:8080 (pentesa-bench container)
+Source Findings Artifact: docs/audit/evidence/phase3/findings_pentesa-bench-seeded_run1.json
+
+## Finding #1: Reflected Cross-Site Scripting (XSS) in 'name' Parameter (/ssti/render)
+- **Finding ID:** `585303cd-39a7-4fe3-91b4-798a162d420a`
+- **Reported WSTG ID:** `WSTG-INPV-01`
+- **Reported CWE ID:** `CWE-79`
+- **Reproduction Command:** `curl -i -s "http://bench-pentesa-app:8080/ssti/render?name=%3Cscript%3Ealert%28%27pentesa_xss_8421%27%29%3C/script%3E"`
+- **Stored Request SHA-256:** `fe55f9e43b014e0fce99c66baf11c462bf666b09434da370b000219ae6cbdb08`
+- **Stored Response SHA-256:** `34f4899511e7f76f722ac4e8a3b823d1c2cb8882bb2375ea34b4f273d65a4b12`
+
+### Empirical Replay Execution Output:
+```http
+HTTP/1.1 200 OK
+date: Wed, 18 Nov 2026 07:49:07 GMT
+server: uvicorn
+content-length: 84
+content-type: text/html; charset=utf-8
+
+<html><body><h1>Hello <script>alert('pentesa_xss_8421')</script>!</h1></body></html>
+```
+
+- **Replay Wire Hash SHA-256:** `32d5bca01e7119dfb5962faad920f91befe65fad3920cf01d295b67da9a540eb`
+- **Exploit Payload Execution Indicator:** `CONFIRMED`
+- **Ground Truth Alignment Analysis:**
+  - Ground Truth specifies `GT-SSTI-01-V` on `/ssti/render` under Category: SSTI (`WSTG-INPV-18`, `CWE-1336`).
+  - Prober submitted an XSS payload `<script>alert(...)</script>` rather than Jinja2 `{{7*7}}`.
+  - `/ssti/render` uses `render_template_string(f'<html>...{name}...</html>')` without HTML escaping.
+  - Endpoint is simultaneously vulnerable to Jinja2 SSTI and Reflected XSS.
+  - Under strict categorization, this is a category mismatch (XSS vs SSTI).
+  - Under empirical adjudication, this is a **GENUINE, CONFIRMED VULNERABILITY (True Positive)**.
+- **Formal Adjudication Verdict:** **TRUE_POSITIVE (Mismatched Category / Real Vulnerability)**
+
+--------------------------------------------------------------------------------
+
+## Finding #2: SQL Injection in 'q' Parameter (/sqli/search)
+- **Finding ID:** `c03b79af-b606-4868-8e76-3b54bcd1b67c`
+- **Reported WSTG ID:** `WSTG-INPV-05`
+- **Reported CWE ID:** `CWE-89`
+- **Reproduction Command:** `curl -i -s "http://bench-pentesa-app:8080/sqli/search?q=%27%29%29"`
+- **Stored Request SHA-256:** `b6e1ab97874fe42e3073b9c7c714a27e1521d22d67159b3b981716beac76bd83`
+- **Stored Response SHA-256:** `4867745e84e758f935921121f559ce272021846ea891eba8f603ac5fc7c9a4ad`
+
+### Empirical Replay Execution Output:
+```http
+HTTP/1.1 500 Internal Server Error
+date: Wed, 18 Nov 2026 07:49:07 GMT
+server: uvicorn
+content-length: 142
+content-type: application/json
+
+{"error":"SQL Error","details":"near \")\": syntax error","query":"SELECT id, name, description, price FROM products WHERE name LIKE '%'))%'"}
+```
+
+- **Replay Wire Hash SHA-256:** `df38a6aacc4452f832b58ea3aa788ab798488ad13222af1e8a6f4f76fbac6d87`
+- **Exploit Payload Execution Indicator:** `CONFIRMED`
+- **Ground Truth Alignment Analysis:**
+  - Ground Truth specifies `GT-SQLI-01-V` on `/sqli/search` with parameter `q` under Category: SQL Injection (`WSTG-INPV-05`, `CWE-89`).
+  - Prober identified SQL Injection on `/sqli/search` with parameter `q`, `WSTG-INPV-05`, `CWE-89`.
+  - Endpoint, parameter, method, CWE, and WSTG ID match `GT-SQLI-01-V` 100%.
+  - The finding was classified as UNLISTED by frozen `score.py` solely due to `P1-FIND-02` (API schema omitted root `endpoint` and `method` strings, and model used singular `affected_parameter`).
+  - Under empirical adjudication, this is a **DEFINITIVE TRUE POSITIVE** matching ground truth case `GT-SQLI-01-V`.
+- **Formal Adjudication Verdict:** **TRUE_POSITIVE (Direct Ground Truth Match to GT-SQLI-01-V)**
+
+--------------------------------------------------------------------------------
+
+## Adjudication Summary Table
+
+| Finding Title | Reported WSTG / CWE | Replay Status | Strict Frozen Classification | Empirical Adjudication Verdict |
+|---|---|---|---|---|
+| Reflected XSS in 'name' (/ssti/render) | WSTG-INPV-01 / CWE-79 | HTTP 200 (Script Reflected) | UNLISTED (Strict FP) | **TRUE POSITIVE** (Real Flaw, Dual SSTI/XSS Vector) |
+| SQL Injection in 'q' (/sqli/search) | WSTG-INPV-05 / CWE-89 | HTTP 500 (SQL Syntax Error) | UNLISTED (Strict FP) | **TRUE POSITIVE** (Direct GT-SQLI-01-V Match) |

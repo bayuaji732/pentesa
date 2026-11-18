@@ -1,7 +1,7 @@
 # Mission: Independent Product Verification, Security Validation & Pentest Effectiveness Assessment
 
 ## STATUS (read first)
-Phases 1 and 2 are complete: docs/audit/00-04 and docs/audit/evidence/phase2/. Open items to carry: DISCO-SPA-01, no rate limit on /http-test, NI-03 (Layer-2 egress, P0-known), NI-06 (worker stub, restart behaviour), EVID-01 (earlier hand-edited evidence), nuclei -dr disables redirect-dependent detections. Work ONE phase per session and stop for approval. Resume at PHASE 3.
+Phases 1, 2, and 3 are complete: docs/audit/00-05 and docs/audit/evidence/phase2/, phase3/. Open items to carry: P1-FIND-02 (finding response schema omits endpoint/method), P2-RECON-01 (blind crawl 404 dead-end / ffuf fallback), P2-AUTH-01 (session state management), P2-FIND-01 (passive header promotion), P2-COV-01 (specialized probers), P2-REL-01 (gateway resilience), NI-03 (Layer-2 egress, P0-known), DISCO-SPA-01, no rate limit on /http-test, EVID-01 (earlier hand-edited evidence). Work ONE phase per session and stop for approval. Resume at PHASE 4.
 
 ## Amendments to the Execution Rules (added during the audit)
 - Evidence standard: every raw evidence file is machine-captured (script/tee), starts with a header (UTC time, git SHA + dirty flag, exact command, DB version, running stack vs in-process) and is NEVER hand-edited. Corrections go in addenda. Maintain MANIFEST.sha256.
@@ -324,6 +324,6 @@ Do not claim production readiness without supporting evidence.
 - Maintain audit logs.
 - Keep documentation synchronized with implementation.
 
-Resume with Phase 3 (see STATUS).
+Resume with Phase 4 (see STATUS).
 
 Complete the assessment and present the findings before implementing major changes.

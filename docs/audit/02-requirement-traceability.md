@@ -109,11 +109,11 @@
 
 | Req ID | Requirement Description | Implementation Files | Status | Execution Evidence / Verification Notes |
 |---|---|---|---|---|
-| **FR-AB-01** | Multi-identity test execution (User A vs User B, Admin vs Member) | `agents/authorization/authz_agent.py` | **Verified** | Compares response status codes and body diffs across different auth headers. |
-| **FR-AB-02** | Automated BOLA/IDOR detection | `agents/authorization/authz_agent.py` | **Verified** | Injects object IDs discovered in User A session into User B session. |
-| **FR-AB-03** | Horizontal and vertical privilege escalation testing | `agents/authorization/authz_agent.py` | **Verified** | Tests elevated routes with lower-privileged tokens. |
-| **FR-AB-04** | Business logic anomaly detection without destructive actions | `agents/authorization/authz_agent.py` | **Partially Verified** | Status anomaly detection functional; complex multi-step state machines require human review. |
-| **FR-AB-05** | Flag suspicious anomalies as `Needs Manual Review` | `agents/authorization/authz_agent.py`<br>`database/models/wstg.py` | **Verified** | Non-conclusive responses transition to `Needs Manual Review`. |
+| **FR-AB-01** | Multi-identity test execution (User A vs User B, Admin vs Member) | `agents/authorization/authz_agent.py` | **Not Implemented** | `safe_request` sends unauthenticated requests with `headers=None`. `PentestWorkflowState` lacks identity/credential fields. `multi_identity_prober` is a mock stub. Evaluated in Phase 4 (`docs/audit/evidence/phase4/4A-capability-inventory.md`). Defect: `DEFECT-AUTH-02`. |
+| **FR-AB-02** | Automated BOLA/IDOR detection | `agents/authorization/authz_agent.py` | **Partially Verified** | Unauthenticated path integer manipulation (`/1` -> `/2`) detects public object disclosure, but authenticated multi-tenant BOLA (Token A on Object B) is Not Implemented. Evaluated in Phase 4 (`docs/audit/05b-advanced-pentest-validation.md`). |
+| **FR-AB-03** | Horizontal and vertical privilege escalation testing | `agents/authorization/authz_agent.py` | **Not Implemented** | No role-tier comparison or authenticated session context swap exists in active testing agents or orchestrator workflows. Defect: `DEFECT-AUTH-02` (`P4-AUTH-01`). |
+| **FR-AB-04** | Business logic anomaly detection without destructive actions | `agents/authorization/authz_agent.py` | **Partially Verified** | Status anomaly heuristics functional in `authz_agent.py`; complex multi-step state machines, client pricing tampering, and race conditions are not automated in agents. |
+| **FR-AB-05** | Flag suspicious anomalies as `Needs Manual Review` | `agents/authorization/authz_agent.py`<br>`services/execution_engine/runners.py` | **Partially Verified** | `GenericProbeRunner` transitions WSTG items to `NEEDS_REVIEW`, but finding schema lacks `FLAGGED_FOR_HUMAN_REVIEW` status; unconfirmed business candidates are dropped by `ValidationAgent`. Defect: `DEFECT-BUSL-01`. |
 
 ---
 
@@ -152,14 +152,14 @@ The table below summarizes the exact row-by-row count across all 10 modules:
 | **2.5 Automated Security Testing (FR-ST)** | 5 | 2 | 3 | 0 | 0 |
 | **2.6 AI Agent System (FR-AG)** | 4 | 2 | 2 | 0 | 0 |
 | **2.7 Vulnerability Validation (FR-VV)** | 5 | 5 | 0 | 0 | 0 |
-| **2.8 Authorization & Business Logic (FR-AB)** | 5 | 4 | 1 | 0 | 0 |
+| **2.8 Authorization & Business Logic (FR-AB)** | 5 | 0 | 3 | 0 | 2 |
 | **2.9 Findings Management (FR-FM)** | 4 | 4 | 0 | 0 | 0 |
 | **2.10 PTES Reporting Engine (FR-RP)** | 4 | 4 | 0 | 0 | 0 |
 | **Documented Arch Subsystems (NI-05, NI-09)** | 2 | 0 | 0 | 0 | 2 |
-| **TOTALS (Comprehensive Traceability)** | **51** | **39 (76.47%)** | **10 (19.61%)** | **0 (0.00%)** | **2 (3.92%)** |
+| **TOTALS (Comprehensive Traceability)** | **51** | **35 (68.63%)** | **12 (23.53%)** | **0 (0.00%)** | **4 (7.84%)** |
 
 > **Audit Note on "Not Implemented" Classification:**  
-> Of the 49 PRD functional requirements, 39 are Verified and 10 are Partially Verified (0 Not Tested). Crucially, 2 major documented architectural capabilities are **Not Implemented**: NI-05 (Dynamic Skill Execution Runtime Engine) and NI-09 (Scan Scheduling & Recurring Jobs). A claim of "0 Not Implemented / 0 Not Tested" is not credible and has been corrected. In addition, architectural divergences and gaps (NI-01 through NI-09) are cataloged explicitly below.
+> Of the 49 PRD functional requirements, 35 are Verified, 12 are Partially Verified, and 2 are Not Implemented (FR-AB-01, FR-AB-03) (0 Not Tested). Crucially, 2 major documented architectural capabilities are also Not Implemented: NI-05 (Dynamic Skill Execution Runtime Engine) and NI-09 (Scan Scheduling & Recurring Jobs), bringing total Not Implemented items to 4. A claim of "0 Not Implemented / 0 Not Tested" is not credible and has been corrected. In addition, architectural divergences and gaps (NI-01 through NI-09) are cataloged explicitly below.
 
 ---
 

@@ -99,3 +99,43 @@ This document catalogs identified improvements, technical debt, and recommended 
 - **Proposed Solution**:
   1. Integrate automated session acquisition and cookie/token preservation in `agents/authorization/authz_agent.py` and tool runners using target-specific credentials from `auth_profiles`.
   2. Ensure probers inject authenticated session cookies and Bearer tokens into fuzzing and prober payloads.
+
+---
+
+### P1-AUTH-01: Multi-Identity Session Context & Credential Vault Binding for AGT-07
+- **Category**: Authorization & Multi-Tenant Testing
+- **Severity**: P1 (Core Functionality Gap — Governs FR-AB-01, FR-AB-02, FR-AB-03)
+- **Status**: Documented; Scheduled for Phase 9 implementation.
+- **Problem Statement**:
+  `AuthorizationAgent` (`AGT-07`) sends requests with empty headers (`headers=None`), failing to consume target credentials from `auth_profiles` or maintain dual-tenant sessions. The orchestrator workflow state (`PentestWorkflowState`) lacks identity attributes, preventing authenticated BOLA, IDOR, and privilege escalation testing across roles.
+- **Proposed Solution**:
+  1. Add `identities: Dict[str, Dict[str, Any]]` to `PentestWorkflowState` in `services/orchestrator/state.py`.
+  2. Implement target credential retrieval and AES-256-GCM decryption in `agents/authorization/authz_agent.py` to acquire active session tokens for User A, User B, and Administrative roles.
+  3. Implement cross-user request replay: substitute object IDs discovered under User A with User B's token, asserting whether cross-tenant access is permitted.
+
+---
+
+### P2-BUSL-01: `FLAGGED_FOR_HUMAN_REVIEW` Finding Status and Semantic Anomaly Heuristics
+- **Category**: Business Logic Testing & Human Review Governance
+- **Severity**: P2 (Important Detection & Governance Improvement — Governs FR-AB-04, FR-AB-05)
+- **Status**: Documented; Scheduled for Phase 9 implementation.
+- **Problem Statement**:
+  Business logic anomalies (e.g. client pricing tampering, workflow step-skipping, race conditions) cannot be safely auto-exploited in production and require human evaluation. However, the finding status enum only supports `CANDIDATE`, `CONFIRMED`, and `FALSE_POSITIVE`. Unconfirmed business logic candidates are discarded by `ValidationAgent`.
+- **Proposed Solution**:
+  1. Add `FLAGGED_FOR_HUMAN_REVIEW` to `FindingStatusEnum` in `database/models/finding.py` and `packages/schemas/finding.py`.
+  2. In `agents/validation/validation_agent.py`, transition candidate findings belonging to `WSTG-BUSL-*` or monetary/workflow anomalies to `FLAGGED_FOR_HUMAN_REVIEW` with evidence attachment.
+  3. Introduce semantic parameter inspection in `agents/vulnerability/vuln_agent.py` targeting business-critical parameters (`client_price`, `amount`, `coupon`, `workflow_step`).
+
+---
+
+### P2-CHAIN-01: Finding Graph DAG and Exploit Dependency Chaining
+- **Category**: Vulnerability Correlation & Attack Path Reporting
+- **Severity**: P2 (Reporting & Modeling Improvement)
+- **Status**: Documented; Scheduled for Phase 9 implementation.
+- **Problem Statement**:
+  Findings are stored as flat, disconnected records. The platform cannot express multi-step attack graphs where one vulnerability enables or escalates another (e.g. Information Disclosure -> Session Hijacking -> Administrative Takeover).
+- **Proposed Solution**:
+  1. Add `parent_finding_id: Optional[UUID]` and `prerequisites: List[UUID]` to `database/models/finding.py` and `packages/schemas/finding.py`.
+  2. Support attack path DAG synthesis in `services/evidence_engine/finding_service.py`.
+  3. Render visualized attack chains in PTES executive and technical report sections.
+

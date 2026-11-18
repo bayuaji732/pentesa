@@ -177,4 +177,50 @@
   2. `method` is a valid HTTP verb string (`GET`, `POST`, `PUT`, `DELETE`, etc.).
   3. `benchmark/score.py` correctly parses and matches finding endpoints against ground truth without secondary post-processing.
 
+### 3.16 DEFECT-AUTH-02 / P1 (P4-AUTH-01): Multi-Identity and Credential Vault Disconnection in AGT-07
+- **Components:** `agents/authorization/authz_agent.py:148-168`, `services/orchestrator/state.py:9-40`, `database/models/auth_profile.py`
+- **Severity:** **P1 (Core Authorization Functionality Broken)**
+- **Audit Phase & Standard:** Discovered in Phase 4 capability inventory (`docs/audit/evidence/phase4/4A-capability-inventory.md`); governs PRD §4.8 (FR-AB-01, FR-AB-02, FR-AB-03).
+- **Defect Description:**
+  `AuthorizationAgent` (`AGT-07`) issues HTTP requests using `safe_request(..., headers=None)`. It does not query the credential vault (`auth_profiles` table), does not decrypt stored AES-256-GCM credentials, and passes zero `Authorization` or cookie headers. Furthermore, the orchestrator state (`PentestWorkflowState`) contains zero fields for maintaining test credentials, user sessions, or multiple identities.
+  The multi-identity prober tool (`multi_identity_prober`) is an unauthenticated mock stub. Consequently, the platform is entirely unable to perform cross-tenant authorization testing (User A token on User B object) or privilege escalation testing (Admin vs Member).
+- **Remediation Specification (Phase 9 Implementation):**
+  1. Extend `PentestWorkflowState` in `services/orchestrator/state.py` to store authenticated session contexts: `identities: Dict[str, Dict[str, Any]]` holding decrypted tokens, headers, and cookies per role/tenant.
+  2. In `agents/authorization/authz_agent.py`, query target `AuthProfile` records, authenticate or load Bearer tokens for User A and User B, and inject corresponding headers into requests.
+  3. Implement dual-token BOLA prober: execute requests against User B resources using User A's token, asserting whether HTTP 200 with sensitive tenant data is returned.
+- **Acceptance Criteria:**
+  1. `authz_agent` queries and decrypts credentials for at least two identities from `auth_profiles`.
+  2. BOLA probe requests carry authentic Bearer tokens on wire.
+  3. `GT-P4-CR-BOLA-01-V` and `GT-P4-JS-IDOR-01-V` successfully produce confirmed BOLA findings.
+
+### 3.17 DEFECT-BUSL-01 / P2 (P4-BUSL-01): Lack of Automated Business Logic Anomaly Detection & Review Status
+- **Components:** `database/models/finding.py:15-30`, `packages/schemas/finding.py`, `agents/validation/validation_agent.py:164-239`, `services/execution_engine/runners.py:394-406`
+- **Severity:** **P2 (Detection & Review Governance Gap)**
+- **Audit Phase & Standard:** Discovered in Phase 4 capability assessment (`docs/audit/05b-advanced-pentest-validation.md`); governs PRD §4.8 (FR-AB-04, FR-AB-05).
+- **Defect Description:**
+  While the WSTG catalog identifies business logic tests (`WSTG-BUSL-01..07`) as `requires_human_review=True` and `GenericProbeRunner` transitions them to `NEEDS_REVIEW`, the finding database model (`FindingStatusEnum`) only defines `CANDIDATE`, `CONFIRMED`, and `FALSE_POSITIVE`. The validation agent (`ValidationAgent`) discards any finding that cannot be confirmed via active exploit replay (marking it as false positive/WAF block).
+  Additionally, agents have zero heuristics for detecting business logic anomalies such as client-controlled pricing tampering, coupon race conditions, or workflow step-skipping.
+- **Remediation Specification (Phase 9 Implementation):**
+  1. Add `FLAGGED_FOR_HUMAN_REVIEW = "FLAGGED_FOR_HUMAN_REVIEW"` to `FindingStatusEnum` in `database/models/finding.py` and `FindingStatus` in `packages/schemas/finding.py`.
+  2. In `agents/validation/validation_agent.py`, if a candidate finding belongs to `WSTG-BUSL-*` or exhibits semantic parameter tampering (e.g. price, discount, status), transition it to `FLAGGED_FOR_HUMAN_REVIEW` with recorded evidence instead of discarding it.
+  3. Implement non-destructive business logic anomaly heuristics in `agents/vulnerability/vuln_agent.py` to flag parameters matching monetary/workflow patterns (`price`, `amount`, `role`, `step`, `state`).
+- **Acceptance Criteria:**
+  1. `FindingStatusEnum` supports `FLAGGED_FOR_HUMAN_REVIEW`.
+  2. Business logic anomalies on `/order/checkout` (client_price) and `/workflow/complete` (payment skip) produce findings in `FLAGGED_FOR_HUMAN_REVIEW` status.
+
+### 3.18 DEFECT-CHAIN-01 / P2 (P4-CHAIN-01): Flat Finding Architecture Without Vulnerability Chaining
+- **Components:** `database/models/finding.py`, `packages/schemas/finding.py`, `services/evidence_engine/finding_service.py`
+- **Severity:** **P2 (Vulnerability Correlation & Reporting Limitation)**
+- **Audit Phase & Standard:** Discovered in Phase 4 capability inventory (`docs/audit/evidence/phase4/4A-capability-inventory.md`); governs PRD §4.9 and PTES reporting standards.
+- **Defect Description:**
+  The `findings` table and Pydantic schemas model findings as isolated, flat records. There are no fields or relational tables to establish parent-child relationships, exploit prerequisites, or attack path DAGs (e.g. Information Disclosure -> Credential Harvest -> Administrative Takeover -> RCE). The platform cannot justify or score multi-step chained exploits.
+- **Remediation Specification (Phase 9 Implementation):**
+  1. Add `parent_finding_id: Optional[UUID] = Field(None, foreign_key="findings.id")` to `Finding` model and `FindingResponse`.
+  2. Add `prerequisite_finding_ids: List[UUID]` and `chain_narrative: Optional[str]` to capture attack graph linkage and independent justification.
+  3. In `FindingService`, provide helper methods to associate related findings into an exploit chain.
+- **Acceptance Criteria:**
+  1. Findings can reference parent and prerequisite findings via foreign keys.
+  2. PTES report context builder renders chained attack paths in Executive Summary and Technical Findings sections.
+
+
 

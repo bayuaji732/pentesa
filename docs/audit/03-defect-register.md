@@ -222,30 +222,26 @@
   1. Findings can reference parent and prerequisite findings via foreign keys.
   2. PTES report context builder renders chained attack paths in Executive Summary and Technical Findings sections.
 
-### 3.19 DEFECT-AUTH-03 / P2 (P4-AUTH-02): JWT Access Token Subject Validation Enforces Strict UUID String Format
-- **Components:** `packages/common/security.py:46-65`, `apps/api/dependencies.py:47-65`
-- **Severity:** **P2 (Authentication Contract Strictness)**
-- **Audit Phase & Standard:** Discovered in Phase 4 benchmark execution; governs API authentication dependencies.
-- **Defect Description:**
-  `create_access_token(subject: str, ...)` accepts an arbitrary string `subject`, but the FastAPI authentication dependency `get_current_user` in `apps/api/dependencies.py` strictly attempts `user_uuid = uuid.UUID(user_id_str)` and queries `select(User).where(User.id == user_uuid)`. Passing non-UUID strings (e.g. username or email like `admin@pentesa.local`) fails with `HTTP 401: Malformed user identifier` or `Subject must be a string`.
-- **Remediation Specification (Phase 9 Implementation):**
-  1. In `apps/api/dependencies.py`, allow lookup by either UUID or email (`User.id == user_uuid | User.email == user_id_str`).
-  2. Add type hint and docstring clarification to `packages/common/security.py` noting that `subject` must resolve to an authentic User ID or email.
-- **Acceptance Criteria:**
-  1. Tokens issued with user email or user UUID are accepted by `get_current_user`.
-  2. Automated tests assert both formats successfully authenticate.
+### 3.19 Test-Harness Note (Formerly P2-AUTH-02 / DEFECT-AUTH-03): Test Harness Token Minting with Non-UUID Subject
+- **Components:** `packages/common/security.py:46-65`, `apps/api/dependencies.py:47-65`, test harness seeding scripts
+- **Classification:** **Test-Harness Note (Not a Platform Defect)**
+- **Audit Phase & Standard:** Discovered during Phase 4 seeding/auth investigation; removed as platform defect per verification gate.
+- **Technical Analysis:**
+  The FastAPI authentication dependency `get_current_user` in `apps/api/dependencies.py` strictly parses the token subject as a UUID (`user_uuid = uuid.UUID(user_id_str)`) and resolves it via `select(User).where(User.id == user_uuid)`. This behavior is completely correct: platform user IDs are RFC 4122 UUIDs, and strict subject typing enforces identity integrity. The test harness had minted a synthetic token with an email subject (`admin@pentesa.local`) using the platform signing key (`SECRET_KEY`), causing `HTTP 401: Malformed user identifier`.
+- **Harness Action & Standard:**
+  Test harness and seeding scripts must query the target user's UUID from the database or API login endpoint and mint tokens using the legitimate UUID subject. No fallback to email resolution in `get_current_user` should be implemented, preserving strict UUID subject validation as intended by the platform security model.
 
-### 3.20 DEFECT-LLM-01 / P3 (P4-LLM-01): 1-Token Health Check Incompatibility with Reasoning Models
-- **Components:** `agents/llm/provider.py:405-415`, `benchmark/check_gateway_health.py:49-65`
-- **Severity:** **P3 (Operational Hygiene & Gateway Health Reliability)**
-- **Audit Phase & Standard:** Discovered during Phase 4 Step 0 gateway diagnosis.
+### 3.20 Test-Harness Probe Defect (DEFECT-LLM-01 / P4-LLM-01): 1-Token Health Probe Incompatibility with Reasoning Models
+- **Components:** `benchmark/check_gateway_health.py:49-65`, test harness health probes
+- **Classification:** **Test-Harness Probe Issue (P3 Test Tooling)**
+- **Audit Phase & Standard:** Discovered during Phase 4 Step 0 gateway preflight diagnosis.
 - **Defect Description:**
-  Health probes sending `max_tokens: 1` to Azure GPT-5 / reasoning series models (`azure/gpt-5.6-terra-dev-gtw`) cause the upstream API to reject with `400 Bad Request` (*"Could not finish the message because max_tokens or model output limit was reached"*). LiteLLM forwards this as an internal JSON error.
-- **Remediation Specification (Phase 9 Implementation):**
-  1. In `check_gateway_health.py` and `LiteLLMProvider`, inspect the model name: if matching `gpt-5`, `o1`, `o3`, or `o4`, use `max_completion_tokens: 50` rather than `max_tokens: 1`.
-  2. Verify response payload for `"error"` dict even when HTTP status is 200.
+  Health check probes in test scripts sending `max_tokens: 1` to Azure GPT-5 / reasoning series models (`azure/gpt-5.6-terra-dev-gtw`) cause the upstream API to reject with `400 Bad Request` (*"Could not finish the message because max_tokens or model output limit was reached"*). LiteLLM forwards this as an internal JSON error. This is a harness probe defect, not a defect in the platform engine prober.
+- **Remediation Specification (Harness Tooling):**
+  1. In `benchmark/check_gateway_health.py` and test harness scripts, detect reasoning models and set health probe completion limit to `max_completion_tokens: 50` rather than `max_tokens: 1`.
+  2. Assert valid completion tokens or string payloads without 400 Bad Request errors.
 - **Acceptance Criteria:**
-  1. Gateway health probes with reasoning models return valid completion tokens without 400 Bad Request errors.
+  1. Test harness health probe successfully queries reasoning models without triggering max_tokens limit errors.
 
 
 

@@ -1,15 +1,15 @@
 ================================================================================
 PENTESA BENCHMARK EVIDENCE CAPTURE — PHASE 4 RUN 3
-Timestamp (UTC): 2026-11-19T05:19:02Z
-Git SHA: a8a4b1fcb301e5c9d5cd5790071ffe7d67fe63ed
+Timestamp (UTC): 2026-11-19T07:04:59Z
+Git SHA: 33a482ddc09afa59de0ed7c45dd389e282840738
 Dirty Flag: true
-Exact Command: C:\Users\User2\Documents\work\pentesa\.venv\Scripts\python.exe C:\Users\User2\Documents\work\pentesa\benchmark\score_p4.py --app juiceshop --findings C:\Users\User2\Documents\work\pentesa\docs\audit\evidence\phase4\findings_juiceshop_run3.json --candidates C:\Users\User2\Documents\work\pentesa\docs\audit\evidence\phase4\candidate_findings_juiceshop_run3.json --ground-truth C:\Users\User2\Documents\work\pentesa\benchmark\ground_truth_p4.yaml
+Exact Command: C:\Users\User2\Documents\work\pentesa\.venv\Scripts\python.exe C:\Users\User2\Documents\work\pentesa\benchmark\score_p4_wrapper.py --app juiceshop --findings C:\Users\User2\Documents\work\pentesa\docs\audit\evidence\phase4\findings_juiceshop_run3.json --candidates C:\Users\User2\Documents\work\pentesa\docs\audit\evidence\phase4\candidate_findings_juiceshop_run3.json --ground-truth C:\Users\User2\Documents\work\pentesa\benchmark\ground_truth_p4.yaml
 DB Version: PostgreSQL 16.2
 Execution Stack: Running Stack (Docker Compose)
 Target Name: juiceshop
 Scan Profile: DEEP
 Ground Truth P4 SHA-256: 1382f7d4ee35856a0e660de6d72e5ebd6b343edea42b80092bf5c38a72cb8076
-Score_p4.py SHA-256: c42e6c370947545274369b05cc17ce3a6d3e135aa605dfe49e307afc161e4b29
+Score_p4_wrapper.py SHA-256: 9863c7ad55ad526437b92414aef139342dc8c1a48b69b229cde5ba475b946eaf
 ================================================================================
 
 {

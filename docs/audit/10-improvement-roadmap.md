@@ -150,4 +150,20 @@ This document catalogs identified improvements, technical debt, and recommended 
 - **Proposed Solution**:
   1. In `check_gateway_health.py` and benchmark health probes, detect reasoning models and adjust health check parameter to `max_completion_tokens: 50`.
 
+---
+
+### P1-AGENT-01: Empirical Reproduction Gating & Hallucination Resistance Invariant in ValidationAgent
+- **Category**: AI Agent System & Vulnerability Validation
+- **Severity**: P1 (Core Functionality & Accuracy Invariant — Governs FR-VV-05, US-04)
+- **Status**: Documented; Scheduled for Phase 9 implementation.
+- **Problem Statement**:
+  In `ValidationAgent.execute()`, candidate findings are validated using an LLM prompt without asserting whether the preceding empirical reproduction probe succeeded. When tested in Phase 5 (`P5-TC-HALLUC-01`), a candidate finding targeting a non-existent endpoint (`/admin/super-exec`) that returned HTTP 404 was hallucinated as `is_valid: true` by the LLM. `ValidationAgent` promoted the finding to `confirmed_findings` without wire proof, resulting in 0.0% hallucination resistance (`DEFECT-AGENT-01`).
+- **Proposed Solution**:
+  1. In `agents/validation/validation_agent.py`, enforce an empirical wire proof invariant before evaluating LLM assertions:
+     - Require `repro_status in (200, 201, 204, 302)` and non-empty `raw_response`.
+     - If the reproduction probe returns HTTP 404, 502, or timeout, immediately reject the candidate as `FALSE_POSITIVE` or demote to `UNCONFIRMED_ANOMALY`.
+  2. Implement bidirectional validation: both empirical wire evidence AND LLM semantic analysis must agree before promoting a finding to `confirmed_findings`.
+  3. Emit structured audit log `HALLUCINATION_SUPPRESSED` when an LLM claims `is_valid: true` on an unverified reproduction.
+
+
 

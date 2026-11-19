@@ -6,3 +6,4 @@
 
 | Timestamp (UTC) | Run / Target | Profile | Prompt Tokens | Completion Tokens | Total Tokens | Cost (USD) | Cumulative Tokens | Cumulative Cost | Budget Share |
 |---|---|:---:|---:|---:|---:|---:|---:|---:|---:|
+| `2026-11-19T09:11:01.991257+00:00` | P5-LIVE-RUNS | DEEP | 330 | 4506 | 4836 | $0.0459 | 4836 | $0.0459 | 1.1% |

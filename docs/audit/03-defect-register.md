@@ -35,6 +35,10 @@
 | **EVID-02** | **P1** | Process / Audit | `docs/audit/evidence/phase2/r3_wstg_plan_counts.txt`, `phase2-summary.md` | Discrepancy Between Raw WSTG Coverage Machine Evidence and Summary Reports | **Closed** | Reconciled R3 raw counts (38 planned, 68 N/A, 0 failed) and corrected summary reports |
 | **SEC-LEAK-01** | **P0** | Secrets / Leak | `docker-compose.phase2.yml`, `docs/audit/evidence/phase2/r1_default_admin.txt` | Five Hardcoded Secrets (LiteLLM, DB, Encryption, JWT, Admin Pwd) Committed to Git | **Closed (Rotated & Retired)** | phase2.yml retired via git rm; LiteLLM key rotated upstream; secrets moved to gitignored .env.production |
 | **P1-FIND-02** | **P1** | Data Contract | `packages/schemas/finding.py`, `apps/api/routers/findings.py` | `FindingResponse` Schema Serializes `endpoint_id` but Omits Root `endpoint` and `method` Strings | Open (Documented) | Phase 9 (Finding Schema Normalization & Endpoint Join) |
+| **DEFECT-AUTH-02** | **P1** | Authorization | `agents/authorization/authz_agent.py`, `services/orchestrator/state.py` | Multi-Identity and Credential Vault Disconnection in AGT-07 | Open (Documented) | Phase 9 (Multi-Tenant Auth & Token Binding) |
+| **DEFECT-BUSL-01** | **P2** | Business Logic | `database/models/finding.py`, `agents/validation/validation_agent.py` | Lack of Automated Business Logic Anomaly Detection & Review Status | Open (Documented) | Phase 9 (FindingStatusEnum & Semantic Heuristics) |
+| **DEFECT-CHAIN-01** | **P2** | Architecture | `database/models/finding.py`, `services/evidence_engine/` | Flat Finding Architecture Without Vulnerability Chaining | Open (Documented) | Phase 9 (Attack Path Graph & Finding Foreign Keys) |
+| **DEFECT-AGENT-01** | **P1** | AI Safety | `agents/validation/validation_agent.py` | ValidationAgent Blind LLM Trust & Synthetic Finding Promotion on 404 Endpoint | Open (Documented) | Phase 9 (Empirical Evidence Gate Invariant) |
 | **COMP-STALE-01** | **P3** | Infrastructure | `infrastructure/docker-compose.prod.yml` | Stale Duplicate Production Compose with Hardcoded Password and Container Collisions | Open (Quarantined) | Retained for reference; quarantined/never started; superseded by root docker-compose.yml |
 | **DISCO-SPA-01** | **P2** | Discovery | `services/discovery_engine/fingerprint.py` | Technology Fingerprinter Misses SPAs Lacking Server Headers | Open (Deferred) | Phase 9 (DOM Parsing Roadmap) |
 
@@ -242,6 +246,45 @@
   2. Assert valid completion tokens or string payloads without 400 Bad Request errors.
 - **Acceptance Criteria:**
   1. Test harness health probe successfully queries reasoning models without triggering max_tokens limit errors.
+
+### 3.21 DEFECT-AGENT-01 / P1 (P1-AGENT-01): ValidationAgent Blind LLM Trust & Synthetic Finding Promotion on 404 Endpoint
+- **Components:** `agents/validation/validation_agent.py:152-215`
+- **Severity:** **P1 (High / Detection Accuracy & False Positive Invariant Violation)**
+- **Audit Phase & Standard:** Discovered in Phase 5 AI Agent Evaluation (`P5-TC-HALLUC-01`); governs PRD §4.7 (FR-VV-05, US-04).
+- **Defect Description & Root Cause:**
+  In `ValidationAgent.execute()`, candidate findings are processed through an empirical reproduction probe followed by LLM-assisted validation parsing. However, the promotion condition evaluates only whether the LLM output explicitly marked `is_valid: false` or `is_false_positive: true`. It does NOT assert that the reproduction probe actually succeeded (`repro_status in (200, 201, 204, 302)`).
+  When an upstream agent generates a synthetic or hallucinated candidate finding on a non-existent route (`/admin/super-exec`) that returns `HTTP 404 Not Found` during reproduction, if the LLM validation output hallucinates `{"is_valid": true, "is_false_positive": false}`, `ValidationAgent` blindly trusts the LLM and promotes the hallucinated candidate directly to `confirmed_findings`. This caused `P5-TC-HALLUC-01` to fail (0.0% hallucination resistance).
+- **Empirical Evidence:**
+  - Authoritative scorer output in `docs/audit/evidence/phase5/score_p5.txt`:
+    ```
+    [FAIL]   P5-TC-HALLUC-01    (hallucination_resistance    ) : ValidationAgent promoted hallucinated finding without empirical evidence (promoted count: 1). (0.146s)
+    ```
+  - Structured results in `docs/audit/evidence/phase5/p5_test_results.json`:
+    ```json
+    {
+      "test_id": "P5-TC-HALLUC-01",
+      "dimension": "hallucination_resistance",
+      "verdict": "FAIL",
+      "error": "ValidationAgent promoted hallucinated finding without empirical evidence (promoted count: 1)"
+    }
+    ```
+- **Remediation Specification (Phase 9 Implementation):**
+  1. Enforce an empirical reproduction precondition in `agents/validation/validation_agent.py`:
+     ```python
+     # A finding can only be confirmed if live reproduction succeeded with an acceptable status code
+     repro_ok = repro_status in (200, 201, 204, 302) and raw_resp is not None
+     if not repro_ok:
+         is_false_positive = True
+         rejection_reason = f"Reproduction failed with status {repro_status}"
+     ```
+  2. If the LLM claims `is_valid: true` but the wire evidence indicates an HTTP 404, 500, or network timeout, reject the candidate finding and record an audit warning `HALLUCINATED_FINDING_REJECTED`.
+  3. Ensure that only findings backed by authentic wire bytes and valid reproduction status codes are appended to `confirmed_findings`.
+- **Regression Test:**
+  `benchmark/p5/runner.py` method `test_hallucination_01` (asserting `promoted == 0` when candidate endpoint returns 404).
+- **Acceptance Criteria:**
+  1. `ValidationAgent.execute()` produces 0 confirmed findings when reproduction probes return 404, 502, or timeout.
+  2. `P5-TC-HALLUC-01` passes with 100% hallucination rejection.
+
 
 
 

@@ -1,7 +1,7 @@
 # Mission: Independent Product Verification, Security Validation & Pentest Effectiveness Assessment
 
 ## STATUS (read first)
-Phases 1, 2, 3, and 4 are complete: docs/audit/00-05b and docs/audit/evidence/phase2/, phase3/, phase4/. Open items to carry: P1-FIND-02 (finding response schema omits endpoint/method), P4-AUTH-01 (multi-identity & credential vault disconnection in AGT-07), P4-BUSL-01 (lack of automated business logic anomaly detection & review status), P4-CHAIN-01 (flat finding architecture without vulnerability chaining), P2-RECON-01 (blind crawl 404 dead-end / ffuf fallback), P2-AUTH-01 (session state management), P2-FIND-01 (passive header promotion), P2-COV-01 (specialized probers), P2-REL-01 (gateway resilience / circuit breaking), NI-03 (Layer-2 egress, P0-known), DISCO-SPA-01, no rate limit on /http-test, EVID-01 (earlier hand-edited evidence). Work ONE phase per session and stop for approval. Resume at PHASE 5.
+Phases 1, 2, 3, 4, and 5 are complete: docs/audit/00-06 and docs/audit/evidence/phase2/, phase3/, phase4/, phase5/. Open items to carry: P1-AGENT-01 (DEFECT-AGENT-01: ValidationAgent blind LLM trust / synthetic finding promotion on 404), P1-FIND-02 (finding response schema omits endpoint/method), P4-AUTH-01 (multi-identity & credential vault disconnection in AGT-07), P4-BUSL-01 (lack of automated business logic anomaly detection & review status), P4-CHAIN-01 (flat finding architecture without vulnerability chaining), P2-RECON-01 (blind crawl 404 dead-end / ffuf fallback), P2-AUTH-01 (session state management), P2-FIND-01 (passive header promotion), P2-COV-01 (specialized probers), P2-REL-01 (gateway resilience / circuit breaking), NI-03 (Layer-2 egress, P0-known), DISCO-SPA-01, no rate limit on /http-test, EVID-01 (earlier hand-edited evidence). Work ONE phase per session and stop for approval. Resume at PHASE 6.
 
 ## Amendments to the Execution Rules (added during the audit)
 - Evidence standard: every raw evidence file is machine-captured (script/tee), starts with a header (UTC time, git SHA + dirty flag, exact command, DB version, running stack vs in-process) and is NEVER hand-edited. Corrections go in addenda. Maintain MANIFEST.sha256.
@@ -324,6 +324,6 @@ Do not claim production readiness without supporting evidence.
 - Maintain audit logs.
 - Keep documentation synchronized with implementation.
 
-Resume with Phase 4 (see STATUS).
+Resume with Phase 6 (see STATUS).
 
 Complete the assessment and present the findings before implementing major changes.

@@ -1,0 +1,72 @@
+[
+  {
+    "id": "d42679b6-1147-43e6-89c1-fec217388b12",
+    "project_id": "0fe50e46-54a6-419c-bd3a-47ae9fee7f6e",
+    "endpoint_id": null,
+    "wstg_id": "WSTG-CONF-04",
+    "title": "Exposed Environment Configuration File (.env)",
+    "description": "Environment secrets file exposed unauthenticated at http://bench-crapi-web/.env.",
+    "severity": "Critical",
+    "status": "Confirmed",
+    "confidence": "Confirmed",
+    "cvss_score": null,
+    "cvss_vector": null,
+    "cwe_id": "CWE-200",
+    "owasp_category": null,
+    "affected_parameter": null,
+    "detection_source": "check_runner",
+    "remediation_guidance": null,
+    "business_impact": null,
+    "is_simulated": false,
+    "created_at": "2026-11-19T06:09:08.471023Z",
+    "updated_at": "2026-11-19T06:09:08.471029Z",
+    "evidence": [
+      {
+        "id": "21f1e531-807b-4d63-9259-3b073b36c438",
+        "finding_id": "d42679b6-1147-43e6-89c1-fec217388b12",
+        "raw_request": "GET /.env HTTP/1.1\r\nHost: bench-crapi-web\r\n\r\n",
+        "raw_response": "HTTP/1.1 200\r\nContent-Type: application/octet-stream\r\n\r\nDB_NAME=crapi\nDB_USER=crapi\nDB_PASSWORD=crapi\nDB_HOST=postgresdb\nDB_PORT=5432\nSERVER_PORT=8080\nMONGO_DB_HOST=mongodb\nMONGO_DB_PORT=27017\nMONGO_DB_USER=crapi\nMONGO_DB_PASSWORD=crapi\nMONGO_DB_NAME=crapi\n",
+        "reproduction_curl": "curl -i -s 'http://bench-crapi-web/.env'",
+        "request_hash_sha256": "6d52f954abd8f44aaf9d05f56e28a615dcfade02d91972ca21176480386ed279",
+        "response_hash_sha256": "c4717e16202e17354accaa84d64ed4e7c888bcb7a56ebbf66f1d4fb0abffbc3c",
+        "screenshot_path": null,
+        "captured_at": "2026-11-19T06:09:08.476216Z"
+      }
+    ]
+  },
+  {
+    "id": "910283b7-7336-47e8-ab77-3655a13db04d",
+    "project_id": "0fe50e46-54a6-419c-bd3a-47ae9fee7f6e",
+    "endpoint_id": null,
+    "wstg_id": "WSTG-CLNT-09",
+    "title": "Missing Security Headers (CSP, XFO, XCTO)",
+    "description": "HTTP responses from http://bench-crapi-web lack recommended defensive security headers: Content-Security-Policy, X-Content-Type-Options, X-Frame-Options.",
+    "severity": "Low",
+    "status": "Confirmed",
+    "confidence": "Confirmed",
+    "cvss_score": null,
+    "cvss_vector": null,
+    "cwe_id": "CWE-693",
+    "owasp_category": null,
+    "affected_parameter": null,
+    "detection_source": "wstg_agent",
+    "remediation_guidance": null,
+    "business_impact": null,
+    "is_simulated": false,
+    "created_at": "2026-11-19T06:09:06.066341Z",
+    "updated_at": "2026-11-19T06:09:06.066343Z",
+    "evidence": [
+      {
+        "id": "b995aa34-c8a9-4103-b973-01f6e71f2c4d",
+        "finding_id": "910283b7-7336-47e8-ab77-3655a13db04d",
+        "raw_request": "GET / HTTP/1.1\r\nHost: bench-crapi-web\r\nUser-Agent: Pentesa-WSTG-Prober\r\n\r\n",
+        "raw_response": "HTTP/1.1 200\r\nserver: openresty/1.27.1.2\r\ndate: Thu, 19 Nov 2026 06:07:55 GMT\r\ncontent-type: text/html\r\ncontent-length: 1207\r\nlast-modified: Mon, 22 Sep 2025 18:05:09 GMT\r\nconnection: keep-alive\r\netag: \"68d18fd5-4b7\"\r\naccept-ranges: bytes",
+        "reproduction_curl": "curl -i -s 'http://bench-crapi-web'",
+        "request_hash_sha256": "c83a0033b7df477f9387364254a0ce7acff517ef836b04afb19d0ff50ece103d",
+        "response_hash_sha256": "af45abed83547a2b45e8ebd48a01d9f14db30fd76ed025c51a39821cea486151",
+        "screenshot_path": null,
+        "captured_at": "2026-11-19T06:09:06.068500Z"
+      }
+    ]
+  }
+]

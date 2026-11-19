@@ -1,0 +1,43 @@
+[
+  {
+    "title": "Missing Security Headers (CSP, XFO, XCTO)",
+    "cwe_id": "CWE-693",
+    "source": "wstg_agent",
+    "wstg_id": "WSTG-CLNT-09",
+    "severity": "Low",
+    "target_url": "http://bench-pentesa-app:8080",
+    "description": "HTTP responses from http://bench-pentesa-app:8080 lack recommended defensive security headers: Content-Security-Policy, X-Content-Type-Options, X-Frame-Options.",
+    "raw_request": "GET / HTTP/1.1\r\nHost: bench-pentesa-app:8080\r\nUser-Agent: Pentesa-WSTG-Prober\r\n\r\n",
+    "status_code": 404,
+    "raw_response": "HTTP/1.1 404\r\ndate: Thu, 19 Nov 2026 04:49:03 GMT\r\nserver: uvicorn\r\ncontent-length: 22\r\ncontent-type: application/json",
+    "reproduction_curl": "curl -i -s 'http://bench-pentesa-app:8080'"
+  },
+  {
+    "title": "SQL Injection in 'q' Parameter (/sqli/search)",
+    "cwe_id": "CWE-89",
+    "source": "check_runner",
+    "wstg_id": "WSTG-INPV-05",
+    "severity": "Critical",
+    "matched_at": "http://bench-pentesa-app:8080/sqli/search?q=%27%29%29",
+    "description": "Error-based SQL injection confirmed on /sqli/search?q= returning database syntax details or HTTP 500.",
+    "raw_request": "GET /sqli/search?q=%27%29%29 HTTP/1.1\r\nHost: bench-pentesa-app:8080\r\n\r\n",
+    "status_code": 500,
+    "raw_response": "HTTP/1.1 500\r\n\r\n{\"error\":\"SQL Error\",\"details\":\"near \\\")\\\": syntax error\",\"query\":\"SELECT id, name, description, price FROM products WHERE name LIKE '%'))%'\"}",
+    "reproduction_curl": "curl -i -s \"http://bench-pentesa-app:8080/sqli/search?q=%27%29%29\"",
+    "affected_parameter": "q"
+  },
+  {
+    "title": "Reflected Cross-Site Scripting (XSS) in 'name' Parameter (/ssti/render)",
+    "cwe_id": "CWE-79",
+    "source": "check_runner",
+    "wstg_id": "WSTG-INPV-01",
+    "severity": "Medium",
+    "matched_at": "http://bench-pentesa-app:8080/ssti/render?name=%3Cscript%3Ealert%28%27pentesa_xss_8421%27%29%3C/script%3E",
+    "description": "Query parameter 'name' on /ssti/render reflects unescaped executable <script> HTML markup directly into the text/html DOM response.",
+    "raw_request": "GET /ssti/render?name=%3Cscript%3Ealert%28%27pentesa_xss_8421%27%29%3C/script%3E HTTP/1.1\r\nHost: bench-pentesa-app:8080\r\n\r\n",
+    "status_code": 200,
+    "raw_response": "HTTP/1.1 200\r\nContent-Type: text/html; charset=utf-8\r\n\r\n<html><body><h1>Hello <script>alert('pentesa_xss_8421')</script>!</h1></body></html>",
+    "reproduction_curl": "curl -i -s \"http://bench-pentesa-app:8080/ssti/render?name=%3Cscript%3Ealert%28%27pentesa_xss_8421%27%29%3C/script%3E\"",
+    "affected_parameter": "name"
+  }
+]

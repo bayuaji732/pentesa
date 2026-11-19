@@ -139,3 +139,26 @@ This document catalogs identified improvements, technical debt, and recommended 
   2. Support attack path DAG synthesis in `services/evidence_engine/finding_service.py`.
   3. Render visualized attack chains in PTES executive and technical report sections.
 
+---
+
+### P2-AUTH-02: Support Dual UUID and Email Resolution in JWT Subject Authentication
+- **Category**: Identity & Token Management
+- **Severity**: P2 (API Robustness)
+- **Status**: Documented; Scheduled for Phase 9 implementation.
+- **Problem Statement**:
+  `get_current_user` in `apps/api/dependencies.py` assumes the token `sub` is strictly a UUID string, failing with HTTP 401 when tokens are minted with user email addresses.
+- **Proposed Solution**:
+  1. Update `get_current_user` to attempt UUID parsing, and if not a valid UUID, perform lookup against `User.email`.
+
+---
+
+### P3-LLM-01: Reasoning Model Adaptive Health Probe Token Limits
+- **Category**: LLM Gateway & Provider Resilience
+- **Severity**: P3 (Operational Hygiene)
+- **Status**: Documented; Scheduled for Phase 9 implementation.
+- **Problem Statement**:
+  Reasoning models (Azure GPT-5 / OpenAI o-series) reject requests with `max_tokens: 1`, returning 400 Bad Request.
+- **Proposed Solution**:
+  1. In `check_gateway_health.py` and provider configs, detect reasoning models and adjust health check parameter to `max_completion_tokens: 50`.
+
+

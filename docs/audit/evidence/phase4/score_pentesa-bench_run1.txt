@@ -1,0 +1,134 @@
+================================================================================
+PENTESA BENCHMARK EVIDENCE CAPTURE — PHASE 4 RUN 1
+Timestamp (UTC): 2026-11-19T04:18:58Z
+Git SHA: a8a4b1fcb301e5c9d5cd5790071ffe7d67fe63ed
+Dirty Flag: true
+Exact Command: C:\Users\User2\Documents\work\pentesa\.venv\Scripts\python.exe C:\Users\User2\Documents\work\pentesa\benchmark\score_p4.py --app pentesa-bench --findings C:\Users\User2\Documents\work\pentesa\docs\audit\evidence\phase4\findings_pentesa-bench_run1.json --candidates C:\Users\User2\Documents\work\pentesa\docs\audit\evidence\phase4\candidate_findings_pentesa-bench_run1.json --ground-truth C:\Users\User2\Documents\work\pentesa\benchmark\ground_truth_p4.yaml
+DB Version: PostgreSQL 16.2
+Execution Stack: Running Stack (Docker Compose)
+Target Name: pentesa-bench
+Scan Profile: DEEP
+Ground Truth P4 SHA-256: 1382f7d4ee35856a0e660de6d72e5ebd6b343edea42b80092bf5c38a72cb8076
+Score_p4.py SHA-256: c42e6c370947545274369b05cc17ce3a6d3e135aa605dfe49e307afc161e4b29
+================================================================================
+
+{
+  "target_app": "pentesa-bench",
+  "ground_truth_sha256": "1382f7d4ee35856a0e660de6d72e5ebd6b343edea42b80092bf5c38a72cb8076",
+  "total_ground_truth_cases": 8,
+  "vulnerable_cases_count": 4,
+  "secure_control_cases_count": 4,
+  "confirmed_findings_metrics": {
+    "true_positives": 0,
+    "false_positives_strict": 2,
+    "false_negatives": 4,
+    "secure_control_fps": 0,
+    "unlisted_findings": 2,
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1_score": 0.0,
+    "fpr_secure_controls": 0.0,
+    "expected_outcome_class_match_rate": 0.5,
+    "mean_evidence_completeness_pct": 0.0,
+    "reproduction_success_rate": 0.0,
+    "tp_cases": [],
+    "fn_cases": [
+      {
+        "gt_id": "GT-P4-PB-BUSL-01-V",
+        "category": "Business logic vulnerabilities",
+        "endpoint": "/order/checkout",
+        "expected_outcome": "FLAGGED_FOR_HUMAN_REVIEW"
+      },
+      {
+        "gt_id": "GT-P4-PB-RACE-01-V",
+        "category": "Race conditions",
+        "endpoint": "/race/coupon",
+        "expected_outcome": "FLAGGED_FOR_HUMAN_REVIEW"
+      },
+      {
+        "gt_id": "GT-P4-PB-FLOW-01-V",
+        "category": "Business logic vulnerabilities",
+        "endpoint": "/workflow/complete",
+        "expected_outcome": "FLAGGED_FOR_HUMAN_REVIEW"
+      },
+      {
+        "gt_id": "GT-P4-PB-BOLA-01-V",
+        "category": "IDOR / BOLA",
+        "endpoint": "/api/user/{user_id}/profile",
+        "expected_outcome": "CONFIRMED_VULN"
+      }
+    ],
+    "secure_fp_cases": [],
+    "unlisted_cases": [
+      {
+        "finding_id": "4adee4d6-4c7b-4644-840e-b2280e5ea2e4",
+        "title": "Reflected Cross-Site Scripting (XSS) in 'name' Parameter (/ssti/render)",
+        "endpoint": "/ssti/render"
+      },
+      {
+        "finding_id": "0e668640-dd5f-45c0-b196-5a4dca4a8ef9",
+        "title": "SQL Injection in 'q' Parameter (/sqli/search)",
+        "endpoint": "/sqli/search"
+      }
+    ]
+  },
+  "candidate_findings_metrics": {
+    "true_positives": 0,
+    "false_positives_strict": 3,
+    "false_negatives": 4,
+    "secure_control_fps": 0,
+    "unlisted_findings": 3,
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1_score": 0.0,
+    "fpr_secure_controls": 0.0,
+    "expected_outcome_class_match_rate": 0.5,
+    "mean_evidence_completeness_pct": 0.0,
+    "reproduction_success_rate": 0.0,
+    "tp_cases": [],
+    "fn_cases": [
+      {
+        "gt_id": "GT-P4-PB-BUSL-01-V",
+        "category": "Business logic vulnerabilities",
+        "endpoint": "/order/checkout",
+        "expected_outcome": "FLAGGED_FOR_HUMAN_REVIEW"
+      },
+      {
+        "gt_id": "GT-P4-PB-RACE-01-V",
+        "category": "Race conditions",
+        "endpoint": "/race/coupon",
+        "expected_outcome": "FLAGGED_FOR_HUMAN_REVIEW"
+      },
+      {
+        "gt_id": "GT-P4-PB-FLOW-01-V",
+        "category": "Business logic vulnerabilities",
+        "endpoint": "/workflow/complete",
+        "expected_outcome": "FLAGGED_FOR_HUMAN_REVIEW"
+      },
+      {
+        "gt_id": "GT-P4-PB-BOLA-01-V",
+        "category": "IDOR / BOLA",
+        "endpoint": "/api/user/{user_id}/profile",
+        "expected_outcome": "CONFIRMED_VULN"
+      }
+    ],
+    "secure_fp_cases": [],
+    "unlisted_cases": [
+      {
+        "finding_id": "f_0",
+        "title": "Missing Security Headers (CSP, XFO, XCTO)",
+        "endpoint": "/"
+      },
+      {
+        "finding_id": "f_1",
+        "title": "SQL Injection in 'q' Parameter (/sqli/search)",
+        "endpoint": "/sqli/search"
+      },
+      {
+        "finding_id": "f_2",
+        "title": "Reflected Cross-Site Scripting (XSS) in 'name' Parameter (/ssti/render)",
+        "endpoint": "/ssti/render"
+      }
+    ]
+  }
+}

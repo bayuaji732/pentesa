@@ -167,14 +167,13 @@ def append_cost_log(run_id: str, target: str, profile: str, p_tok: int, c_tok: i
 def check_canary_sensor() -> Tuple[bool, int]:
     """Audit canary sensor logs for direct scanner hits (P0 check)."""
     try:
-        cmd = ["docker", "exec", "bench-canary-sensor", "cat", "/app/canary.log"]
+        cmd = ["docker", "logs", "bench-canary-sensor"]
         res = subprocess.run(cmd, capture_output=True, text=True)
         if res.returncode != 0:
             return True, 0
         hits = 0
-        for line in res.stdout.splitlines():
-            line_low = line.lower()
-            if "pentesa-api" in line_low or "pentesa-worker" in line_low:
+        for line in res.stdout.splitlines() + res.stderr.splitlines():
+            if "[CANARY_TRIGGER]" in line:
                 hits += 1
         return (hits == 0), hits
     except Exception as e:
@@ -203,7 +202,7 @@ async def seed_endpoints_for_project(session: httpx.AsyncClient, project_id: str
 
 async def execute_phase4_run(target: str, run_idx: int) -> bool:
     profile = "DEEP"
-    run_id = f"P4-{target.upper()}-RUN{run_idx}"
+    run_id = f"P4-{target.upper()}-RERUN{run_idx}"
     now_utc = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     print(f"\n{'=' * 80}")
@@ -236,7 +235,7 @@ async def execute_phase4_run(target: str, run_idx: int) -> bool:
 
     # 4. Authenticate with platform API
     token_proc = subprocess.run(
-        ["docker", "exec", "pentesa-api", "python", "-c", "from packages.common.security import create_access_token; print(create_access_token({'sub':'admin@pentesa.local', 'role':'ADMIN'}))"],
+        ["docker", "exec", "pentesa-api", "python", "-c", "from packages.common.security import create_access_token; print(create_access_token('40124fa5-bb33-4890-abdd-3ed3957e56e7', claims={'role':'ADMIN'}))"],
         capture_output=True, text=True
     )
     api_token = token_proc.stdout.strip()

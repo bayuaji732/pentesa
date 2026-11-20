@@ -250,3 +250,39 @@ All 18 skills are located in `skills/`. Inspection confirms that **zero Python m
 | **Skills (SKILL.md)** | 18 | 0 | 0 | 18 (Prompt docs, no runtime) | 18 |
 | **Tool Wrappers & Services** | 5 | 5 | 0 | 0 | 5 |
 | **Async Execution Worker** | 1 | 0 | 0 | 1 (Idle polling stub NI-06) | 1 |
+
+---
+
+## 8. Addendum: LLM Influence Map & Tool Wrapper Gap Analysis
+
+### 8.1 LLM Influence Map (Decision Authority: LLM vs Deterministic Code)
+
+To establish rigorous provenance over agent behavior, each agent class was inspected to determine whether operational decisions (tool dispatches, scan paths, vulnerability validations, state mutations) are driven by the Large Language Model or by deterministic Python code.
+
+| Agent ID & Class | Decision / Operation | Decision Authority | Description & Implementation Reality |
+|---|---|:---:|---|
+| **AGT-01** (`ProjectPlanningAgent`) | Scan Strategy & Rate Limits | **Deterministic Code** | LLM generates a freeform thought trace; test instance initialization is executed deterministically by `WSTGPlannerService.initialize_project_instances()` based on the static `scan_profile` parameter. |
+| **AGT-03 / AGT-04** (`ReconnaissanceAgent`) | Crawl Depth & Target Traversal | **Deterministic Code** | LLM generates a thought trace; crawling is executed by `AsyncWebCrawler` using standard HTML/JS regex parsing. Scope checks are enforced deterministically by `ScopeService.check_target()`. |
+| **AGT-05** (`WSTGAssessmentAgent`) | Test Case Execution Plan | **Deterministic Code** | LLM provides a thought trace; WSTG test probes are dispatched deterministically by `WSTGRunner` and `check_headers` iterating over the project's seeded WSTG catalog. |
+| **AGT-07** (`AuthorizationAgent`) | BOLA / IDOR Probing | **Deterministic Code** | LLM generates an anomaly hypothesis; the prober deterministically substitutes static integer IDs (`1` and `2`) in URL path templates. |
+| **AGT-09 / AGT-10** (`VulnerabilityAgent`) | Tool Invocations (Nuclei / Ffuf) | **Deterministic Code** | LLM generates an analysis summary; scanner subprocess execution arguments, wordlists, and templates are compiled deterministically by `NucleiRunner` and `FfufRunner`. |
+| **AGT-11 / AGT-12** (`ValidationAgent`) | Finding Validation & Promotion | **LLM Semantic Output** *(Vulnerable)* | **Critical Architectural Finding:** This is the ONLY agent where LLM output directly drives a state mutation. The agent inspects `parsed.get("is_valid")` from the LLM. If `is_valid: true`, the candidate is promoted to `confirmed_findings` without validating that the empirical reproduction probe succeeded (`DEFECT-AGENT-01`). |
+| **AGT-15** (`ReportingAgent`) | Executive Summary & Deliverables | **LLM Text Generation** | LLM writes the narrative executive summary string; finding tables, severity matrices, and CVSS scores are compiled deterministically from PostgreSQL records. |
+
+> **Key Architectural Finding:**  
+> In 5 of the 7 active agents (AGT-01, AGT-03, AGT-05, AGT-07, AGT-09), the LLM functions purely as an explanatory co-pilot generating textual thought traces and rationales. All routing, scanning, and tool dispatching are 100% deterministic code. In AGT-15, the LLM provides content synthesis. Only in **AGT-11 (`ValidationAgent`)** does LLM generation possess operational decision authority over finding promotion—which directly introduced `DEFECT-AGENT-01`.
+
+---
+
+### 8.2 Tool Wrapper Inventory Gaps (Specification vs Codebase)
+
+A comparison between the integration specifications in `docs/09-tool-integrations.md`, agent tool allowlists, and the actual files in `integrations/` and `services/execution_engine/tools/` reveals that several specified tools lack executable wrappers:
+
+| Tool Identifier | Spec Reference | Agent Allowlist Reference | Actual Implementation State | Gap Classification |
+|---|---|---|---|---|
+| **`subfinder`** | `docs/09-tool-integrations.md` §5.3 | `AGT-03` (`ReconnaissanceAgent`) | **Missing in Code.** No subprocess runner or CLI wrapper exists in `integrations/`. Subdomain resolution relies on Python socket lookups. | Tooling Gap (`NI-04`) |
+| **`tls_inspector`** | `docs/09-tool-integrations.md` §5.7 | `AGT-03` (`ReconnaissanceAgent`) | **Missing in Code.** No dedicated SSL/TLS cipher inspection wrapper exists. Basic TLS certificate expiry is checked via standard Python `ssl` library. | Tooling Gap |
+| **`web_crawler`** (`katana`) | `docs/09-tool-integrations.md` §5.2 | `AGT-03`, `AGT-04` | **Replaced by Native Python.** No Katana binary runner exists; crawling is performed in-process via `httpx` + `BeautifulSoup4` (`services/discovery_engine/crawler.py`). | Architectural Replacement |
+| **`token_analyzer`** | `docs/05-agent-specifications.md` §4.6 | `AGT-06`, `AGT-07` | **Missing in Code.** No Shannon entropy calculation or session token predictability wrapper exists. | Feature Gap |
+| **`multi_identity_prober`**| `docs/05-agent-specifications.md` §4.7 | `AGT-07` (`AuthorizationAgent`) | **Unauthenticated Stub.** Implemented as unauthenticated `safe_request(headers=None)` in `agents/authorization/authz_agent.py:148-168`; lacks multi-tenant session context (`DEFECT-AUTH-02`). | Functional Defect |
+

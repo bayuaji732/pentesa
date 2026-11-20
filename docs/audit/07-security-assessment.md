@@ -208,3 +208,55 @@ Telemetry details are preserved in `docs/audit/evidence/phase6/cost-log.md`.
 
 **VERDICT: CLEARED FOR PHASE 7 (Report Generation & Export Verification).**  
 The platform's security controls, multi-tenant boundaries, and cryptographic integrity engines are thoroughly validated. Tools remain lab-only pending Phase 9 Layer-2 egress container deployment (`NI-03`). Testing may proceed to Phase 7.
+
+---
+
+## 7. Phase 6 Supplement — Production Stack Validation, Cleanup, & `pentesa-sec` Retirement
+
+### 7.1 Environment Change & Protocol Execution
+Per governance instructions in the Phase 6 Supplement, security verification was executed against the primary production stack (`pentesa-prod` at `http://127.0.0.1:8000`) with zero platform modifications under strict safeguard protocols:
+1. **Pre-Test Backup & Baselining (Requirement A):**
+   - Full PostgreSQL 16 logical dump (`pg_dump`) and storage volume mirrors (`/app/data/evidence`, `/app/data/reports`) saved to external path `c:\Users\User2\Documents\work\pentesa-prod-backup-p6/` outside the git repository.
+   - Baseline state recorded: `users` = 2, `projects` = 28, `findings` = 39, `finding_evidence` = 39, `audit_logs` = 1247.
+   - Baseline audit chain head hash recorded: `b01c7509be114f6a697a79abd058cfa60cb7525a129f0546a9c86dd1c93f7cbc`.
+2. **Account Handling & Non-Destructive Invariants (Requirement B):**
+   - Bootstrap administrator credentials used strictly to provision throwaway accounts via the Admin API: `p6test-tenant-a-lead`, `p6test-tenant-a-member`, `p6test-tenant-a-viewer`, `p6test-tenant-b-lead`, `p6test-tenant-b-member`, and `p6test-throwaway-rate`.
+   - Credentials saved to untracked file `.env.p6supplement` (verified excluded by `.gitignore`).
+   - Zero password change, lockout, or brute-force tests executed against the real bootstrap administrator.
+3. **Database & Audit Integrity (Requirement C):**
+   - Audit logs inspected strictly read-only; zero persistent direct modification or row deletion.
+   - Database role update privileges tested inside an explicit PostgreSQL transaction with verified `ROLLBACK`, proving 0 modified rows persisted.
+4. **Network Attachment & Immediate Detachment (Requirement D):**
+   - `pentesa-api` and `pentesa-worker` connected to `pentesa-bench-net` and `pentesa-canary-net` only during the canary test, and detached immediately. Complete detachment verified via `docker inspect`.
+5. **Rate Limiting Boundaries (Requirement F):**
+   - Tested bounded rate limiting on `p6test-throwaway-rate@pentesa.lab` with exactly 12 requests (well below the 30-attempt ceiling).
+
+### 7.2 Benchmark Scoring Against `pentesa-prod`
+- Test Runner: [`benchmark/p6/test_runner_prod.py`](file:///c:/Users/User2/Documents/work/pentesa/benchmark/p6/test_runner_prod.py)
+- Scorer: [`benchmark/score_p6.py`](file:///c:/Users/User2/Documents/work/pentesa/benchmark/score_p6.py) against frozen [`benchmark/ground_truth_p6.yaml`](file:///c:/Users/User2/Documents/work/pentesa/benchmark/ground_truth_p6.yaml)
+- **Results:** 30 test cases executed, **28 Passed (93.3%)**, **2 Failed (6.7% — expected architectural gaps P6-TC-AUTH-04 and P6-TC-EGRESS-01)**.
+- **Canary Invariant:** 0 hits.
+- **Live AI Gateway Telemetry:** 168 tokens / $0.0011 USD.
+
+### 7.3 Mandatory Cleanup & Restoration Proof (Requirement G)
+Executed automated cleanup and restoration sequence via [`benchmark/p6/cleanup_prod.py`](file:///c:/Users/User2/Documents/work/pentesa/benchmark/p6/cleanup_prod.py), captured via `Tee-Object` in [`docs/audit/evidence/phase6/cleanup-proof.txt`](file:///c:/Users/User2/Documents/work/pentesa/docs/audit/evidence/phase6/cleanup-proof.txt):
+1. **API Deletion of Throwaway Resources:**
+   - Deleted Project Alpha and Project Beta via `DELETE /api/v1/projects/{id}` (HTTP 204).
+   - Reported un-deleted items via API: 6 throwaway users remained due to lack of a user DELETE endpoint (HTTP 405), and 46 audit log entries remained due to immutable append-only ledger policy.
+2. **Database Drop & Restore from Backup:**
+   - Terminated active connections, dropped database `pentesa` with force, recreated database, and restored from `c:\Users\User2\Documents\work\pentesa-prod-backup-p6\prod_dump.sql`.
+   - Restored `/app/data/evidence` and `/app/data/reports` storage volumes.
+   - Restarted `pentesa-api` and `pentesa-worker`, verified HTTP 200 on `/healthz`.
+3. **Five Mandatory Post-Restoration Verifications (5/5 PASSED):**
+   - **Verification 1:** All table row counts exactly match pre-test baseline (`users`: 2, `projects`: 28, `findings`: 39, `finding_evidence`: 39, `audit_logs`: 1247).
+   - **Verification 2:** Restored audit log chain cryptographically verified via `verify_audit_chain` (1247 entries, head hash matches `b01c7509be114f6a697a79abd058cfa60cb7525a129f0546a9c86dd1c93f7cbc`).
+   - **Verification 3:** Real bootstrap administrator authentication SUCCEEDED (HTTP 200).
+   - **Verification 4:** Invalid login for `admin@example.com` returned HTTP 401 Unauthorized.
+   - **Verification 5:** `pentesa-api` and `pentesa-worker` confirmed strictly DETACHED from `pentesa-bench-net` and `pentesa-canary-net`.
+
+### 7.4 Retirement of `pentesa-sec` (Requirement H)
+1. Repository tagged: `p6-sec-env-retired`.
+2. Stack decommissioned: `docker compose -p pentesa-sec --env-file .env.sec -f docker-compose.sec.yml down -v` successfully stopped and purged all 4 containers, 4 volumes (`pentesa-sec-pgdata`, `pentesa-sec-redisdata`, `pentesa-sec-reports`, `pentesa-sec-evidence`), and network `pentesa-sec-internal`.
+3. Untracked secret configurations `.env.sec` and `.env.p6supplement` securely deleted from disk.
+4. [`ENVIRONMENTS.md`](file:///c:/Users/User2/Documents/work/pentesa/ENVIRONMENTS.md) updated to reflect the 3 active environments (`pentesa-dev`, `pentesa-prod`, `pentesa-bench`), preserving `docker-compose.sec.yml` in git history under tag `p6-sec-env-retired`.
+

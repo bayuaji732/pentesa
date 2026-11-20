@@ -1,26 +1,26 @@
 # Pentesa — Platform Deployment & Testing Environments
 
-> **Document Identifier:** PENTESA-ENVIRONMENTS-V1.0  
-> **Status:** Living Architecture Reference  
+> **Document Identifier:** PENTESA-ENVIRONMENTS-V2.0  
+> **Status:** Authoritative Architecture Reference  
 > **Governance:** Strict Environment Isolation Standard (No Cross-Environment State Contamination)  
 
 ---
 
 ## 1. Overview & Isolation Topology
 
-To guarantee forensic integrity and prevent destructive test operations against active engagements or baseline targets, Pentesa enforces strict separation across three containerized compose projects and one in-process harness:
+Pentesa maintains strict separation across three official containerized environments:
 
 ```
 +----------------------------------------------------------------------------------------------------+
 |                                    HOST MACHINE (Windows / Docker)                                 |
 +------------------------------------+-----------------------------------+---------------------------+
-| 1. CORE STACK (`pentesa-prod`)      | 2. AUDIT STACK (`pentesa-sec`)    | 3. LAB TARGETS (`bench`)  |
-| - Compose: `docker-compose.yml`    | - Compose: `docker-compose.sec.yml`| - Compose: `.bench.yml`   |
-| - API: 127.0.0.1:8000              | - API: 127.0.0.1:8001             | - crAPI, JuiceShop, DVWA  |
-| - Web: 127.0.0.1:3000              | - DB:  127.0.0.1:5433             | - WebGoat, pentesa-bench  |
-| - DB:  Internal 5432               | - Redis: 127.0.0.1:6381           | - bench-canary-sensor     |
-| - Volumes: `pentesa-pgdata`, etc.  | - Volumes: `pentesa-sec-pgdata`   | - Net: `pentesa-bench-net`|
-| - Net: `pentesa-internal`          | - Net: `pentesa-sec-internal`     |        `pentesa-canary-net`|
+| 1. DEVELOPMENT (`pentesa-dev`)     | 2. PRODUCTION (`pentesa-prod`)     | 3. LAB TARGETS (`bench`)  |
+| - Compose: `docker-compose.yml`    | - Compose: `docker-compose.yml`   | - Compose: `.bench.yml`   |
+| - API: 127.0.0.1:8000              | - API: 127.0.0.1:8000             | - crAPI, JuiceShop, DVWA  |
+| - Web: 127.0.0.1:3000              | - Web: 127.0.0.1:3000             | - WebGoat, pentesa-bench  |
+| - Config: `.env` (debug/local)     | - Config: `.env.production`       | - bench-canary-sensor     |
+| - Net: `pentesa-internal`          | - Net: `pentesa-internal`         | - Net: `pentesa-bench-net`|
+|                                    |                                   |        `pentesa-canary-net`|
 +------------------------------------+-----------------------------------+---------------------------+
 ```
 
@@ -28,10 +28,24 @@ To guarantee forensic integrity and prevent destructive test operations against 
 
 ## 2. Granular Environment Specifications
 
-### 2.1 Production Engagement Stack (`pentesa-prod`)
+### 2.1 Development Environment (`pentesa-dev`)
+- **Configuration:** `.env` (local dev settings, verbose logging, debug instrumentation).
+- **Compose Manifest:** [`docker-compose.yml`](file:///c:/Users/User2/Documents/work/pentesa/docker-compose.yml)
+- **Purpose:** Day-to-day feature development, unit testing, and fast-feedback local loops.
+- **Port Allocations:**
+  - `pentesa-api`: `127.0.0.1:8000`
+  - `pentesa-web`: `127.0.0.1:3000`
+  - `pentesa-db`: Internal `5432`
+  - `pentesa-redis`: Internal `6379`
+- **Network Boundaries:** `pentesa-internal` bridge network.
+
+---
+
+### 2.2 Production Engagement Stack (`pentesa-prod`)
+- **Configuration:** Untracked `.env.production` (`PENTESA_ENV=production`, `PENTESA_DEBUG=false`, AES-256-GCM vault).
 - **Compose Manifest:** [`docker-compose.yml`](file:///c:/Users/User2/Documents/work/pentesa/docker-compose.yml)
 - **Project Name:** `pentesa-prod`
-- **Purpose:** Primary platform runtime for user engagements and authorized production assessments.
+- **Purpose:** Primary platform runtime for user engagements, authorized production assessments, and audited platform security benchmark verification.
 - **Port Allocations:**
   - `pentesa-api`: `127.0.0.1:8000`
   - `pentesa-web`: `127.0.0.1:3000`
@@ -39,30 +53,7 @@ To guarantee forensic integrity and prevent destructive test operations against 
   - `pentesa-redis`: Internal `6379` (unexposed to host loopback)
 - **Volume Isolation:** `pentesa-pgdata`, `pentesa-redisdata`, `pentesa-reports`, `pentesa-evidence`.
 - **Network Boundaries:** `pentesa-internal` bridge network.
-- **Secrets & Configuration:** Sourced from untracked `.env.production`.
-- **Access Rule:** **Audit scripts and Phase 6 security attacks must NEVER target or touch `pentesa-prod` containers or volumes.**
-
----
-
-### 2.2 Security Audit & Attack Surface Stack (`pentesa-sec`)
-- **Compose Manifest:** [`docker-compose.sec.yml`](file:///c:/Users/User2/Documents/work/pentesa/docker-compose.sec.yml)
-- **Project Name:** `pentesa-sec`
-- **Purpose:** Dedicated, ephemeral, fully isolated testing target for Phase 6 Platform Security Assessment (evaluating authentication bypass, RBAC escalation, IDOR, SSRF, command injection, and data boundary enforcement).
-- **Environment Semantics:** `PENTESA_ENV=production`, `PENTESA_DEBUG=false`, `PENTESA_BOOTSTRAP_ADMIN=false`.
-- **Port Allocations (Guaranteed Non-Conflicting):**
-  - `pentesa-sec-api`: `127.0.0.1:8001`
-  - `pentesa-sec-db`: `127.0.0.1:5433` (accessible for out-of-band tenant seeding and direct ledger inspection)
-  - `pentesa-sec-redis`: `127.0.0.1:6381`
-- **Dedicated Volumes (Fresh & Isolated):**
-  - `pentesa-sec-pgdata` (PostgreSQL 16 relational store for security tenant data)
-  - `pentesa-sec-redisdata` (Redis 7 task queue cache)
-  - `pentesa-sec-reports` (Report artifact store)
-  - `pentesa-sec-evidence` (Evidence artifact store)
-- **Network Bridges:**
-  - `pentesa-sec-internal` (isolated container-to-container communication)
-  - `pentesa-bench-net` (access to target lab instances)
-  - `pentesa-canary-net` (access to canary sensor for strict SSRF/egress verification)
-- **Tenant Seeding:** Sourced via out-of-band script [`benchmark/p6/seed_sec_environment.py`](file:///c:/Users/User2/Documents/work/pentesa/benchmark/p6/seed_sec_environment.py) reading untracked `.env.sec`. Zero credentials printed to logs or committed to git.
+- **Safety Rule:** Audit testing against `pentesa-prod` is permitted strictly under the Phase 6 Supplement protocol: mandatory pre-test full backup (`pg_dump` + volume replicas), throwaway `p6test-` accounts only, zero direct database modifications outside rolled-back transactions, temporary network attachment with verified detachment, and full restoration verification back to baseline.
 
 ---
 
@@ -81,7 +72,69 @@ To guarantee forensic integrity and prevent destructive test operations against 
 
 ---
 
-### 2.4 In-Process Deterministic Harness
-- **Framework:** `AsyncSessionLocal` on SQLite (`aiosqlite`), `MockHttpTransport` (in-memory).
-- **Purpose:** Sub-millisecond deterministic architecture, schema, allowlist, and AST checks (Phase 5).
-- **Scope:** Zero network traffic, zero LLM expenditure, ephemeral in-memory state.
+## 3. Retired Environments
+
+### 3.1 Security Audit Stack (`pentesa-sec`) — RETIRED
+- **Status:** **RETIRED & DECOMMISSIONED**
+- **Git Retirement Tag:** `p6-sec-env-retired`
+- **Manifest Preservation:** [`docker-compose.sec.yml`](file:///c:/Users/User2/Documents/work/pentesa/docker-compose.sec.yml) is preserved in git history and tagged under `p6-sec-env-retired`.
+- **Decommissioning Proof:**
+  - Spun down via `docker compose -p pentesa-sec --env-file .env.sec -f docker-compose.sec.yml down -v`.
+  - All ephemeral volumes (`pentesa-sec-pgdata`, `pentesa-sec-redisdata`, `pentesa-sec-reports`, `pentesa-sec-evidence`) purged.
+  - Ephemeral bridge network `pentesa-sec-internal` deleted.
+  - Untracked configuration file `.env.sec` securely deleted from host.
+
+---
+
+## 4. Production Environment (`pentesa-prod`) Backup & Recovery Procedure
+
+### 4.1 Pre-Test Backup Archive (Stored Outside Repository)
+- **Backup Directory:** `c:\Users\User2\Documents\work\pentesa-prod-backup-p6`
+- **Database Dump File:** `c:\Users\User2\Documents\work\pentesa-prod-backup-p6\prod_dump.sql` (PostgreSQL 16 logical dump via `pg_dump`)
+- **Volume Replicas:**
+  - `c:\Users\User2\Documents\work\pentesa-prod-backup-p6\reports\` (`/app/data/reports`)
+  - `c:\Users\User2\Documents\work\pentesa-prod-backup-p6\evidence\` (`/app/data/evidence`)
+- **Pre-Test Baseline State (`pentesa-prod`):**
+  - `users`: 2 rows (`benchmark-admin@pentesa.lab`, `ahmad.aji@siloamhospitals.com`)
+  - `projects`: 28 rows
+  - `findings`: 39 rows
+  - `finding_evidence`: 39 rows
+  - `audit_logs`: 1247 rows
+  - `audit_logs` Head Record ID: `af4f6452-16cc-40a5-841b-860503ecdf72`
+  - `audit_logs` Head Hash: `b01c7509be114f6a697a79abd058cfa60cb7525a129f0546a9c86dd1c93f7cbc`
+  - `audit_logs` Head Prev Hash: `80a385345924541eedda8c6c5995e927673480cf9d1e453b41d584d7823c1efb`
+
+### 4.2 Restoration & Rollback Execution Procedure
+In the event of database mutation or upon completion of Phase 6 testing on `pentesa-prod`, execute the following restoration sequence:
+
+1. **Terminate Active Database Connections & Re-create Database:**
+   ```bash
+   docker exec -i pentesa-db psql -U pentesa_user -d postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'pentesa' AND pid <> pg_backend_pid();"
+   docker exec -i pentesa-db psql -U pentesa_user -d postgres -c "DROP DATABASE IF EXISTS pentesa WITH (FORCE);"
+   docker exec -i pentesa-db psql -U pentesa_user -d postgres -c "CREATE DATABASE pentesa OWNER pentesa_user;"
+   ```
+
+2. **Restore PostgreSQL Logical Dump:**
+   ```powershell
+   docker cp c:\Users\User2\Documents\work\pentesa-prod-backup-p6\prod_dump.sql pentesa-db:/tmp/prod_dump.sql
+   docker exec pentesa-db psql -U pentesa_user -d pentesa -f /tmp/prod_dump.sql
+   docker exec pentesa-db rm /tmp/prod_dump.sql
+   ```
+
+3. **Restore Report & Evidence Volume Artifacts:**
+   ```powershell
+   docker cp c:\Users\User2\Documents\work\pentesa-prod-backup-p6\reports\. pentesa-api:/app/data/reports
+   docker cp c:\Users\User2\Documents\work\pentesa-prod-backup-p6\evidence\. pentesa-api:/app/data/evidence
+   ```
+
+4. **Restart API & Worker Services:**
+   ```powershell
+   docker restart pentesa-api pentesa-worker
+   ```
+
+5. **Post-Restoration State Verification:**
+   - Confirm row counts match baseline (`users` = 2, `projects` = 28, `findings` = 39, `finding_evidence` = 39, `audit_logs` = 1247).
+   - Verify audit log chain head hash equals `b01c7509be114f6a697a79abd058cfa60cb7525a129f0546a9c86dd1c93f7cbc`.
+   - Confirm real admin authentication succeeds on `http://127.0.0.1:8000/api/v1/auth/login`.
+   - Confirm `admin@example.com` returns HTTP 401 Unauthorized.
+   - Confirm `pentesa-api` and `pentesa-worker` are completely detached from `pentesa-bench-net` and `pentesa-canary-net`.

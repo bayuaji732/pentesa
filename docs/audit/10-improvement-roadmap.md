@@ -165,5 +165,18 @@ This document catalogs identified improvements, technical debt, and recommended 
   2. Implement bidirectional validation: both empirical wire evidence AND LLM semantic analysis must agree before promoting a finding to `confirmed_findings`.
   3. Emit structured audit log `HALLUCINATION_SUPPRESSED` when an LLM claims `is_valid: true` on an unverified reproduction.
 
+---
+
+### P3-AUTH-02: Redis-Backed Sliding Window Rate Limiting on User Authentication Endpoint
+- **Category**: Authentication & Platform Security
+- **Severity**: P2 (Brute-Force & Credential Stuffing Defect — Governs PRD §4.1, ASVS V2)
+- **Status**: Documented in Phase 6 Security Assessment; Scheduled for Phase 9 implementation.
+- **Problem Statement**:
+  `POST /api/v1/auth/login` currently lacks request rate limiting or failure throttling. In Phase 6 benchmark testing (`P6-TC-AUTH-04`), 12 rapid consecutive failed authentication attempts were permitted without delay or IP throttling, returning HTTP 401 repeatedly rather than HTTP 429 Too Many Requests.
+- **Proposed Solution**:
+  1. Integrate a Redis-backed sliding window rate limiter (or `slowapi` limiter) on `POST /api/v1/auth/login`.
+  2. Enforce a threshold of maximum 5 failed attempts per 60-second window per client IP address and per target account email.
+  3. When threshold is exceeded, return `HTTP 429 Too Many Requests` with `Retry-After: 60` and record an immutable security audit event `AUTH_LOGIN_THROTTLED`.
+
 
 

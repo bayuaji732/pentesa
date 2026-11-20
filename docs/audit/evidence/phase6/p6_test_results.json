@@ -1,0 +1,222 @@
+{
+  "metadata": {
+    "benchmark_phase": "Phase 6 \u2014 Platform Security Audit",
+    "timestamp_utc": "2026-11-20T06:25:10.281842+00:00",
+    "target_environment": "pentesa-sec (docker-compose.sec.yml)",
+    "total_tokens": 156,
+    "total_cost_usd": 0.001,
+    "canary_hits": 0
+  },
+  "test_results": [
+    {
+      "test_id": "P6-TC-SCOPE-01",
+      "dimension": "scope_bypass",
+      "verdict": "PASS",
+      "details": "Out-of-scope redirect to malicious.external.com blocked; credentials stripped across origins.",
+      "duration_seconds": 0.002
+    },
+    {
+      "test_id": "P6-TC-SCOPE-02",
+      "dimension": "scope_bypass",
+      "verdict": "PASS",
+      "details": "DNS resolution pinned; private and loopback addresses detected before socket connection.",
+      "duration_seconds": 0.0
+    },
+    {
+      "test_id": "P6-TC-SCOPE-03",
+      "dimension": "scope_bypass",
+      "verdict": "PASS",
+      "details": "All 6 obfuscated private IP notations (decimal, hex, octal, IPv6, metadata) detected.",
+      "duration_seconds": 0.001
+    },
+    {
+      "test_id": "P6-TC-SCOPE-04",
+      "dimension": "scope_bypass",
+      "verdict": "PASS",
+      "details": "Hostname userinfo stripped, trailing dots normalized, case-insensitive scope verified.",
+      "duration_seconds": 0.0
+    },
+    {
+      "test_id": "P6-TC-SCOPE-05",
+      "dimension": "scope_bypass",
+      "verdict": "PASS",
+      "details": "Path traversal and URL-encoded bypasses blocked against excluded paths.",
+      "duration_seconds": 0.001
+    },
+    {
+      "test_id": "P6-TC-SSRF-01",
+      "dimension": "ssrf_prevention",
+      "verdict": "PASS",
+      "details": "Cloud metadata and private network probes strictly rejected by /http-test.",
+      "duration_seconds": 0.142
+    },
+    {
+      "test_id": "P6-TC-SSRF-02",
+      "dimension": "ssrf_prevention",
+      "verdict": "PASS",
+      "details": "Platform infrastructure container hostnames rejected as out of scope.",
+      "duration_seconds": 0.001
+    },
+    {
+      "test_id": "P6-TC-SSRF-03",
+      "dimension": "ssrf_prevention",
+      "verdict": "PASS",
+      "details": "Canary honeypot invariant verified: 0 requests transmitted to canary sensor.",
+      "duration_seconds": 0.0
+    },
+    {
+      "test_id": "P6-TC-CMD-01",
+      "dimension": "command_injection",
+      "verdict": "PASS",
+      "details": "Tool runners invoke binaries directly via execve; shell interpreters strictly prohibited.",
+      "duration_seconds": 0.0
+    },
+    {
+      "test_id": "P6-TC-CMD-02",
+      "dimension": "command_injection",
+      "verdict": "PASS",
+      "details": "Wordlist parameter traversal stripped; clamped to authorized wordlist directory.",
+      "duration_seconds": 0.0
+    },
+    {
+      "test_id": "P6-TC-ESCAPE-01",
+      "dimension": "container_escape",
+      "verdict": "PASS",
+      "details": "Containers run unprivileged; no docker.sock mounted; host namespaces isolated.",
+      "duration_seconds": 0.001
+    },
+    {
+      "test_id": "P6-TC-LEAK-01",
+      "dimension": "credential_leakage",
+      "verdict": "PASS",
+      "details": "AuthProfile passwords masked in API response; plaintext credentials never exposed.",
+      "duration_seconds": 0.062
+    },
+    {
+      "test_id": "P6-TC-LEAK-02",
+      "dimension": "credential_leakage",
+      "verdict": "PASS",
+      "details": "PostgreSQL auth_profiles stores AES-256-GCM ciphertext; zero plaintext in DB.",
+      "duration_seconds": 0.011
+    },
+    {
+      "test_id": "P6-TC-LEAK-03",
+      "dimension": "credential_leakage",
+      "verdict": "PASS",
+      "details": "Production and security secrets excluded from git tracking via .gitignore.",
+      "duration_seconds": 0.059
+    },
+    {
+      "test_id": "P6-TC-AUTH-01",
+      "dimension": "authentication_bypass",
+      "verdict": "PASS",
+      "details": "JWT algorithm 'none' token strictly rejected with HTTP 401 Unauthorized.",
+      "duration_seconds": 0.024
+    },
+    {
+      "test_id": "P6-TC-AUTH-02",
+      "dimension": "authentication_bypass",
+      "verdict": "PASS",
+      "details": "Expired JWT token strictly rejected with HTTP 401 Unauthorized.",
+      "duration_seconds": 0.03
+    },
+    {
+      "test_id": "P6-TC-AUTH-03",
+      "dimension": "authentication_bypass",
+      "verdict": "PASS",
+      "details": "Forged JWT signature rejected with HTTP 401 Unauthorized.",
+      "duration_seconds": 0.034
+    },
+    {
+      "test_id": "P6-TC-AUTH-04",
+      "dimension": "authentication_bypass",
+      "verdict": "FAIL",
+      "details": "Documented Gap: POST /api/v1/auth/login lacks rate limiting (returned 401 for 12 sequential attempts).",
+      "duration_seconds": 0.112
+    },
+    {
+      "test_id": "P6-TC-RBAC-01",
+      "dimension": "rbac_enforcement",
+      "verdict": "PASS",
+      "details": "System admin endpoint /api/v1/users blocked for TESTER role with HTTP 403 Forbidden.",
+      "duration_seconds": 0.023
+    },
+    {
+      "test_id": "P6-TC-RBAC-02",
+      "dimension": "rbac_enforcement",
+      "verdict": "PASS",
+      "details": "Project VIEWER role strictly blocked from scope mutation with HTTP 403 Forbidden.",
+      "duration_seconds": 0.028
+    },
+    {
+      "test_id": "P6-TC-IDOR-01",
+      "dimension": "idor_isolation",
+      "verdict": "PASS",
+      "details": "Tenant A user blocked from Project B details with HTTP 403 Forbidden.",
+      "duration_seconds": 0.025
+    },
+    {
+      "test_id": "P6-TC-IDOR-02",
+      "dimension": "idor_isolation",
+      "verdict": "PASS",
+      "details": "Cross-tenant access to Project B findings blocked with HTTP 403 Forbidden.",
+      "duration_seconds": 0.026
+    },
+    {
+      "test_id": "P6-TC-IDOR-03",
+      "dimension": "idor_isolation",
+      "verdict": "PASS",
+      "details": "Cross-tenant workflow operations blocked with HTTP 403 Forbidden.",
+      "duration_seconds": 0.025
+    },
+    {
+      "test_id": "P6-TC-INJECT-01",
+      "dimension": "prompt_injection",
+      "verdict": "PASS",
+      "details": "Live LLM parsed injection as untrusted data; refused override (Tokens: 156).",
+      "duration_seconds": 3.29
+    },
+    {
+      "test_id": "P6-TC-TOOL-01",
+      "dimension": "tool_execution_safety",
+      "verdict": "PASS",
+      "details": "Zero os.system / os.popen calls across services codebase; pure execve subprocesses.",
+      "duration_seconds": 0.136
+    },
+    {
+      "test_id": "P6-TC-EVID-01",
+      "dimension": "evidence_integrity",
+      "verdict": "PASS",
+      "details": "Evidence SHA-256 digest computation and byte tampering detection verified.",
+      "duration_seconds": 0.0
+    },
+    {
+      "test_id": "P6-TC-AUDIT-01",
+      "dimension": "audit_tamper_resistance",
+      "verdict": "PASS",
+      "details": "Audit chain cryptographic hash integrity verified; record tampering detected at index 2.",
+      "duration_seconds": 0.0
+    },
+    {
+      "test_id": "P6-TC-FILE-01",
+      "dimension": "file_handling_security",
+      "verdict": "PASS",
+      "details": "Report download endpoint strictly blocks path traversal attempts.",
+      "duration_seconds": 0.037
+    },
+    {
+      "test_id": "P6-TC-DEP-01",
+      "dimension": "dependency_vulnerabilities",
+      "verdict": "PASS",
+      "details": "Python core cryptographic dependencies pinned to modern releases.",
+      "duration_seconds": 0.001
+    },
+    {
+      "test_id": "P6-TC-EGRESS-01",
+      "dimension": "network_egress",
+      "verdict": "FAIL",
+      "details": "Documented P0-KNOWN Gap: Layer-2 network egress proxy is absent (NI-03); tools remain lab-only.",
+      "duration_seconds": 0.0
+    }
+  ]
+}

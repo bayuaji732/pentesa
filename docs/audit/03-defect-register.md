@@ -41,6 +41,7 @@
 | **DEFECT-AGENT-01** | **P1** | AI Safety | `agents/validation/validation_agent.py` | ValidationAgent Blind LLM Trust & Synthetic Finding Promotion on 404 Endpoint | Open (Documented) | Phase 9 (Empirical Evidence Gate Invariant) |
 | **COMP-STALE-01** | **P3** | Infrastructure | `infrastructure/docker-compose.prod.yml` | Stale Duplicate Production Compose with Hardcoded Password and Container Collisions | Open (Quarantined) | Retained for reference; quarantined/never started; superseded by root docker-compose.yml |
 | **DISCO-SPA-01** | **P2** | Discovery | `services/discovery_engine/fingerprint.py` | Technology Fingerprinter Misses SPAs Lacking Server Headers | Open (Deferred) | Phase 9 (DOM Parsing Roadmap) |
+| **P3-AUTH-02** | **P2** | Authentication | `apps/api/routers/auth.py` | Missing Rate Limiting on User Login Endpoint (`POST /api/v1/auth/login`) | Open (Documented) | Phase 9 (Redis-backed token bucket rate limiting) |
 
 ---
 
@@ -284,6 +285,31 @@
 - **Acceptance Criteria:**
   1. `ValidationAgent.execute()` produces 0 confirmed findings when reproduction probes return 404, 502, or timeout.
   2. `P5-TC-HALLUC-01` passes with 100% hallucination rejection.
+
+### 3.22 DEFECT-AUTH-03 / P2 (P3-AUTH-02): Missing Rate Limiting on Login Endpoint
+- **Components:** `apps/api/routers/auth.py:40-85`
+- **Severity:** **P2 (Medium / Brute-Force & Credential Stuffing Vulnerability)**
+- **Audit Phase & Standard:** Discovered in Phase 6 Platform Security Audit (`P6-TC-AUTH-04`); evaluates PRD §4.1 and OWASP ASVS V2.
+- **Defect Description & Root Cause:**
+  `POST /api/v1/auth/login` verifies user email and bcrypt password hash without enforcing request rate limits or consecutive failure throttling. During benchmark evaluation (`P6-TC-AUTH-04`), 12 consecutive failed authentication attempts with invalid credentials were submitted in rapid succession; all 12 returned `HTTP 401 Unauthorized` without triggering `HTTP 429 Too Many Requests` or temporary IP/account lockouts.
+- **Empirical Evidence:**
+  - Machine output in `docs/audit/evidence/phase6/runner_live_output.txt`:
+    ```
+    [FAIL] P6-TC-AUTH-04 - Documented Gap: POST /api/v1/auth/login lacks rate limiting (returned 401 for 12 sequential attempts). (0.112s)
+    ```
+  - Authoritative scorer output in `docs/audit/evidence/phase6/score_p6.txt`:
+    ```
+    [FAIL]   P6-TC-AUTH-04      (authentication_bypass       ) : Documented Gap: POST /api/v1/auth/login lacks rate limiting (returned 401 for 12 sequential attempts). (0.112s)
+    ```
+- **Remediation Specification (Phase 9 Implementation):**
+  1. Integrate `slowapi` or Redis-backed sliding window rate limiter in `apps/api/routers/auth.py`.
+  2. Enforce a threshold of maximum 5 failed attempts per 60-second window per IP and per target email.
+  3. When the threshold is exceeded, return `HTTP 429 Too Many Requests` with a standard `Retry-After: 60` header and record a security audit entry `LOGIN_BRUTE_FORCE_THROTTLED`.
+- **Regression Test:**
+  `benchmark/p6/test_runner.py::test_auth_04` (asserting HTTP 429 on 10+ rapid failed login requests).
+- **Acceptance Criteria:**
+  1. More than 5 consecutive failed logins from the same client IP trigger `HTTP 429 Too Many Requests`.
+  2. `P6-TC-AUTH-04` passes with verified throttling.
 
 
 

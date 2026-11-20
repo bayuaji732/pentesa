@@ -42,7 +42,7 @@
 | **COMP-STALE-01** | **P3** | Infrastructure | `infrastructure/docker-compose.prod.yml` | Stale Duplicate Production Compose with Hardcoded Password and Container Collisions | Open (Quarantined) | Retained for reference; quarantined/never started; superseded by root docker-compose.yml |
 | **DISCO-SPA-01** | **P2** | Discovery | `services/discovery_engine/fingerprint.py` | Technology Fingerprinter Misses SPAs Lacking Server Headers | Open (Deferred) | Phase 9 (DOM Parsing Roadmap) |
 | **DEFECT-AUTH-03** | **P2** | Authentication | `apps/api/routers/auth.py` | Missing Rate Limiting on User Login Endpoint (`POST /api/v1/auth/login`) | Open (Documented) | Phase 9 (Redis-backed token bucket rate limiting) |
-| **DEFECT-API-02** | **P2** | API / Reliability | `apps/api/dependencies.py`, `apps/api/routers/projects.py` | Unhandled HTTP 500 ResponseValidationError on `GET /api/v1/projects/{project_id}` | Open (Documented) | Phase 9 (Chained eager loading in verify_project_access) |
+| **DEFECT-API-02** | **P1** | API / Availability | `apps/api/dependencies.py`, `apps/api/routers/projects.py` | Unhandled HTTP 500 ResponseValidationError on `GET /api/v1/projects/{project_id}` (Core Read Path Broken) | Open (Documented / Patch Ready) | Phase 7 Prerequisite (Chained eager loading in verify_project_access) |
 | **P3-API-01** | **P3** | API / Admin | `apps/api/routers/users.py` | Missing User Deletion Route in API Router (`DELETE /api/v1/users/{id}`) | Open (Documented) | Phase 9 (Admin user deletion route implementation) |
 
 ---
@@ -313,19 +313,24 @@
   1. More than 5 consecutive failed logins from the same client IP trigger `HTTP 429 Too Many Requests`.
   2. `P6-TC-AUTH-04` and `P6B-TC-AUTH-01` pass with verified throttling.
 
-### 3.23 DEFECT-API-02 / P2: Unhandled 500 ResponseValidationError on `GET /api/v1/projects/{project_id}`
+### 3.23 DEFECT-API-02 / P1: Unhandled 500 ResponseValidationError on `GET /api/v1/projects/{project_id}`
 - **Components:** `apps/api/dependencies.py:109-115`, `apps/api/routers/projects.py:174-183`
-- **Severity:** **P2 (Medium / API Availability & Serialization Defect)**
-- **Audit Phase & Standard:** Discovered in Phase 6b Wire Security Benchmark (`P6B-TC-RBAC-01`).
+- **Severity:** **P1 (Critical / Core API Read Path Broken)**
+- **CVSS v3.1 Score:** 6.5 (`CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:N/A:H`)
+- **Audit Phase & Standard:** Discovered in Phase 6b Wire Security Benchmark (`P6B-TC-RBAC-01`), reproduced in Phase 6 Gate Demo Smoke Test.
 - **Defect Description & Root Cause:**
-  When an authenticated project member (LEAD, TESTER, VIEWER) or administrator calls `GET /api/v1/projects/{project_id}`, the server crashes with HTTP 500 Internal Server Error (`fastapi.exceptions.ResponseValidationError: MissingGreenlet`). `verify_project_access` queries `Project` with `selectinload(Project.members)` but fails to chain `.selectinload(ProjectMember.user)`. When `ProjectResponse` serializes `members`, async SQLAlchemy attempts lazy-loading of the `user` relationship outside an async greenlet context.
+  When an authenticated project member (LEAD, TESTER, VIEWER) or system administrator calls `GET /api/v1/projects/{project_id}`, the server crashes with HTTP 500 Internal Server Error (`fastapi.exceptions.ResponseValidationError: MissingGreenlet`). `verify_project_access` queries `Project` with `selectinload(Project.members)` but fails to chain `.selectinload(ProjectMember.user)`. When `ProjectResponse` serializes `members`, async SQLAlchemy attempts lazy-loading of the `user` relationship outside an async greenlet context. This defect breaks the core project dashboard navigation in the Next.js web application whenever a user clicks into a project details page.
 - **Empirical Evidence:**
+  - Reproduced live on `pentesa-prod` across 3 seeded projects with real admin identity (`docs/audit/evidence/phase6/demo-smoke.txt` lines 4.1, 4.2, 4.3 returning HTTP 500).
   - Machine traceback in `docker logs pentesa-api`:
     ```
     fastapi.exceptions.ResponseValidationError: 1 validation error:
       {'type': 'get_attribute_error', 'loc': ('response', 'members', 0, 'user'), 'msg': "MissingGreenlet: greenlet_spawn has not been called; can't call await_() here."}
     ```
-- **Remediation Specification (Phase 9 Implementation):**
+- **Prepared Fix Patch & Regression Test (Unapplied pending approval):**
+  - Unified Patch: `docs/audit/patches/DEFECT-API-02.diff`
+  - Automated Regression Test: `docs/audit/patches/test_defect_api_02_regression.py`
+- **Remediation Specification:**
   In `apps/api/dependencies.py:verify_project_access`, update the query statement to:
   ```python
   stmt = (
@@ -337,10 +342,8 @@
       .where(Project.id == project_id)
   )
   ```
-- **Regression Test:**
-  `benchmark/p6b/test_runner_p6b.py::test_rbac_matrix` (asserting HTTP 200 on `GET /api/v1/projects/{id}` for members).
 - **Acceptance Criteria:**
-  `GET /api/v1/projects/{id}` returns HTTP 200 with complete serialized project member details.
+  `GET /api/v1/projects/{id}` returns HTTP 200 with complete serialized project member details across all authorized roles.
 
 ### 3.24 P3-API-01: Missing User Deletion Route in API Router
 - **Components:** `apps/api/routers/users.py`

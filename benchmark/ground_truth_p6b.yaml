@@ -104,7 +104,7 @@ test_cases:
   # ----------------------------------------------------------------------------
   # AREA 9: AUTOMATED DEPENDENCY & VULNERABILITY AUDITS
   # ----------------------------------------------------------------------------
-  - test_id: "P6B-TC-AUDIT-01"
+  - test_id: "P6B-TC-DEP-01"
     dimension: "dependency_audits"
     title: "Dependency Security — Automated npm audit on Web Frontend & Status of Host Image Scanners"
     target_component: "apps/web/package.json"

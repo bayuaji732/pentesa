@@ -52,6 +52,7 @@ def score_phase6b(ground_truth_path: str, results_path: str) -> Dict[str, Any]:
 
     total_cases = len(gt_cases)
     passed_cases = 0
+    partial_cases = 0
     failed_cases = 0
     skipped_cases = 0
 
@@ -61,7 +62,7 @@ def score_phase6b(ground_truth_path: str, results_path: str) -> Dict[str, Any]:
     for test_id, gt_case in gt_cases.items():
         dim = gt_case.get("dimension", "unknown")
         if dim not in dimension_stats:
-            dimension_stats[dim] = {"total": 0, "passed": 0, "failed": 0, "skipped": 0}
+            dimension_stats[dim] = {"total": 0, "passed": 0, "partial": 0, "failed": 0, "skipped": 0}
         dimension_stats[dim]["total"] += 1
 
         actual_run = run_results.get(test_id)
@@ -79,6 +80,9 @@ def score_phase6b(ground_truth_path: str, results_path: str) -> Dict[str, Any]:
         if verdict == "PASS":
             passed_cases += 1
             dimension_stats[dim]["passed"] += 1
+        elif verdict == "PARTIAL":
+            partial_cases += 1
+            dimension_stats[dim]["partial"] += 1
         elif verdict == "SKIPPED":
             skipped_cases += 1
             dimension_stats[dim]["skipped"] += 1
@@ -114,6 +118,7 @@ def score_phase6b(ground_truth_path: str, results_path: str) -> Dict[str, Any]:
         "summary_metrics": {
             "total_cases": total_cases,
             "passed_cases": passed_cases,
+            "partial_cases": partial_cases,
             "failed_cases": failed_cases,
             "skipped_cases": skipped_cases,
             "overall_pass_rate_pct": pass_rate_pct,
@@ -155,9 +160,10 @@ def print_score_report(score_dict: Dict[str, Any]):
     print("## 1. Summary Metrics")
     print(f"- Total Test Cases: {summary['total_cases']}")
     print(f"- Passed: {summary['passed_cases']}")
-    print(f"- Failed: {summary['failed_cases']}")
+    print(f"- Partially Verified / Scoped: {summary.get('partial_cases', 0)}")
+    print(f"- Failed / Documented Gaps: {summary['failed_cases']}")
     print(f"- Skipped: {summary['skipped_cases']}")
-    print(f"- Overall Pass Rate: {summary['overall_pass_rate_pct']}%")
+    print(f"- Strict Pass Rate: {summary['overall_pass_rate_pct']}%")
     print()
     print("## 2. Dimension Breakdown")
     print(f"{'Dimension':<30} {'Total':<8} {'Passed':<8} {'Failed':<8} {'Pass Rate':<10}")

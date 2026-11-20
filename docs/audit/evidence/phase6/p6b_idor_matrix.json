@@ -1,0 +1,233 @@
+{
+  "metadata": {
+    "owner_controls_count": 10,
+    "owner_controls_passed": 10,
+    "cross_tenant_probes_count": 20,
+    "cross_tenant_blocked": 20,
+    "server_errors_count": 0
+  },
+  "owner_controls": [
+    {
+      "resource_type": "Projects",
+      "method": "GET",
+      "path": "/api/v1/projects/750511ab-65c3-4acd-ab9c-66e1e74befca/findings",
+      "status_code": 200,
+      "expected": "200_OK",
+      "passed": true
+    },
+    {
+      "resource_type": "Workflows",
+      "method": "GET",
+      "path": "/api/v1/projects/750511ab-65c3-4acd-ab9c-66e1e74befca/agents/status",
+      "status_code": 200,
+      "expected": "200_OK",
+      "passed": true
+    },
+    {
+      "resource_type": "Findings",
+      "method": "GET",
+      "path": "/api/v1/projects/e5bd4e20-c9c6-48dc-bd07-e21758047efe/findings",
+      "status_code": 200,
+      "expected": "200_OK",
+      "passed": true
+    },
+    {
+      "resource_type": "Evidence",
+      "method": "GET",
+      "path": "/api/v1/projects/e5bd4e20-c9c6-48dc-bd07-e21758047efe/findings/3017fd46-0d19-4a98-b2c1-66ff58c535aa/evidence",
+      "status_code": 200,
+      "expected": "200_OK",
+      "passed": true
+    },
+    {
+      "resource_type": "Reports",
+      "method": "GET",
+      "path": "/api/v1/projects/750511ab-65c3-4acd-ab9c-66e1e74befca/reports",
+      "status_code": 200,
+      "expected": "200_OK",
+      "passed": true
+    },
+    {
+      "resource_type": "Auth Profiles",
+      "method": "GET",
+      "path": "/api/v1/projects/750511ab-65c3-4acd-ab9c-66e1e74befca/auth-profiles",
+      "status_code": 200,
+      "expected": "200_OK",
+      "passed": true
+    },
+    {
+      "resource_type": "Endpoints",
+      "method": "GET",
+      "path": "/api/v1/projects/750511ab-65c3-4acd-ab9c-66e1e74befca/endpoints",
+      "status_code": 200,
+      "expected": "200_OK",
+      "passed": true
+    },
+    {
+      "resource_type": "Test Executions",
+      "method": "GET",
+      "path": "/api/v1/projects/750511ab-65c3-4acd-ab9c-66e1e74befca/tools/executions",
+      "status_code": 200,
+      "expected": "200_OK",
+      "passed": true
+    },
+    {
+      "resource_type": "Scope Targets",
+      "method": "GET",
+      "path": "/api/v1/projects/750511ab-65c3-4acd-ab9c-66e1e74befca/scope",
+      "status_code": 200,
+      "expected": "200_OK",
+      "passed": true
+    },
+    {
+      "resource_type": "Audit Logs",
+      "method": "GET",
+      "path": "/api/v1/audit-logs?project_id=750511ab-65c3-4acd-ab9c-66e1e74befca",
+      "status_code": 200,
+      "expected": "200_OK",
+      "passed": true
+    }
+  ],
+  "cross_tenant_probes": [
+    {
+      "method": "GET",
+      "path": "/api/v1/projects/e5bd4e20-c9c6-48dc-bd07-e21758047efe",
+      "status_code": 403,
+      "expected": "403_OR_404",
+      "blocked": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/projects/e5bd4e20-c9c6-48dc-bd07-e21758047efe",
+      "status_code": 403,
+      "expected": "403_OR_404",
+      "blocked": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/projects/e5bd4e20-c9c6-48dc-bd07-e21758047efe",
+      "status_code": 403,
+      "expected": "403_OR_404",
+      "blocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/projects/e5bd4e20-c9c6-48dc-bd07-e21758047efe/agents/status",
+      "status_code": 403,
+      "expected": "403_OR_404",
+      "blocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/projects/e5bd4e20-c9c6-48dc-bd07-e21758047efe/agents/workflow/start",
+      "status_code": 403,
+      "expected": "403_OR_404",
+      "blocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/projects/e5bd4e20-c9c6-48dc-bd07-e21758047efe/agents/workflow/stop",
+      "status_code": 403,
+      "expected": "403_OR_404",
+      "blocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/projects/e5bd4e20-c9c6-48dc-bd07-e21758047efe/findings",
+      "status_code": 403,
+      "expected": "403_OR_404",
+      "blocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/projects/e5bd4e20-c9c6-48dc-bd07-e21758047efe/findings/3017fd46-0d19-4a98-b2c1-66ff58c535aa",
+      "status_code": 403,
+      "expected": "403_OR_404",
+      "blocked": true
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/projects/e5bd4e20-c9c6-48dc-bd07-e21758047efe/findings/3017fd46-0d19-4a98-b2c1-66ff58c535aa/status",
+      "status_code": 403,
+      "expected": "403_OR_404",
+      "blocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/projects/e5bd4e20-c9c6-48dc-bd07-e21758047efe/findings/3017fd46-0d19-4a98-b2c1-66ff58c535aa/evidence",
+      "status_code": 403,
+      "expected": "403_OR_404",
+      "blocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/projects/e5bd4e20-c9c6-48dc-bd07-e21758047efe/reports",
+      "status_code": 403,
+      "expected": "403_OR_404",
+      "blocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/projects/e5bd4e20-c9c6-48dc-bd07-e21758047efe/reports/generate",
+      "status_code": 403,
+      "expected": "403_OR_404",
+      "blocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/reports/c02f91d5-8055-4830-aa7f-9bbf5dd8d2e2/download",
+      "status_code": 404,
+      "expected": "403_OR_404",
+      "blocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/projects/e5bd4e20-c9c6-48dc-bd07-e21758047efe/auth-profiles",
+      "status_code": 403,
+      "expected": "403_OR_404",
+      "blocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/projects/e5bd4e20-c9c6-48dc-bd07-e21758047efe/auth-profiles",
+      "status_code": 403,
+      "expected": "403_OR_404",
+      "blocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/projects/e5bd4e20-c9c6-48dc-bd07-e21758047efe/endpoints",
+      "status_code": 403,
+      "expected": "403_OR_404",
+      "blocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/projects/e5bd4e20-c9c6-48dc-bd07-e21758047efe/endpoints",
+      "status_code": 403,
+      "expected": "403_OR_404",
+      "blocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/projects/e5bd4e20-c9c6-48dc-bd07-e21758047efe/tools/executions",
+      "status_code": 403,
+      "expected": "403_OR_404",
+      "blocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/projects/e5bd4e20-c9c6-48dc-bd07-e21758047efe/wstg/executions",
+      "status_code": 404,
+      "expected": "403_OR_404",
+      "blocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/audit-logs?project_id=e5bd4e20-c9c6-48dc-bd07-e21758047efe",
+      "status_code": 403,
+      "expected": "403_OR_404",
+      "blocked": true
+    }
+  ]
+}

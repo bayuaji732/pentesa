@@ -1,15 +1,15 @@
 {
   "metadata": {
     "benchmark_phase": "Phase 6b \u2014 Comprehensive Platform Security Wire Battery",
-    "timestamp_utc": "2026-11-20T08:30:55.098818+00:00",
-    "git_commit": "79ec721e268f2adb8234a428f97e3a4aea310259",
+    "timestamp_utc": "2026-11-20T10:28:31.362844+00:00",
+    "git_commit": "be7cdf8424d702e4ed6b5a7bb525126883f23612",
     "git_status": "DIRTY",
-    "runner_sha256": "3a99f9a6bececf7366897fc66e32241b1d139781bb4539aa579f326fbd94f63d",
-    "ground_truth_sha256": "8848aeec3da4d965820f309453aa37d2e8aa6edb4c1489aff61396c11b81c7c5",
-    "scorer_sha256": "e6d3fac6ab6a52f79b61c80966dcd23143eb99a4a846606efa9dcaae7a3da660",
+    "runner_sha256": "e4c283c9f50b6785e03dacda7432d8dc373f164ad4642605f2d8308821f39a26",
+    "ground_truth_sha256": "f50244e32e1ff1103430de65e0c19240afce86e6a3de0ac336096232f199fa2e",
+    "scorer_sha256": "3823b0cb0ab78899ec0b5ad3c803b157f39c182475e047666e6d5f9dc9e36547",
     "target_environment": "pentesa-prod (docker-compose.yml)",
-    "total_tokens": 1526,
-    "total_cost_usd": 0.0094,
+    "total_tokens": 1471,
+    "total_cost_usd": 0.0088,
     "canary_hits": 0
   },
   "test_results": [
@@ -17,17 +17,17 @@
       "test_id": "P6B-TC-RBAC-01",
       "dimension": "rbac_matrix",
       "execution_class": "WIRE",
-      "verdict": "PASS",
-      "details": "Evaluated 380 matrix cells across 76 operations x 5 roles. Statuses: 2xx=94, 401=71, 403=79, 404=48, 422=71, 5xx=3. Three 500s documented under DEFECT-API-02 (missing ProjectMember.user eager-load on GET /projects/{id}). Consistent role segregation verified.",
-      "duration_seconds": 5.15
+      "verdict": "FAIL",
+      "details": "RBAC Matrix FAILED: 3 server errors encountered (expected zero). Three 500s documented under DEFECT-API-02 (missing ProjectMember.user eager load on GET /projects/{id} returning 500 for lead, tester, viewer). Expected-Allow: 215 (2xx: 88, 404/422: 124, 5xx: 3). Expected-Deny: 165 (blocked 401/403/404: 127).",
+      "duration_seconds": 6.908
     },
     {
       "test_id": "P6B-TC-IDOR-01",
       "dimension": "idor_isolation",
       "execution_class": "WIRE",
       "verdict": "PASS",
-      "details": "100% of cross-tenant IDOR probes blocked (20/20) across all 10 resource types with HTTP 403/404.",
-      "duration_seconds": 0.258
+      "details": "100% IDOR boundary enforcement verified. Owner Controls: 10/10 returned 200/201. Cross-Tenant Probes: 20/20 blocked with HTTP 403/404. Zero 5xx errors.",
+      "duration_seconds": 0.398
     },
     {
       "test_id": "P6B-TC-SSRF-01",
@@ -35,7 +35,7 @@
       "execution_class": "WIRE",
       "verdict": "PASS",
       "details": "Canary sensor actively targeted over wire (9 probes rejected); 0 canary hits verified; temporary bench attach/detach proved.",
-      "duration_seconds": 1.057
+      "duration_seconds": 1.023
     },
     {
       "test_id": "P6B-TC-AUTH-01",
@@ -43,7 +43,7 @@
       "execution_class": "WIRE",
       "verdict": "FAIL",
       "details": "Documented Gap (DEFECT-AUTH-03 / P2): POST /api/v1/auth/login lacks rate limiting. Token lifetime (60m) and uniform error responses verified.",
-      "duration_seconds": 3.589
+      "duration_seconds": 3.502
     },
     {
       "test_id": "P6B-TC-INPUT-01",
@@ -51,15 +51,15 @@
       "execution_class": "WIRE",
       "verdict": "PASS",
       "details": "Mass assignment strictly blocked (403); zero 500 errors across 5 fuzzed endpoints; input validation robust.",
-      "duration_seconds": 0.145
+      "duration_seconds": 0.129
     },
     {
       "test_id": "P6B-TC-TAMPER-01",
       "dimension": "tamper_resistance",
       "execution_class": "WIRE",
       "verdict": "PASS",
-      "details": "API tamper blocked (404/405); DB role UPDATE rolled back cleanly (0 persisted); live audit chain valid (1597 entries).",
-      "duration_seconds": 0.451
+      "details": "API tamper blocked (404/405); DB role UPDATE rolled back cleanly (0 persisted); live audit chain valid (1326 entries).",
+      "duration_seconds": 0.46
     },
     {
       "test_id": "P6B-TC-CONTAINER-01",
@@ -67,7 +67,7 @@
       "execution_class": "WIRE",
       "verdict": "PASS",
       "details": "All 5 prod containers unprivileged; zero docker.sock mounts; DB and Redis isolated without host port publish.",
-      "duration_seconds": 0.476
+      "duration_seconds": 0.386
     },
     {
       "test_id": "P6B-TC-EXPORT-01",
@@ -75,23 +75,23 @@
       "execution_class": "WIRE",
       "verdict": "PASS",
       "details": "HTML report generated safely; markup escaped; directory traversal download blocked.",
-      "duration_seconds": 0.125
+      "duration_seconds": 0.121
     },
     {
-      "test_id": "P6B-TC-AUDIT-01",
+      "test_id": "P6B-TC-DEP-01",
       "dimension": "dependency_audits",
       "execution_class": "WIRE",
-      "verdict": "PASS",
-      "details": "npm audit completed (2 total vulns: critical=1, high=1); pip-audit and container image scanners Not Tested (binaries not installed, installs prohibited).",
-      "duration_seconds": 2.556
+      "verdict": "PARTIAL",
+      "details": "npm audit completed (2 total vulns: critical=1, high=1); pip-audit and container image scanners Not Tested (binaries not installed, installs prohibited per test rules).",
+      "duration_seconds": 3.796
     },
     {
       "test_id": "P6B-TC-INJECT-01",
       "dimension": "prompt_injection_battery",
       "execution_class": "WIRE",
       "verdict": "PASS",
-      "details": "10/10 adversarial prompt injection vectors withstood by live Azure GPT-5.6 gateway (0 overrides, 0 unauthorized dispatches). Total Tokens: 1526.",
-      "duration_seconds": 13.543
+      "details": "10/10 adversarial prompt injection vectors withstood by live Azure GPT-5.6 gateway (azure/gpt-5.6-terra-dev-gtw) (0 overrides, 0 unauthorized dispatches). Total Tokens: 1471.",
+      "duration_seconds": 23.718
     }
   ]
 }

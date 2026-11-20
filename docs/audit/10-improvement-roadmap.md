@@ -194,9 +194,9 @@ This document catalogs identified improvements, technical debt, and recommended 
 ---
 
 ### DEFECT-API-02: Chained Eager Loading for Project Member Users in Project Details Route
-- **Category**: API Reliability & ORM Relationship Serialization
-- **Severity**: P2 (Availability & API Robustness)
-- **Status**: Documented in Phase 6b RBAC Wire Suite; Scheduled for Phase 9 implementation.
+- **Category**: API Availability & Core Read Path Serialization
+- **Severity**: P1 (Critical — Core Read Path Broken on GET /api/v1/projects/{id})
+- **Status**: Documented in Phase 6b Wire Suite; Patch Prepared (`docs/audit/patches/DEFECT-API-02.diff`); Prerequisite for Phase 7 UI/Evidence validation.
 - **Problem Statement**:
   `GET /api/v1/projects/{project_id}` crashes with HTTP 500 (`MissingGreenlet` inside `ResponseValidationError`) when called by authorized members because `verify_project_access` loads `Project.members` without eager-loading `ProjectMember.user`.
 - **Proposed Solution**:

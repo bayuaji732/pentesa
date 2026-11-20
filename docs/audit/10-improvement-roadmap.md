@@ -167,16 +167,51 @@ This document catalogs identified improvements, technical debt, and recommended 
 
 ---
 
-### P3-AUTH-02: Redis-Backed Sliding Window Rate Limiting on User Authentication Endpoint
+### DEFECT-AUTH-03: Redis-Backed Sliding Window Rate Limiting on User Authentication Endpoint
 - **Category**: Authentication & Platform Security
 - **Severity**: P2 (Brute-Force & Credential Stuffing Defect — Governs PRD §4.1, ASVS V2)
 - **Status**: Documented in Phase 6 Security Assessment; Scheduled for Phase 9 implementation.
 - **Problem Statement**:
-  `POST /api/v1/auth/login` currently lacks request rate limiting or failure throttling. In Phase 6 benchmark testing (`P6-TC-AUTH-04`), 12 rapid consecutive failed authentication attempts were permitted without delay or IP throttling, returning HTTP 401 repeatedly rather than HTTP 429 Too Many Requests.
+  `POST /api/v1/auth/login` currently lacks request rate limiting or failure throttling. In Phase 6 and Phase 6b wire testing (`P6-TC-AUTH-04`, `P6B-TC-AUTH-01`), 15 rapid consecutive failed authentication attempts were permitted without delay or IP throttling, returning HTTP 401 repeatedly rather than HTTP 429 Too Many Requests.
 - **Proposed Solution**:
   1. Integrate a Redis-backed sliding window rate limiter (or `slowapi` limiter) on `POST /api/v1/auth/login`.
   2. Enforce a threshold of maximum 5 failed attempts per 60-second window per client IP address and per target account email.
   3. When threshold is exceeded, return `HTTP 429 Too Many Requests` with `Retry-After: 60` and record an immutable security audit event `AUTH_LOGIN_THROTTLED`.
+
+---
+
+### P3-API-01: Administrative User Deletion Route in API Router
+- **Category**: User Management & Data Hygiene
+- **Severity**: P3 (Operational Security & Data Lifecycle)
+- **Status**: Documented in Phase 6 Gate Cleanup; Scheduled for Phase 9 implementation.
+- **Problem Statement**:
+  `apps/api/routers/users.py` lacks a `DELETE /api/v1/users/{id}` endpoint. Throwaway accounts created during automated security evaluations or testing cannot be deleted via the API (HTTP 405 Method Not Allowed), forcing direct database SQL intervention.
+- **Proposed Solution**:
+  1. Add `DELETE /api/v1/users/{user_id}` route with `require_role(UserRole.ADMIN)`.
+  2. Enforce guardrails preventing self-deletion and orphan project memberships.
+  3. Return HTTP 204 No Content upon successful deletion.
+
+---
+
+### DEFECT-API-02: Chained Eager Loading for Project Member Users in Project Details Route
+- **Category**: API Reliability & ORM Relationship Serialization
+- **Severity**: P2 (Availability & API Robustness)
+- **Status**: Documented in Phase 6b RBAC Wire Suite; Scheduled for Phase 9 implementation.
+- **Problem Statement**:
+  `GET /api/v1/projects/{project_id}` crashes with HTTP 500 (`MissingGreenlet` inside `ResponseValidationError`) when called by authorized members because `verify_project_access` loads `Project.members` without eager-loading `ProjectMember.user`.
+- **Proposed Solution**:
+  In `apps/api/dependencies.py:verify_project_access`, update the query statement to:
+  ```python
+  stmt = (
+      select(Project)
+      .options(
+          selectinload(Project.members).selectinload(ProjectMember.user),
+          selectinload(Project.scope_rules)
+      )
+      .where(Project.id == project_id)
+  )
+  ```
+
 
 
 

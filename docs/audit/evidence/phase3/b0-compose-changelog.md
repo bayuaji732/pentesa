@@ -22,7 +22,7 @@ This changelog documents all configuration adjustments performed under Gate B0-2
 | `benchmark/docker-compose.bench.yml` | Namespacing | Added top-level `name: pentesa-bench` | Establishes dedicated benchmark target namespace. |
 | `docker-compose.phase2.yml` | Namespacing & Retirement | Added `name: pentesa-lab`, torn down without `-v`, then removed via `git rm -f` | Retired historical Phase 2 stack to eliminate hardcoded secrets in working tree; preserved at tag `phase2-final`. |
 | `infrastructure/docker-compose.prod.yml` | Defect Logging | Added `name: pentesa-prod`; logged as P3 defect (stale / duplicate) | Marked stale due to hardcoded default passwords rejected by startup validation; duplicate of root file. |
-| `docker-compose.override.yml` | Network Attachment | Created override attaching `api` and `worker` to external `pentesa-bench-net` | Replaces manual `docker network connect` commands with deterministic compose overlay. |
+| `docker-compose.bench-attach.yml` (renamed from `docker-compose.override.yml`) | Network Attachment | Converted auto-loading override into explicit overlay attaching `api` and `worker` to external `pentesa-bench-net` | Prevents auto-attachment to bench network on plain `docker compose up`; requires explicit `-f docker-compose.bench-attach.yml` during bench runs. |
 
 ---
 
@@ -82,9 +82,9 @@ index 0bc37c7..6119e7b 100644
 
 ---
 
-## 3. Step 3 Reproducibility Proof: Automated Benchmark Network Attachment
+## 3. Step 3 Reproducibility Proof: Explicit Benchmark Network Attachment
 
-To eliminate manual `docker network connect` operations during benchmark cycles, `docker-compose.override.yml` was established:
+To ensure production runs remain completely detached from benchmark networks by default while allowing deterministic attachment during benchmark runs without manual `docker network connect`, `docker-compose.override.yml` was renamed to `docker-compose.bench-attach.yml` (invoked explicitly via `-f docker-compose.yml -f docker-compose.bench-attach.yml`):
 ```yaml
 services:
   api:

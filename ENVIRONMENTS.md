@@ -30,7 +30,7 @@ Pentesa maintains strict separation across three official containerized environm
 
 ### 2.1 Development Environment (`pentesa-dev`)
 - **Configuration:** `.env` (local dev settings, verbose logging, debug instrumentation).
-- **Compose Manifest:** [`docker-compose.yml`](file:///c:/Users/User2/Documents/work/pentesa/docker-compose.yml)
+- **Compose Manifest:** [`docker-compose.yml`](file:///c:/Users/User2/Documents/work/pentesa/docker-compose.yml) (plain `docker compose up -d` starts strictly on `pentesa-internal`; benchmark target network attachment is strictly explicit via `-f docker-compose.yml -f docker-compose.bench-attach.yml` for benchmark cycles).
 - **Purpose:** Day-to-day feature development, unit testing, and fast-feedback local loops.
 - **Port Allocations:**
   - `pentesa-api`: `127.0.0.1:8000`
@@ -43,7 +43,7 @@ Pentesa maintains strict separation across three official containerized environm
 
 ### 2.2 Production Engagement Stack (`pentesa-prod`)
 - **Configuration:** Untracked `.env.production` (`PENTESA_ENV=production`, `PENTESA_DEBUG=false`, AES-256-GCM vault).
-- **Compose Manifest:** [`docker-compose.yml`](file:///c:/Users/User2/Documents/work/pentesa/docker-compose.yml)
+- **Compose Manifest:** [`docker-compose.yml`](file:///c:/Users/User2/Documents/work/pentesa/docker-compose.yml) (plain `docker compose up -d` starts strictly on `pentesa-internal`; benchmark target network attachment is strictly explicit via `-f docker-compose.yml -f docker-compose.bench-attach.yml` for benchmark cycles).
 - **Project Name:** `pentesa-prod`
 - **Purpose:** Primary platform runtime for user engagements, authorized production assessments, and audited platform security benchmark verification.
 - **Port Allocations:**

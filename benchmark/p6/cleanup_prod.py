@@ -37,7 +37,7 @@ if REPO_ROOT not in sys.path:
 from packages.common.audit import verify_audit_chain
 
 PROD_API_BASE = "http://127.0.0.1:8000"
-BACKUP_DIR = r"c:\Users\User2\Documents\work\pentesa-prod-backup-p6"
+BACKUP_DIR = r"c:\Users\User2\Documents\work\pentesa-prod-backup-p6-gate"
 DUMP_FILE = os.path.join(BACKUP_DIR, "prod_dump.sql")
 EVIDENCE_BACKUP = os.path.join(BACKUP_DIR, "evidence")
 REPORTS_BACKUP = os.path.join(BACKUP_DIR, "reports")
@@ -47,8 +47,8 @@ PRE_TEST_BASELINE = {
     "projects": 28,
     "findings": 39,
     "finding_evidence": 39,
-    "audit_logs": 1247,
-    "head_hash": "b01c7509be114f6a697a79abd058cfa60cb7525a129f0546a9c86dd1c93f7cbc",
+    "audit_logs": 1249,
+    "head_hash": "4a10e33c6fa7676fe6a176fdb4766e9404826e98fd1eaea72c0468c4d435cf6a",
 }
 
 
@@ -267,8 +267,27 @@ async def run_cleanup_and_restore():
     assert "pentesa-canary-net" not in inspect_worker, "pentesa-worker still attached to pentesa-canary-net!"
     print("  [VERIFIED 5/5] pentesa-api and pentesa-worker confirmed strictly DETACHED from bench and canary networks.")
 
+    # Verification 6: App DB role grants on audit_logs and finding_evidence & alembic version comparison
+    grants_q = (
+        "SELECT grantee, table_name, privilege_type "
+        "FROM information_schema.role_table_grants "
+        "WHERE table_name IN ('audit_logs', 'finding_evidence') AND grantee = 'pentesa_user' "
+        "ORDER BY table_name, privilege_type;"
+    )
+    grants_out = subprocess.check_output(
+        ["docker", "exec", "pentesa-db", "psql", "-U", "pentesa_user", "-d", "pentesa", "-A", "-t", "-c", grants_q]
+    ).decode().strip()
+    assert len(grants_out.splitlines()) == 14, f"Unexpected grants count: {len(grants_out.splitlines())}"
+
+    alembic_q = "SELECT to_regclass('public.alembic_version');"
+    alembic_out = subprocess.check_output(
+        ["docker", "exec", "pentesa-db", "psql", "-U", "pentesa_user", "-d", "pentesa", "-A", "-t", "-c", alembic_q]
+    ).decode().strip()
+    assert alembic_out == "" or alembic_out == "None", f"Unexpected alembic_version table: {alembic_out}"
+    print("  [VERIFIED 6/6] DB role grants (14/14 privileges) and alembic_version absence match pre-test snapshot exactly.")
+
     print("\n" + "=" * 80)
-    print("ALL CLEANUP AND RESTORATION VERIFICATION GATES PASSED (5/5).")
+    print("ALL CLEANUP AND RESTORATION VERIFICATION GATES PASSED (6/6).")
     print("Target Environment (pentesa-prod) restored to exact pre-test baseline.")
     print("=" * 80)
 

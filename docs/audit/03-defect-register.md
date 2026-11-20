@@ -41,7 +41,9 @@
 | **DEFECT-AGENT-01** | **P1** | AI Safety | `agents/validation/validation_agent.py` | ValidationAgent Blind LLM Trust & Synthetic Finding Promotion on 404 Endpoint | Open (Documented) | Phase 9 (Empirical Evidence Gate Invariant) |
 | **COMP-STALE-01** | **P3** | Infrastructure | `infrastructure/docker-compose.prod.yml` | Stale Duplicate Production Compose with Hardcoded Password and Container Collisions | Open (Quarantined) | Retained for reference; quarantined/never started; superseded by root docker-compose.yml |
 | **DISCO-SPA-01** | **P2** | Discovery | `services/discovery_engine/fingerprint.py` | Technology Fingerprinter Misses SPAs Lacking Server Headers | Open (Deferred) | Phase 9 (DOM Parsing Roadmap) |
-| **P3-AUTH-02** | **P2** | Authentication | `apps/api/routers/auth.py` | Missing Rate Limiting on User Login Endpoint (`POST /api/v1/auth/login`) | Open (Documented) | Phase 9 (Redis-backed token bucket rate limiting) |
+| **DEFECT-AUTH-03** | **P2** | Authentication | `apps/api/routers/auth.py` | Missing Rate Limiting on User Login Endpoint (`POST /api/v1/auth/login`) | Open (Documented) | Phase 9 (Redis-backed token bucket rate limiting) |
+| **DEFECT-API-02** | **P2** | API / Reliability | `apps/api/dependencies.py`, `apps/api/routers/projects.py` | Unhandled HTTP 500 ResponseValidationError on `GET /api/v1/projects/{project_id}` | Open (Documented) | Phase 9 (Chained eager loading in verify_project_access) |
+| **P3-API-01** | **P3** | API / Admin | `apps/api/routers/users.py` | Missing User Deletion Route in API Router (`DELETE /api/v1/users/{id}`) | Open (Documented) | Phase 9 (Admin user deletion route implementation) |
 
 ---
 
@@ -309,7 +311,59 @@
   `benchmark/p6/test_runner.py::test_auth_04` (asserting HTTP 429 on 10+ rapid failed login requests).
 - **Acceptance Criteria:**
   1. More than 5 consecutive failed logins from the same client IP trigger `HTTP 429 Too Many Requests`.
-  2. `P6-TC-AUTH-04` passes with verified throttling.
+  2. `P6-TC-AUTH-04` and `P6B-TC-AUTH-01` pass with verified throttling.
+
+### 3.23 DEFECT-API-02 / P2: Unhandled 500 ResponseValidationError on `GET /api/v1/projects/{project_id}`
+- **Components:** `apps/api/dependencies.py:109-115`, `apps/api/routers/projects.py:174-183`
+- **Severity:** **P2 (Medium / API Availability & Serialization Defect)**
+- **Audit Phase & Standard:** Discovered in Phase 6b Wire Security Benchmark (`P6B-TC-RBAC-01`).
+- **Defect Description & Root Cause:**
+  When an authenticated project member (LEAD, TESTER, VIEWER) or administrator calls `GET /api/v1/projects/{project_id}`, the server crashes with HTTP 500 Internal Server Error (`fastapi.exceptions.ResponseValidationError: MissingGreenlet`). `verify_project_access` queries `Project` with `selectinload(Project.members)` but fails to chain `.selectinload(ProjectMember.user)`. When `ProjectResponse` serializes `members`, async SQLAlchemy attempts lazy-loading of the `user` relationship outside an async greenlet context.
+- **Empirical Evidence:**
+  - Machine traceback in `docker logs pentesa-api`:
+    ```
+    fastapi.exceptions.ResponseValidationError: 1 validation error:
+      {'type': 'get_attribute_error', 'loc': ('response', 'members', 0, 'user'), 'msg': "MissingGreenlet: greenlet_spawn has not been called; can't call await_() here."}
+    ```
+- **Remediation Specification (Phase 9 Implementation):**
+  In `apps/api/dependencies.py:verify_project_access`, update the query statement to:
+  ```python
+  stmt = (
+      select(Project)
+      .options(
+          selectinload(Project.members).selectinload(ProjectMember.user),
+          selectinload(Project.scope_rules)
+      )
+      .where(Project.id == project_id)
+  )
+  ```
+- **Regression Test:**
+  `benchmark/p6b/test_runner_p6b.py::test_rbac_matrix` (asserting HTTP 200 on `GET /api/v1/projects/{id}` for members).
+- **Acceptance Criteria:**
+  `GET /api/v1/projects/{id}` returns HTTP 200 with complete serialized project member details.
+
+### 3.24 P3-API-01: Missing User Deletion Route in API Router
+- **Components:** `apps/api/routers/users.py`
+- **Severity:** **P3 (Low / Operational Hygiene & Data Lifecycle Gap)**
+- **Audit Phase & Standard:** Discovered in Phase 6 Gate Cleanup Verification (`benchmark/p6/cleanup_prod.py`).
+- **Defect Description & Root Cause:**
+  The API router `apps/api/routers/users.py` implements routes for creating, listing, fetching, and updating users, but completely lacks a `DELETE /api/v1/users/{id}` endpoint. When automated test suites or administrators attempt to delete throwaway accounts via the API, the server returns HTTP 405 Method Not Allowed. Test users can only be removed by direct database SQL manipulation.
+- **Empirical Evidence:**
+  - Machine output in `docs/audit/evidence/phase6/cleanup-proof.txt`:
+    ```
+    DELETE /api/v1/users/{uid} -> HTTP 405 (User deletion unsupported by API)
+    Report of What Did NOT Delete via API: 6 throwaway users remained.
+    ```
+- **Remediation Specification (Phase 9 Implementation):**
+  Add `DELETE /{user_id}` route to `apps/api/routers/users.py`:
+  1. Enforce `require_role(UserRole.ADMIN)`.
+  2. Disallow self-deletion (`user_id == current_user.id`).
+  3. Delete child `ProjectMember` records and remove the user entity, returning HTTP 204 No Content.
+- **Regression Test:**
+  `benchmark/p6/cleanup_prod.py` (asserting HTTP 204 on `DELETE /api/v1/users/{id}`).
+- **Acceptance Criteria:**
+  Administrators can delete user accounts over the wire via API call with proper cascade handling.
+
 
 
 

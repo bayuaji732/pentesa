@@ -1,0 +1,146 @@
+name: pentesa-sec
+
+services:
+  # ---------------------------------------------------------------------------
+  # 1. Pentesa Security Audit API Backend (Phase 6 Isolated)
+  # ---------------------------------------------------------------------------
+  api:
+    image: pentesa-prod-api:latest
+    container_name: pentesa-sec-api
+    restart: unless-stopped
+    env_file:
+      - .env.sec
+    ports:
+      - "127.0.0.1:8001:8000"
+    environment:
+      - PENTESA_ENV=production
+      - PENTESA_DEBUG=false
+      - PENTESA_DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-pentesa_user}:${POSTGRES_PASSWORD:?}@db:5432/${POSTGRES_DB:-pentesa_sec}
+      - PENTESA_REDIS_URL=redis://redis:6379/0
+      - PENTESA_SECRET_KEY=${JWT_SECRET:-${PENTESA_SECRET_KEY:?}}
+      - PENTESA_ENCRYPTION_KEY=${PENTESA_ENCRYPTION_KEY:-${PENTESA_MASTER_KEY:?}}
+      - PENTESA_LLM_PROVIDER=${PENTESA_LLM_PROVIDER:-litellm}
+      - PENTESA_LLM_API_KEY=${PENTESA_LLM_API_KEY:-}
+      - PENTESA_LLM_BASE_URL=${PENTESA_LLM_BASE_URL:-}
+      - PENTESA_LLM_MODEL=${PENTESA_LLM_MODEL:-azure/gpt-5.6-terra-dev-gtw}
+      - PENTESA_BOOTSTRAP_ADMIN=false
+      - PENTESA_REPORT_STORAGE_DIR=/app/data/reports
+      - PENTESA_EVIDENCE_STORAGE_DIR=/app/data/evidence
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - pentesa-sec-reports:/app/data/reports
+      - pentesa-sec-evidence:/app/data/evidence
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - pentesa-sec-internal
+      - pentesa-bench-net
+      - pentesa-canary-net
+
+  # ---------------------------------------------------------------------------
+  # 2. Pentesa Security Audit Asynchronous Worker (Phase 6 Isolated)
+  # ---------------------------------------------------------------------------
+  worker:
+    image: pentesa-prod-worker:latest
+    container_name: pentesa-sec-worker
+    restart: unless-stopped
+    env_file:
+      - .env.sec
+    environment:
+      - PENTESA_ENV=production
+      - PENTESA_DEBUG=false
+      - PENTESA_DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-pentesa_user}:${POSTGRES_PASSWORD:?}@db:5432/${POSTGRES_DB:-pentesa_sec}
+      - PENTESA_REDIS_URL=redis://redis:6379/0
+      - PENTESA_SECRET_KEY=${JWT_SECRET:-${PENTESA_SECRET_KEY:?}}
+      - PENTESA_ENCRYPTION_KEY=${PENTESA_ENCRYPTION_KEY:-${PENTESA_MASTER_KEY:?}}
+      - PENTESA_LLM_PROVIDER=${PENTESA_LLM_PROVIDER:-litellm}
+      - PENTESA_LLM_API_KEY=${PENTESA_LLM_API_KEY:-}
+      - PENTESA_LLM_BASE_URL=${PENTESA_LLM_BASE_URL:-}
+      - PENTESA_LLM_MODEL=${PENTESA_LLM_MODEL:-azure/gpt-5.6-terra-dev-gtw}
+      - PENTESA_BOOTSTRAP_ADMIN=false
+      - PENTESA_REPORT_STORAGE_DIR=/app/data/reports
+      - PENTESA_EVIDENCE_STORAGE_DIR=/app/data/evidence
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - pentesa-sec-reports:/app/data/reports
+      - pentesa-sec-evidence:/app/data/evidence
+    depends_on:
+      api:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - pentesa-sec-internal
+      - pentesa-bench-net
+      - pentesa-canary-net
+
+  # ---------------------------------------------------------------------------
+  # 3. PostgreSQL 16 Isolated Security Store
+  # ---------------------------------------------------------------------------
+  db:
+    image: postgres:16-alpine
+    container_name: pentesa-sec-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-pentesa_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      POSTGRES_DB: ${POSTGRES_DB:-pentesa_sec}
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - pentesa-sec-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pentesa_user} -d ${POSTGRES_DB:-pentesa_sec}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pentesa-sec-internal
+
+  # ---------------------------------------------------------------------------
+  # 4. Redis Task Broker & State Cache
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: pentesa-sec-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "127.0.0.1:6381:6379"
+    volumes:
+      - pentesa-sec-redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pentesa-sec-internal
+
+volumes:
+  pentesa-sec-pgdata:
+  pentesa-sec-redisdata:
+  pentesa-sec-reports:
+  pentesa-sec-evidence:
+
+networks:
+  pentesa-sec-internal:
+    name: pentesa-sec-internal
+    driver: bridge
+  pentesa-bench-net:
+    external: true
+  pentesa-canary-net:
+    external: true

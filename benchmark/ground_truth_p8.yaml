@@ -1,0 +1,215 @@
+# Pentesa Phase 8 — Frozen Ground Truth Specification: Reliability, Performance, Concurrency & Resource Limits
+# Frozen prior to Phase 8 test execution (committed and tagged: p8-design-complete).
+# Any modification after execution violates audit integrity and must be recorded as an addendum.
+
+metadata:
+  benchmark_phase: "Phase 8 — Reliability, Performance, Concurrency and Resource Limits"
+  schema_version: "1.0"
+  spec_document: "docs/audit/evidence/phase8/8A-spec.md"
+  target_environment: "pentesa-prod (docker-compose.yml on http://127.0.0.1:8000, post hotfix-api-02)"
+  bench_target_environment: "pentesa-bench (benchmark/docker-compose.bench.yml on internal bridge)"
+  mock_llm_mode: true
+  live_llm_token_cap: 30000
+  live_llm_budget_cap_usd: 1.00
+  status_vocabulary:
+    - "Verified"
+    - "Partially Verified"
+    - "Failed"
+    - "Not Implemented"
+    - "Not Tested"
+
+abort_thresholds:
+  max_p95_latency_seconds: 5.0
+  max_sustained_p95_duration_seconds: 30
+  max_error_rate_percent: 20.0
+  max_host_ram_percent: 85.0
+  allow_container_restarts: false
+  allow_canary_sensor_hits: false
+
+test_cases:
+  # Sub-Area a: Startup Timing
+  - test_id: "P8-TC-DEP-01"
+    sub_area: "a_startup"
+    title: "Docker Compose Single-Command Stack Startup Timing"
+    requirement_id: "NFR-DEP-01"
+    threshold:
+      max_startup_seconds: 180.0
+      cycles: 3
+      required_status: "HEALTHY"
+    expected_status: "Verified"
+    metric_key: "mean_startup_seconds"
+
+  # Sub-Area b: API Performance and Scale
+  - test_id: "P8-TC-PERF-01"
+    sub_area: "b_api_performance"
+    title: "API Read Latency under 5,000 Seeded Endpoints Scale"
+    requirement_id: "NFR-PERF-01"
+    threshold:
+      p95_latency_ms: 200.0
+      min_requests: 200
+      endpoints:
+        - "GET /api/v1/projects/{id}/discovery/endpoints"
+        - "GET /api/v1/projects/{id}/findings"
+        - "GET /api/v1/projects/{id}"
+    expected_status: "Verified"
+    metric_key: "inventory_p95_ms"
+
+  - test_id: "P8-TC-PERF-02"
+    sub_area: "b_api_performance"
+    title: "API Throughput and Latency under 10,000 Seeded Endpoints & High Concurrency"
+    requirement_id: "NFR-SCAL-01"
+    threshold:
+      concurrency_tiers: [1, 10, 50]
+      min_requests_per_tier: 200
+      max_error_rate_percent: 5.0
+    expected_status: "Verified"
+    metric_key: "max_concurrent_p95_ms"
+
+  - test_id: "P8-TC-SCAL-01"
+    sub_area: "b_api_performance"
+    title: "Scalable Cursor Pagination Implementation Verification"
+    requirement_id: "NFR-SCAL-01"
+    criteria:
+      offset_pagination_supported: true
+      cursor_pagination_supported: false  # Not Implemented in apps/api/routers/discovery.py
+    expected_status: "Partially Verified"
+    metric_key: "cursor_pagination_supported"
+
+  # Sub-Area c: Rate Control
+  - test_id: "P8-TC-RATE-01"
+    sub_area: "c_rate_control"
+    title: "Outbound Scan Request Rate Control Accuracy (5 RPS and 20 RPS)"
+    requirement_id: "NFR-PERF-02"
+    threshold:
+      rates_tested_rps: [5, 20]
+      tolerance_percent: 5.0
+    expected_status: "Verified"
+    metric_key: "max_rate_deviation_percent"
+
+  # Sub-Area d: Circuit Breaker
+  - test_id: "P8-TC-SAFE-01"
+    sub_area: "d_circuit_breaker"
+    title: "Error Threshold Backoff Circuit Breaker Verification"
+    requirement_id: "NFR-SAFE-01"
+    criteria:
+      sliding_window_error_monitor_active: false  # Not Implemented in execution engine
+      spec_inconsistency_documented: true          # PRD 15%/30s vs Architecture 20%/60s
+    expected_status: "Not Implemented"
+    metric_key: "circuit_breaker_active"
+
+  # Sub-Area e: Resilience
+  - test_id: "P8-TC-REL-01"
+    sub_area: "e_resilience"
+    title: "Worker Crash Resilience and Workflow State Resumption"
+    requirement_id: "NFR-REL-01"
+    criteria:
+      durable_state_checkpointing_active: false    # Workflows run in-memory in API container
+      auto_resumption_within_15s: false            # Not Implemented
+    expected_status: "Not Implemented"
+    metric_key: "auto_resumption_supported"
+
+  - test_id: "P8-TC-REL-02"
+    sub_area: "e_resilience"
+    title: "Individual Tool Failure Fault Isolation"
+    requirement_id: "NFR-REL-02"
+    threshold:
+      workflow_crash: false
+      error_gracefully_captured: true
+      failure_scenarios_tested:
+        - "missing_binary"
+        - "execution_timeout"
+        - "unhandled_process_error"
+    expected_status: "Verified"
+    metric_key: "fault_isolation_passed"
+
+  - test_id: "P8-TC-REL-03"
+    sub_area: "e_resilience"
+    title: "Infrastructure Restart Recovery and Graceful Shutdown"
+    requirement_id: "NFR-REL-03"
+    threshold:
+      api_graceful_shutdown_sigterm: true
+      worker_graceful_shutdown_sigterm: true
+      db_connection_pool_reconnect_success: true
+      redis_connection_reconnect_success: true
+    expected_status: "Verified"
+    metric_key: "infrastructure_restart_passed"
+
+  # Sub-Area f: Concurrency
+  - test_id: "P8-TC-CONC-01"
+    sub_area: "f_concurrency"
+    title: "Multi-Workflow Concurrency Scaling (1, 3, 5 Workflows)"
+    requirement_id: "NFR-CONC-01"
+    threshold:
+      workflows_tested: [1, 3, 5]
+      state_clobbering_detected: false
+      db_pool_exhaustion_detected: false
+      max_memory_growth_mb: 500.0
+    expected_status: "Verified"
+    metric_key: "concurrency_scaling_passed"
+
+  # Sub-Area g: Integrity under Concurrency
+  - test_id: "P8-TC-AUD-01"
+    sub_area: "g_integrity"
+    title: "Cryptographic Audit Chain Append-Only Concurrency Integrity"
+    requirement_id: "NFR-AUD-01"
+    threshold:
+      concurrent_calls: [20, 50]
+      chain_forks_detected: 0
+      duplicate_prev_hashes_detected: 0
+      missing_records_detected: 0
+      chain_verification_result: "VALID"
+    expected_status: "Verified"
+    metric_key: "audit_chain_intact"
+
+  - test_id: "P8-TC-AUD-02"
+    sub_area: "g_integrity"
+    title: "Finding Ingestion Deduplication and Race Condition Integrity"
+    requirement_id: "NFR-DEDUP-01"
+    threshold:
+      concurrent_identical_posts: 20
+      unhandled_500_exceptions: 0
+    expected_status: "Verified"
+    metric_key: "finding_race_handled"
+
+  # Sub-Area h: Cancellation and Cleanup
+  - test_id: "P8-TC-RES-01"
+    sub_area: "h_cancellation"
+    title: "Subprocess Cancellation, Timeout Enforcement, and Resource Cleanup"
+    requirement_id: "NFR-RES-01"
+    threshold:
+      api_cancellation_honored: true
+      hard_timeout_enforced: true
+      orphan_zombie_processes_remaining: 0
+      temporary_files_removed: true
+    expected_status: "Verified"
+    metric_key: "cancellation_cleanup_passed"
+
+  # Sub-Area i: Hostile Responses
+  - test_id: "P8-TC-HOST-01"
+    sub_area: "i_hostile_responses"
+    title: "Hostile Target Response Resilience and Resource Boundedness"
+    requirement_id: "NFR-HOST-01"
+    threshold:
+      pathological_cases_tested:
+        - "huge_body_50mb"
+        - "slow_drip_response"
+        - "endless_stream"
+        - "infinite_redirect_loop"
+        - "giant_header_64kb"
+      unhandled_hang: false
+      memory_exhaustion: false
+      timeouts_enforced: true
+    expected_status: "Verified"
+    metric_key: "hostile_resilience_passed"
+
+  # Sub-Area j: Resource Limits
+  - test_id: "P8-TC-LIM-01"
+    sub_area: "j_resource_limits"
+    title: "Container Resource Boundaries, Restart Policies, and Log Rotation"
+    requirement_id: "NFR-LIM-01"
+    threshold:
+      restart_policies_configured: true
+      unbounded_resources_documented: true
+      evidence_volume_growth_bounded: true
+    expected_status: "Verified"
+    metric_key: "resource_bounds_audited"

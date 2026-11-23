@@ -1,0 +1,350 @@
+{
+  "unique_commands_tested": 8,
+  "total_replays_3x": 24,
+  "successful_vuln_replays": 24,
+  "replay_success_rate_pct": 100.0,
+  "status_matched_replays": 21,
+  "status_match_rate_pct": 87.5,
+  "scope_violations": 0,
+  "destructive_violations": 0,
+  "detached_verified": true,
+  "canary_hits": 0,
+  "replays": [
+    {
+      "title": "Exposed Environment Configuration File (.env)",
+      "cwe_id": "CWE-200",
+      "curl_cmd": "curl -i -s 'http://bench-crapi-web/.env'",
+      "target_url": "http://bench-crapi-web/.env",
+      "instance_count_in_prod": 6,
+      "in_scope": true,
+      "non_destructive": true,
+      "stored_status": 200,
+      "replays": [
+        {
+          "replay_num": 1,
+          "exit_code": 0,
+          "live_status": 200,
+          "stored_status": 200,
+          "status_matches_stored": true,
+          "vuln_signature_reproduced": true,
+          "response_length": 449,
+          "response_preview": "HTTP/1.1 200 OK\nServer: openresty/1.27.1.2\nDate: Mon, 23 Nov 2026 05:26:14 GMT\nContent-Type: application/octet-stream\nContent-Length: 201\nLast-Modified: Mon, 22 Sep 2025 18:03:39 GMT\nConnection: keep-"
+        },
+        {
+          "replay_num": 2,
+          "exit_code": 0,
+          "live_status": 200,
+          "stored_status": 200,
+          "status_matches_stored": true,
+          "vuln_signature_reproduced": true,
+          "response_length": 449,
+          "response_preview": "HTTP/1.1 200 OK\nServer: openresty/1.27.1.2\nDate: Mon, 23 Nov 2026 05:26:14 GMT\nContent-Type: application/octet-stream\nContent-Length: 201\nLast-Modified: Mon, 22 Sep 2025 18:03:39 GMT\nConnection: keep-"
+        },
+        {
+          "replay_num": 3,
+          "exit_code": 0,
+          "live_status": 200,
+          "stored_status": 200,
+          "status_matches_stored": true,
+          "vuln_signature_reproduced": true,
+          "response_length": 449,
+          "response_preview": "HTTP/1.1 200 OK\nServer: openresty/1.27.1.2\nDate: Mon, 23 Nov 2026 05:26:15 GMT\nContent-Type: application/octet-stream\nContent-Length: 201\nLast-Modified: Mon, 22 Sep 2025 18:03:39 GMT\nConnection: keep-"
+        }
+      ]
+    },
+    {
+      "title": "Missing Security Headers (CSP, XFO, XCTO)",
+      "cwe_id": "CWE-693",
+      "curl_cmd": "curl -i -s 'http://bench-crapi-web'",
+      "target_url": "http://bench-crapi-web",
+      "instance_count_in_prod": 6,
+      "in_scope": true,
+      "non_destructive": true,
+      "stored_status": 200,
+      "replays": [
+        {
+          "replay_num": 1,
+          "exit_code": 0,
+          "live_status": 200,
+          "stored_status": 200,
+          "status_matches_stored": true,
+          "vuln_signature_reproduced": true,
+          "response_length": 1440,
+          "response_preview": "HTTP/1.1 200 OK\nServer: openresty/1.27.1.2\nDate: Mon, 23 Nov 2026 05:26:15 GMT\nContent-Type: text/html\nContent-Length: 1207\nLast-Modified: Mon, 22 Sep 2025 18:05:09 GMT\nConnection: keep-alive\nETag: \"6"
+        },
+        {
+          "replay_num": 2,
+          "exit_code": 0,
+          "live_status": 200,
+          "stored_status": 200,
+          "status_matches_stored": true,
+          "vuln_signature_reproduced": true,
+          "response_length": 1440,
+          "response_preview": "HTTP/1.1 200 OK\nServer: openresty/1.27.1.2\nDate: Mon, 23 Nov 2026 05:26:15 GMT\nContent-Type: text/html\nContent-Length: 1207\nLast-Modified: Mon, 22 Sep 2025 18:05:09 GMT\nConnection: keep-alive\nETag: \"6"
+        },
+        {
+          "replay_num": 3,
+          "exit_code": 0,
+          "live_status": 200,
+          "stored_status": 200,
+          "status_matches_stored": true,
+          "vuln_signature_reproduced": true,
+          "response_length": 1440,
+          "response_preview": "HTTP/1.1 200 OK\nServer: openresty/1.27.1.2\nDate: Mon, 23 Nov 2026 05:26:15 GMT\nContent-Type: text/html\nContent-Length: 1207\nLast-Modified: Mon, 22 Sep 2025 18:05:09 GMT\nConnection: keep-alive\nETag: \"6"
+        }
+      ]
+    },
+    {
+      "title": "SQL Injection in Product Search Parameter",
+      "cwe_id": "CWE-89",
+      "curl_cmd": "curl -i -s \"http://bench-juiceshop:3000/rest/products/search?q=%27%29%29\"",
+      "target_url": "http://bench-juiceshop:3000/rest/products/search?q=%27%29%29",
+      "instance_count_in_prod": 6,
+      "in_scope": true,
+      "non_destructive": true,
+      "stored_status": 500,
+      "replays": [
+        {
+          "replay_num": 1,
+          "exit_code": 0,
+          "live_status": 500,
+          "stored_status": 500,
+          "status_matches_stored": true,
+          "vuln_signature_reproduced": true,
+          "response_length": 1323,
+          "response_preview": "HTTP/1.1 500 Internal Server Error\nAccess-Control-Allow-Origin: *\nX-Content-Type-Options: nosniff\nX-Frame-Options: SAMEORIGIN\nFeature-Policy: payment 'self'\nX-Recruiting: /#/jobs\nContent-Type: text/ht"
+        },
+        {
+          "replay_num": 2,
+          "exit_code": 0,
+          "live_status": 500,
+          "stored_status": 500,
+          "status_matches_stored": true,
+          "vuln_signature_reproduced": true,
+          "response_length": 1323,
+          "response_preview": "HTTP/1.1 500 Internal Server Error\nAccess-Control-Allow-Origin: *\nX-Content-Type-Options: nosniff\nX-Frame-Options: SAMEORIGIN\nFeature-Policy: payment 'self'\nX-Recruiting: /#/jobs\nContent-Type: text/ht"
+        },
+        {
+          "replay_num": 3,
+          "exit_code": 0,
+          "live_status": 500,
+          "stored_status": 500,
+          "status_matches_stored": true,
+          "vuln_signature_reproduced": true,
+          "response_length": 1323,
+          "response_preview": "HTTP/1.1 500 Internal Server Error\nAccess-Control-Allow-Origin: *\nX-Content-Type-Options: nosniff\nX-Frame-Options: SAMEORIGIN\nFeature-Policy: payment 'self'\nX-Recruiting: /#/jobs\nContent-Type: text/ht"
+        }
+      ]
+    },
+    {
+      "title": "Missing Security Headers (CSP, XFO, XCTO)",
+      "cwe_id": "CWE-693",
+      "curl_cmd": "curl -i -s 'http://bench-juiceshop:3000'",
+      "target_url": "http://bench-juiceshop:3000",
+      "instance_count_in_prod": 6,
+      "in_scope": true,
+      "non_destructive": true,
+      "stored_status": 200,
+      "replays": [
+        {
+          "replay_num": 1,
+          "exit_code": 0,
+          "live_status": 200,
+          "stored_status": 200,
+          "status_matches_stored": true,
+          "vuln_signature_reproduced": true,
+          "response_length": 10434,
+          "response_preview": "HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\nX-Content-Type-Options: nosniff\nX-Frame-Options: SAMEORIGIN\nFeature-Policy: payment 'self'\nX-Recruiting: /#/jobs\nAccept-Ranges: bytes\nCache-Control: publ"
+        },
+        {
+          "replay_num": 2,
+          "exit_code": 0,
+          "live_status": 200,
+          "stored_status": 200,
+          "status_matches_stored": true,
+          "vuln_signature_reproduced": true,
+          "response_length": 10434,
+          "response_preview": "HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\nX-Content-Type-Options: nosniff\nX-Frame-Options: SAMEORIGIN\nFeature-Policy: payment 'self'\nX-Recruiting: /#/jobs\nAccept-Ranges: bytes\nCache-Control: publ"
+        },
+        {
+          "replay_num": 3,
+          "exit_code": 0,
+          "live_status": 200,
+          "stored_status": 200,
+          "status_matches_stored": true,
+          "vuln_signature_reproduced": true,
+          "response_length": 10434,
+          "response_preview": "HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\nX-Content-Type-Options: nosniff\nX-Frame-Options: SAMEORIGIN\nFeature-Policy: payment 'self'\nX-Recruiting: /#/jobs\nAccept-Ranges: bytes\nCache-Control: publ"
+        }
+      ]
+    },
+    {
+      "title": "Reflected Cross-Site Scripting (XSS) in 'name' Parameter (/ssti/render)",
+      "cwe_id": "CWE-79",
+      "curl_cmd": "curl -i -s \"http://bench-pentesa-app:8080/ssti/render?name=%3Cscript%3Ealert%28%27pentesa_xss_8421%27%29%3C/script%3E\"",
+      "target_url": "http://bench-pentesa-app:8080/ssti/render?name=%3Cscript%3Ealert%28%27pentesa_xss_8421%27%29%3C/script%3E",
+      "instance_count_in_prod": 5,
+      "in_scope": true,
+      "non_destructive": true,
+      "stored_status": 200,
+      "replays": [
+        {
+          "replay_num": 1,
+          "exit_code": 0,
+          "live_status": 200,
+          "stored_status": 200,
+          "status_matches_stored": true,
+          "vuln_signature_reproduced": true,
+          "response_length": 211,
+          "response_preview": "HTTP/1.1 200 OK\ndate: Mon, 23 Nov 2026 05:26:16 GMT\nserver: uvicorn\ncontent-length: 84\ncontent-type: text/html; charset=utf-8\n\n<html><body><h1>Hello <script>alert('pentesa_xss_8421')</script>!</h1></b"
+        },
+        {
+          "replay_num": 2,
+          "exit_code": 0,
+          "live_status": 200,
+          "stored_status": 200,
+          "status_matches_stored": true,
+          "vuln_signature_reproduced": true,
+          "response_length": 211,
+          "response_preview": "HTTP/1.1 200 OK\ndate: Mon, 23 Nov 2026 05:26:16 GMT\nserver: uvicorn\ncontent-length: 84\ncontent-type: text/html; charset=utf-8\n\n<html><body><h1>Hello <script>alert('pentesa_xss_8421')</script>!</h1></b"
+        },
+        {
+          "replay_num": 3,
+          "exit_code": 0,
+          "live_status": 200,
+          "stored_status": 200,
+          "status_matches_stored": true,
+          "vuln_signature_reproduced": true,
+          "response_length": 211,
+          "response_preview": "HTTP/1.1 200 OK\ndate: Mon, 23 Nov 2026 05:26:17 GMT\nserver: uvicorn\ncontent-length: 84\ncontent-type: text/html; charset=utf-8\n\n<html><body><h1>Hello <script>alert('pentesa_xss_8421')</script>!</h1></b"
+        }
+      ]
+    },
+    {
+      "title": "SQL Injection in 'q' Parameter (/sqli/search)",
+      "cwe_id": "CWE-89",
+      "curl_cmd": "curl -i -s \"http://bench-pentesa-app:8080/sqli/search?q=%27%29%29\"",
+      "target_url": "http://bench-pentesa-app:8080/sqli/search?q=%27%29%29",
+      "instance_count_in_prod": 6,
+      "in_scope": true,
+      "non_destructive": true,
+      "stored_status": 500,
+      "replays": [
+        {
+          "replay_num": 1,
+          "exit_code": 0,
+          "live_status": 500,
+          "stored_status": 500,
+          "status_matches_stored": true,
+          "vuln_signature_reproduced": true,
+          "response_length": 281,
+          "response_preview": "HTTP/1.1 500 Internal Server Error\ndate: Mon, 23 Nov 2026 05:26:17 GMT\nserver: uvicorn\ncontent-length: 142\ncontent-type: application/json\n\n{\"error\":\"SQL Error\",\"details\":\"near \\\")\\\": syntax error\",\"qu"
+        },
+        {
+          "replay_num": 2,
+          "exit_code": 0,
+          "live_status": 500,
+          "stored_status": 500,
+          "status_matches_stored": true,
+          "vuln_signature_reproduced": true,
+          "response_length": 281,
+          "response_preview": "HTTP/1.1 500 Internal Server Error\ndate: Mon, 23 Nov 2026 05:26:17 GMT\nserver: uvicorn\ncontent-length: 142\ncontent-type: application/json\n\n{\"error\":\"SQL Error\",\"details\":\"near \\\")\\\": syntax error\",\"qu"
+        },
+        {
+          "replay_num": 3,
+          "exit_code": 0,
+          "live_status": 500,
+          "stored_status": 500,
+          "status_matches_stored": true,
+          "vuln_signature_reproduced": true,
+          "response_length": 281,
+          "response_preview": "HTTP/1.1 500 Internal Server Error\ndate: Mon, 23 Nov 2026 05:26:17 GMT\nserver: uvicorn\ncontent-length: 142\ncontent-type: application/json\n\n{\"error\":\"SQL Error\",\"details\":\"near \\\")\\\": syntax error\",\"qu"
+        }
+      ]
+    },
+    {
+      "title": "Reflected Cross-Site Scripting (XSS) in 'name' Parameter (/ssti/secure)",
+      "cwe_id": "CWE-79",
+      "curl_cmd": "curl -i -s \"http://bench-pentesa-app:8080/ssti/secure?name=%3Cscript%3Ealert%28%27pentesa_xss_8421%27%29%3C/script%3E\"",
+      "target_url": "http://bench-pentesa-app:8080/ssti/secure?name=%3Cscript%3Ealert%28%27pentesa_xss_8421%27%29%3C/script%3E",
+      "instance_count_in_prod": 1,
+      "in_scope": true,
+      "non_destructive": true,
+      "stored_status": 200,
+      "replays": [
+        {
+          "replay_num": 1,
+          "exit_code": 0,
+          "live_status": 200,
+          "stored_status": 200,
+          "status_matches_stored": true,
+          "vuln_signature_reproduced": true,
+          "response_length": 211,
+          "response_preview": "HTTP/1.1 200 OK\ndate: Mon, 23 Nov 2026 05:26:18 GMT\nserver: uvicorn\ncontent-length: 84\ncontent-type: text/html; charset=utf-8\n\n<html><body><h1>Hello <script>alert('pentesa_xss_8421')</script>!</h1></b"
+        },
+        {
+          "replay_num": 2,
+          "exit_code": 0,
+          "live_status": 200,
+          "stored_status": 200,
+          "status_matches_stored": true,
+          "vuln_signature_reproduced": true,
+          "response_length": 211,
+          "response_preview": "HTTP/1.1 200 OK\ndate: Mon, 23 Nov 2026 05:26:18 GMT\nserver: uvicorn\ncontent-length: 84\ncontent-type: text/html; charset=utf-8\n\n<html><body><h1>Hello <script>alert('pentesa_xss_8421')</script>!</h1></b"
+        },
+        {
+          "replay_num": 3,
+          "exit_code": 0,
+          "live_status": 200,
+          "stored_status": 200,
+          "status_matches_stored": true,
+          "vuln_signature_reproduced": true,
+          "response_length": 211,
+          "response_preview": "HTTP/1.1 200 OK\ndate: Mon, 23 Nov 2026 05:26:18 GMT\nserver: uvicorn\ncontent-length: 84\ncontent-type: text/html; charset=utf-8\n\n<html><body><h1>Hello <script>alert('pentesa_xss_8421')</script>!</h1></b"
+        }
+      ]
+    },
+    {
+      "title": "Missing Security Headers (CSP, XFO, XCTO)",
+      "cwe_id": "CWE-693",
+      "curl_cmd": "curl -i -s 'http://bench-dvwa'",
+      "target_url": "http://bench-dvwa",
+      "instance_count_in_prod": 3,
+      "in_scope": true,
+      "non_destructive": true,
+      "stored_status": 200,
+      "replays": [
+        {
+          "replay_num": 1,
+          "exit_code": 0,
+          "live_status": 302,
+          "stored_status": 200,
+          "status_matches_stored": false,
+          "vuln_signature_reproduced": true,
+          "response_length": 410,
+          "response_preview": "HTTP/1.1 302 Found\nDate: Mon, 23 Nov 2026 05:26:19 GMT\nServer: Apache/2.4.25 (Debian)\nSet-Cookie: PHPSESSID=po341g6jqi5l6p7mqe67hf7191; path=/\nExpires: Thu, 19 Nov 1981 08:52:00 GMT\nCache-Control: no-"
+        },
+        {
+          "replay_num": 2,
+          "exit_code": 0,
+          "live_status": 302,
+          "stored_status": 200,
+          "status_matches_stored": false,
+          "vuln_signature_reproduced": true,
+          "response_length": 410,
+          "response_preview": "HTTP/1.1 302 Found\nDate: Mon, 23 Nov 2026 05:26:20 GMT\nServer: Apache/2.4.25 (Debian)\nSet-Cookie: PHPSESSID=a9g50d4va6uu6mg3cpqjrn05r5; path=/\nExpires: Thu, 19 Nov 1981 08:52:00 GMT\nCache-Control: no-"
+        },
+        {
+          "replay_num": 3,
+          "exit_code": 0,
+          "live_status": 302,
+          "stored_status": 200,
+          "status_matches_stored": false,
+          "vuln_signature_reproduced": true,
+          "response_length": 410,
+          "response_preview": "HTTP/1.1 302 Found\nDate: Mon, 23 Nov 2026 05:26:20 GMT\nServer: Apache/2.4.25 (Debian)\nSet-Cookie: PHPSESSID=cn6m5ijim4jtp8i201m52qevq2; path=/\nExpires: Thu, 19 Nov 1981 08:52:00 GMT\nCache-Control: no-"
+        }
+      ]
+    }
+  ]
+}

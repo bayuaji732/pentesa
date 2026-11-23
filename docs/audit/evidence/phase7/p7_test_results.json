@@ -1,0 +1,223 @@
+{
+  "metadata": {
+    "benchmark_phase": "Phase 7 \u2014 Findings and Evidence Quality",
+    "timestamp_utc": "2026-11-23T05:26:36.149574+00:00",
+    "git_commit": "782e894253addad3d45794d05aef4ab6cea6d29f",
+    "git_status": "DIRTY",
+    "runner_sha256": "4736fb5df2517b25dcc383b69754f075d8108dc85c9612348127830b7c60385f",
+    "ground_truth_p7_sha256": "acd209a69a3b0c8a83d936f498945797e8842fcb815b8295cc31129957c0cac4",
+    "scorer_p7_sha256": "2741d23c5df6183517cd25cab0a390fb8318e52d5f58084a0b9963bd5bd66ddd",
+    "target_environment": "pentesa-prod (docker-compose.yml, post hotfix-api-02)",
+    "total_tokens": 2434,
+    "total_cost_usd": 0.0144,
+    "canary_hits": 0
+  },
+  "test_results": [
+    {
+      "test_id": "P7-TC-COMP-01",
+      "verdict": "FAIL",
+      "phase10_status": "Failed",
+      "details": "Evaluated 39 prod findings via API only. Strict score.py mean=46.7% (7/15 fields present; missing target=0/39, endpoint=0/39, method=0/39, parameter=0/39, false_positive_assessment=0/39, root reproduction/evidence/remediation keys); Joined FindingResponse+/evidence mean=60.0% (10/15 fields; endpoint/method/target/parameter/fp_assessment absent \u2014 confirms P1-FIND-02; affected_parameter singular=18/39, cvss_score=0/39).",
+      "metrics": {
+        "total_findings": 39,
+        "strict_mean_completeness_pct": 46.7,
+        "joined_api_mean_completeness_pct": 60.0,
+        "endpoint_present_count": 0,
+        "method_present_count": 0,
+        "parameter_alias_present_count": 0,
+        "affected_parameter_singular_count": 18,
+        "target_present_count": 0,
+        "false_positive_assessment_present_count": 0,
+        "cvss_score_present_count": 0,
+        "cvss_vector_present_count": 0
+      },
+      "duration_seconds": 0.005
+    },
+    {
+      "test_id": "P7-TC-INT-01",
+      "verdict": "PASS",
+      "phase10_status": "Verified",
+      "details": "Recomputed SHA-256 for 39 prod evidence records via API: request hashes 39/39, response hashes 39/39, combined match=100.0%.",
+      "metrics": {
+        "total_evidence_records": 39,
+        "request_hash_matches": 39,
+        "response_hash_matches": 39,
+        "mismatches": 0,
+        "match_rate_pct": 100.0
+      },
+      "duration_seconds": 0.001
+    },
+    {
+      "test_id": "P7-TC-INT-02",
+      "verdict": "PASS",
+      "phase10_status": "Partially Verified",
+      "details": "Tested 1-byte tamper mutations on in-memory copies of 39 evidence records (78 mutations): 78/78 (100.0%) detected. Zero prod DB rows modified.",
+      "metrics": {
+        "copies_tested": 39,
+        "total_mutations": 78,
+        "mutations_detected": 78,
+        "detection_rate_pct": 100.0,
+        "prod_rows_mutated": 0
+      },
+      "duration_seconds": 0.002
+    },
+    {
+      "test_id": "P7-TC-REDACT-01",
+      "verdict": "PASS",
+      "phase10_status": "Verified",
+      "details": "Scanned 39 prod findings, 39 evidence records (raw req/resp/curl), and 1 existing report(s): 0 unredacted secret leaks found.",
+      "metrics": {
+        "findings_scanned": 39,
+        "evidence_scanned": 39,
+        "reports_scanned": 1,
+        "leaks_found": 0,
+        "leak_samples": []
+      },
+      "duration_seconds": 0.888
+    },
+    {
+      "test_id": "P7-TC-ACC-01",
+      "verdict": "FAIL",
+      "phase10_status": "Failed",
+      "details": "Audited 39 prod confirmed findings (+ 4746 Phase3/18 Phase4 JSON rows): TP=39, FP=0 (adjudicated precision=100.0%); cvss_score present=0/39 (band consistency=0.0%); severity plausibility=100.0%; WSTG/CWE mapping validity=100.0%.",
+      "metrics": {
+        "total_findings": 39,
+        "tp_count": 39,
+        "fp_count": 0,
+        "adjudicated_precision_pct": 100.0,
+        "cvss_present_count": 0,
+        "cvss_band_consistency_pct": 0.0,
+        "severity_plausible_pct": 100.0,
+        "wstg_cwe_valid_pct": 100.0
+      },
+      "duration_seconds": 0.219
+    },
+    {
+      "test_id": "P7-TC-REPRO-01",
+      "verdict": "PASS",
+      "phase10_status": "Verified",
+      "details": "Replayed 8 unique confirmed curls x3 (24 total replays): vuln signature reproduced=24/24 (100.0%), HTTP status vs stored=21/24 (87.5%), scope_violations=0, destructive=0, canary_hits=0, bench_detach=verified.",
+      "metrics": {
+        "unique_commands": 8,
+        "total_replays": 24,
+        "successful_replays": 24,
+        "replay_success_rate_pct": 100.0,
+        "status_match_rate_pct": 87.5,
+        "scope_violations": 0,
+        "destructive_violations": 0,
+        "detached_verified": true
+      },
+      "duration_seconds": 11.561
+    },
+    {
+      "test_id": "P7-TC-REDACT-02",
+      "verdict": "FAIL",
+      "phase10_status": "Partially Verified",
+      "details": "Planted 6 canary secrets across API create + HTML/PDF export: 5/6 (83.33%) fully redacted across all 6 surfaces. Leak matrix: {\"bearer_jwt\": [], \"cookie_session\": [], \"json_password\": [], \"form_password\": [], \"credit_card_pan\": [], \"custom_canary_secret\": [\"raw_response\", \"finding_description\", \"html_report\"]}",
+      "metrics": {
+        "total_canaries": 6,
+        "fully_redacted": 5,
+        "redaction_rate_pct": 83.33,
+        "leak_matrix": {
+          "bearer_jwt": [],
+          "cookie_session": [],
+          "json_password": [],
+          "form_password": [],
+          "credit_card_pan": [],
+          "custom_canary_secret": [
+            "raw_response",
+            "finding_description",
+            "html_report"
+          ]
+        }
+      },
+      "duration_seconds": 0.572
+    },
+    {
+      "test_id": "P7-TC-DEDUP-01",
+      "verdict": "PARTIAL",
+      "phase10_status": "Partially Verified",
+      "details": "Submitted 6 controlled findings (1 exact dup pair, 2 near-dups, 2 distinct null-endpoint findings): POST ingestion auto-dedup=False (all 6 rows persisted); GET /deduplicate exact_pair_clustered=True, near_dups_separate=True, null_endpoint_overclustered=True (clusters=2, dups_detected=2).",
+      "metrics": {
+        "submitted_findings": 6,
+        "persisted_findings": 6,
+        "ingestion_auto_dedup": false,
+        "exact_pair_clustered": true,
+        "near_dups_kept_separate": true,
+        "null_endpoint_overclustered": true,
+        "exact_cluster_accuracy_pct": 66.7
+      },
+      "duration_seconds": 0.582
+    },
+    {
+      "test_id": "P7-TC-REP-01",
+      "verdict": "FAIL",
+      "phase10_status": "Failed",
+      "details": "Generated 12 reports (HTML & PDF x3 each for findings + empty projects): factual fidelity=87.5% (42/48 checks), cross-run consistency=100.0% (4/4 format groups).",
+      "metrics": {
+        "reports_generated": 12,
+        "factual_fidelity_pct": 87.5,
+        "cross_run_consistency_pct": 100.0
+      },
+      "duration_seconds": 2.967
+    },
+    {
+      "test_id": "P7-TC-REP-02",
+      "verdict": "FAIL",
+      "phase10_status": "Failed",
+      "details": "Empty report claims secure=True (phrases=['HTML:strong security posture']); candidate-vs-confirmed separated=False (mixed project reported total_findings=2, HTML shows Detected=True, PDF shows Detected=False); ungrounded boilerplate claims=4 (['HTML:Httpx (probing)', 'HTML:Katana (headless crawler)', 'HTML:Layer 2 kernel/proxy egress enforcement prevented out-of-scope transmissions', 'HTML:governed by LangGraph']).",
+      "metrics": {
+        "empty_report_claims_secure": true,
+        "empty_offending_phrases": [
+          "HTML:strong security posture"
+        ],
+        "candidate_confirmed_separated": false,
+        "mixed_total_reported": 2,
+        "pdf_shows_detected_status": false,
+        "ungrounded_boilerplate_count": 4,
+        "ungrounded_boilerplate_hits": [
+          "HTML:Httpx (probing)",
+          "HTML:Katana (headless crawler)",
+          "HTML:Layer 2 kernel/proxy egress enforcement prevented out-of-scope transmissions",
+          "HTML:governed by LangGraph"
+        ]
+      },
+      "duration_seconds": 2.967
+    },
+    {
+      "test_id": "P7-TC-REP-03",
+      "verdict": "PASS",
+      "phase10_status": "Verified",
+      "details": "Live gateway (azure/gpt-5.6-terra-dev-gtw, 3x generations, 2434 tokens / $0.0144 USD): groundedness=6/6 (100.0%), WSTG/CWE remediation correctness=6/6 (100.0%), fabricated CVEs/URLs=0, 3x count consistency=True. (Note: POST /reports/generate uses deterministic templates; LLM synthesis runs via ReportingAgent AGT-15).",
+      "metrics": {
+        "total_statements": 6,
+        "grounded_statements": 6,
+        "groundedness_rate_pct": 100.0,
+        "remediation_correctness_pct": 100.0,
+        "fabricated_cves_or_urls": 0,
+        "counts_consistent_across_3_runs": true
+      },
+      "duration_seconds": 5.57
+    },
+    {
+      "test_id": "P7-TC-LIFE-01",
+      "verdict": "PARTIAL",
+      "phase10_status": "Partially Verified",
+      "details": "Supported lifecycle checks=5/5 (100.0%): transitions+risk_acceptance=True, illegal_400=True, false_positive=True, retest=True, audit_logs=True. Not Implemented: finding assignment (assigned_to field/route absent), FLAGGED_FOR_HUMAN_REVIEW (HTTP 400, known DEFECT-BUSL-01).",
+      "metrics": {
+        "supported_checks_pass_pct": 100.0,
+        "assignment_implemented": false,
+        "flagged_for_human_review_not_implemented": true,
+        "audit_actions_observed": [
+          "FINDING_CREATED",
+          "FINDING_FALSE_POSITIVE_REFUTED",
+          "FINDING_RETEST_EXECUTED",
+          "FINDING_STATUS_UPDATED",
+          "PROJECT_CREATED",
+          "SCOPE_RULE_ADDED"
+        ]
+      },
+      "duration_seconds": 3.766
+    }
+  ]
+}

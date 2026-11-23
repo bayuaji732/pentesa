@@ -1,0 +1,157 @@
+{
+  "generated_reports_count": 12,
+  "factual_fidelity_pct": 87.5,
+  "cross_run_consistency_pct": 100.0,
+  "empty_report_claims_secure": true,
+  "empty_offending_phrases": [
+    "HTML:strong security posture"
+  ],
+  "ungrounded_boilerplate_hits": [
+    "HTML:Httpx (probing)",
+    "HTML:Katana (headless crawler)",
+    "HTML:Layer 2 kernel/proxy egress enforcement prevented out-of-scope transmissions",
+    "HTML:governed by LangGraph"
+  ],
+  "mixed_status_test": {
+    "seeded_confirmed": 1,
+    "seeded_detected_candidate": 1,
+    "report_metadata_total_findings": 2,
+    "html_shows_detected_status": true,
+    "pdf_shows_detected_status": false,
+    "candidate_confirmed_separated": false
+  },
+  "reports": [
+    {
+      "label": "findings_project",
+      "format": "HTML",
+      "run": 1,
+      "report_id": "016e8d7a-bb9d-4717-a717-a1d15db7207e",
+      "bytes": 27050,
+      "verify_ok": true,
+      "titles_ok": true,
+      "cwes_ok": true,
+      "counts_ok": true
+    },
+    {
+      "label": "findings_project",
+      "format": "HTML",
+      "run": 2,
+      "report_id": "e27d3adb-fa36-49f4-a7cc-32c7ddb45928",
+      "bytes": 27050,
+      "verify_ok": true,
+      "titles_ok": true,
+      "cwes_ok": true,
+      "counts_ok": true
+    },
+    {
+      "label": "findings_project",
+      "format": "HTML",
+      "run": 3,
+      "report_id": "d23da855-9ba2-4924-9eb1-785ede1f7170",
+      "bytes": 27050,
+      "verify_ok": true,
+      "titles_ok": true,
+      "cwes_ok": true,
+      "counts_ok": true
+    },
+    {
+      "label": "findings_project",
+      "format": "PDF",
+      "run": 1,
+      "report_id": "88feea1c-ecde-4dd9-a6ec-c0e9107284d8",
+      "bytes": 7871,
+      "verify_ok": true,
+      "titles_ok": false,
+      "cwes_ok": false,
+      "counts_ok": true
+    },
+    {
+      "label": "findings_project",
+      "format": "PDF",
+      "run": 2,
+      "report_id": "20d5fbef-eea2-4e87-b106-3483756f9fbf",
+      "bytes": 7871,
+      "verify_ok": true,
+      "titles_ok": false,
+      "cwes_ok": false,
+      "counts_ok": true
+    },
+    {
+      "label": "findings_project",
+      "format": "PDF",
+      "run": 3,
+      "report_id": "e3567b8d-26d8-43db-851a-59f5ad55b81e",
+      "bytes": 7871,
+      "verify_ok": true,
+      "titles_ok": false,
+      "cwes_ok": false,
+      "counts_ok": true
+    },
+    {
+      "label": "empty_project",
+      "format": "HTML",
+      "run": 1,
+      "report_id": "ee23fa50-2fba-4b00-ac85-95c77f8f5b12",
+      "bytes": 22260,
+      "verify_ok": true,
+      "titles_ok": true,
+      "cwes_ok": true,
+      "counts_ok": true
+    },
+    {
+      "label": "empty_project",
+      "format": "HTML",
+      "run": 2,
+      "report_id": "151e5530-d364-4a5e-86c0-7eafe147e252",
+      "bytes": 22260,
+      "verify_ok": true,
+      "titles_ok": true,
+      "cwes_ok": true,
+      "counts_ok": true
+    },
+    {
+      "label": "empty_project",
+      "format": "HTML",
+      "run": 3,
+      "report_id": "edc014db-2a1e-44e7-8217-1a535d528244",
+      "bytes": 22260,
+      "verify_ok": true,
+      "titles_ok": true,
+      "cwes_ok": true,
+      "counts_ok": true
+    },
+    {
+      "label": "empty_project",
+      "format": "PDF",
+      "run": 1,
+      "report_id": "04e9b9b3-9c9a-43d6-bce0-545261443016",
+      "bytes": 5837,
+      "verify_ok": true,
+      "titles_ok": true,
+      "cwes_ok": true,
+      "counts_ok": true
+    },
+    {
+      "label": "empty_project",
+      "format": "PDF",
+      "run": 2,
+      "report_id": "fb782e85-6812-4fe2-8307-b5cdf729585f",
+      "bytes": 5837,
+      "verify_ok": true,
+      "titles_ok": true,
+      "cwes_ok": true,
+      "counts_ok": true
+    },
+    {
+      "label": "empty_project",
+      "format": "PDF",
+      "run": 3,
+      "report_id": "75070a1b-6fd1-46a9-abb2-0d1a5736434b",
+      "bytes": 5837,
+      "verify_ok": true,
+      "titles_ok": true,
+      "cwes_ok": true,
+      "counts_ok": true
+    }
+  ]
+}

@@ -1,0 +1,106 @@
+{
+  "model": "azure/gpt-5.6-terra-dev-gtw",
+  "project_name": "Phase3-Bench-pentesa-bench-seeded-Run1",
+  "db_confirmed_findings_count": 2,
+  "total_tokens": 2434,
+  "total_cost_usd": 0.0144,
+  "groundedness_rate_pct": 100.0,
+  "remediation_correctness_pct": 100.0,
+  "fabricated_cves_or_urls": 0,
+  "counts_consistent_across_3_runs": true,
+  "runs": [
+    {
+      "generation": 1,
+      "tokens": 790,
+      "cost_usd": 0.0046,
+      "reported_finding_count": 2,
+      "cves_found": [],
+      "bad_urls_found": [],
+      "statements": [
+        {
+          "statement": "Finding c03b79af-b606-4868-8e76-3b54bcd1b67c (SQL Injection in 'q' Parameter (/sqli/search)) is a Critical confirmed error-based SQL injection vulnerability in the q parameter that returns database syntax details or HTTP 500 responses.",
+          "grounded": true,
+          "unsupported_terms": []
+        },
+        {
+          "statement": "Finding 585303cd-39a7-4fe3-91b4-798a162d420a (Reflected Cross-Site Scripting (XSS) in 'name' Parameter (/ssti/render)) is a Medium confirmed reflected XSS vulnerability where the name parameter reflects unescaped executable script markup into a text/html response.",
+          "grounded": true,
+          "unsupported_terms": []
+        }
+      ],
+      "remediations": [
+        {
+          "cwe_id": "CWE-89",
+          "correct": true
+        },
+        {
+          "cwe_id": "CWE-79",
+          "correct": true
+        }
+      ],
+      "raw_response": "{\"executive_summary\":[\"Finding c03b79af-b606-4868-8e76-3b54bcd1b67c (SQL Injection in 'q' Parameter (/sqli/search)) is a Critical confirmed error-based SQL injection vulnerability in the q parameter that returns database syntax details or HTTP 500 responses.\",\"Finding 585303cd-39a7-4fe3-91b4-798a162d420a (Reflected Cross-Site Scripting (XSS) in 'name' Parameter (/ssti/render)) is a Medium confirmed reflected XSS vulnerability where the name parameter reflects unescaped executable script markup into a text/html response.\"],\"finding_count\":2,\"severity_counts\":{\"Critical\":1,\"Medium\":1},\"remediations\":[{\"finding_id\":\"c03b79af-b606-4868-8e76-3b54bcd1b67c\",\"cwe_id\":\"CWE-89\",\"wstg_id\":\"WSTG-INPV-05\",\"guidance\":\"Use parameterized queries or prepared statements for all q parameter input, avoid constructing SQL statements through string concatenation, validate input according to expected search syntax, and return generic error responses without database syntax details.\"},{\"finding_id\":\"585303cd-39a7-4fe3-91b4-798a162d420a\",\"cwe_id\":\"CWE-79\",\"wstg_id\":\"WSTG-INPV-01\",\"guidance\":\"Apply context-appropriate HTML output encoding to the name parameter before rendering it in the text/html response, avoid inserting untrusted input as executable markup, and validate input according to expected name values.\"}]}"
+    },
+    {
+      "generation": 2,
+      "tokens": 816,
+      "cost_usd": 0.00486,
+      "reported_finding_count": 2,
+      "cves_found": [],
+      "bad_urls_found": [],
+      "statements": [
+        {
+          "statement": "Finding 585303cd-39a7-4fe3-91b4-798a162d420a, Reflected Cross-Site Scripting (XSS) in 'name' Parameter (/ssti/render), is confirmed with Medium severity: the name query parameter reflects unescaped executable <script> HTML markup into a text/html response DOM.",
+          "grounded": true,
+          "unsupported_terms": []
+        },
+        {
+          "statement": "Finding c03b79af-b606-4868-8e76-3b54bcd1b67c, SQL Injection in 'q' Parameter (/sqli/search), is confirmed with Critical severity: the q parameter causes error-based SQL injection behavior, exposing database syntax details or producing HTTP 500 responses.",
+          "grounded": true,
+          "unsupported_terms": []
+        }
+      ],
+      "remediations": [
+        {
+          "cwe_id": "CWE-79",
+          "correct": true
+        },
+        {
+          "cwe_id": "CWE-89",
+          "correct": true
+        }
+      ],
+      "raw_response": "{\"executive_summary\":[\"Finding 585303cd-39a7-4fe3-91b4-798a162d420a, Reflected Cross-Site Scripting (XSS) in 'name' Parameter (/ssti/render), is confirmed with Medium severity: the name query parameter reflects unescaped executable <script> HTML markup into a text/html response DOM.\",\"Finding c03b79af-b606-4868-8e76-3b54bcd1b67c, SQL Injection in 'q' Parameter (/sqli/search), is confirmed with Critical severity: the q parameter causes error-based SQL injection behavior, exposing database syntax details or producing HTTP 500 responses.\"],\"finding_count\":2,\"severity_counts\":{\"Critical\":1,\"High\":0,\"Medium\":1,\"Low\":0,\"Informational\":0},\"remediations\":[{\"finding_id\":\"585303cd-39a7-4fe3-91b4-798a162d420a\",\"cwe_id\":\"CWE-79\",\"wstg_id\":\"WSTG-INPV-01\",\"guidance\":\"Apply context-appropriate HTML output encoding to the name parameter before rendering it in HTML responses. Treat request input as untrusted, avoid inserting it into executable HTML contexts, and implement an allowlist-based validation strategy where feasible.\"},{\"finding_id\":\"c03b79af-b606-4868-8e76-3b54bcd1b67c\",\"cwe_id\":\"CWE-89\",\"wstg_id\":\"WSTG-INPV-05\",\"guidance\":\"Replace dynamic SQL construction using the q parameter with parameterized queries or prepared statements. Enforce server-side input validation, avoid returning database syntax details to clients, and implement safe error handling that returns generic error responses.\"}]}"
+    },
+    {
+      "generation": 3,
+      "tokens": 816,
+      "cost_usd": 0.00486,
+      "reported_finding_count": 2,
+      "cves_found": [],
+      "bad_urls_found": [],
+      "statements": [
+        {
+          "statement": "Finding 585303cd-39a7-4fe3-91b4-798a162d420a, Reflected Cross-Site Scripting (XSS) in 'name' Parameter (/ssti/render), is confirmed with Medium severity: the name query parameter reflects unescaped executable <script> HTML markup into a text/html response DOM.",
+          "grounded": true,
+          "unsupported_terms": []
+        },
+        {
+          "statement": "Finding c03b79af-b606-4868-8e76-3b54bcd1b67c, SQL Injection in 'q' Parameter (/sqli/search), is confirmed with Critical severity: the q parameter causes error-based SQL injection behavior, exposing database syntax details or producing HTTP 500 responses.",
+          "grounded": true,
+          "unsupported_terms": []
+        }
+      ],
+      "remediations": [
+        {
+          "cwe_id": "CWE-79",
+          "correct": true
+        },
+        {
+          "cwe_id": "CWE-89",
+          "correct": true
+        }
+      ],
+      "raw_response": "{\"executive_summary\":[\"Finding 585303cd-39a7-4fe3-91b4-798a162d420a, Reflected Cross-Site Scripting (XSS) in 'name' Parameter (/ssti/render), is confirmed with Medium severity: the name query parameter reflects unescaped executable <script> HTML markup into a text/html response DOM.\",\"Finding c03b79af-b606-4868-8e76-3b54bcd1b67c, SQL Injection in 'q' Parameter (/sqli/search), is confirmed with Critical severity: the q parameter causes error-based SQL injection behavior, exposing database syntax details or producing HTTP 500 responses.\"],\"finding_count\":2,\"severity_counts\":{\"Critical\":1,\"High\":0,\"Medium\":1,\"Low\":0,\"Informational\":0},\"remediations\":[{\"finding_id\":\"585303cd-39a7-4fe3-91b4-798a162d420a\",\"cwe_id\":\"CWE-79\",\"wstg_id\":\"WSTG-INPV-01\",\"guidance\":\"Apply context-appropriate HTML output encoding to the name parameter before rendering it in HTML responses. Treat request input as untrusted, avoid inserting it into executable HTML contexts, and implement an allowlist-based validation strategy where feasible.\"},{\"finding_id\":\"c03b79af-b606-4868-8e76-3b54bcd1b67c\",\"cwe_id\":\"CWE-89\",\"wstg_id\":\"WSTG-INPV-05\",\"guidance\":\"Replace dynamic SQL construction using the q parameter with parameterized queries or prepared statements. Enforce server-side input validation, avoid returning database syntax details to clients, and implement safe error handling that returns generic error responses.\"}]}"
+    }
+  ]
+}

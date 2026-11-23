@@ -50,6 +50,13 @@
 | **P2-TEST-01** | **P2** | Test Harness | `benchmark/p6b/test_runner_p6b.py` | Prompt Injection Battery Uses Model-Level Direct Gateway Calls + Keyword Judge Instead of State-Based Workflow Judge | Open (Test Improvement) | Phase 9 Test Harness (Assert no tool call, no scope change, no DB state change) |
 | **P3-TEST-01** | **P3** | Test Harness | `benchmark/p6b/test_runner_p6b.py` | RBAC Matrix Uses Placeholder UUIDs/Empty Bodies Causing 124/215 Expected-Allow Cells to Return 404/422 | Open (Test Improvement) | Phase 9 Test Harness (Seed valid object IDs and schema-valid bodies per route) |
 | **P3-INFRA-02** | **P3** | Infrastructure | `docker-compose.yml` / `docker-compose.sec.yml` (retired) | Hardening Note: Keep DB/Redis Unpublished in Prod; Any Harness DB Port (`127.0.0.1:5433`) Must Stay Loopback-Only | Open (Hardening Note) | Operational Policy / Compose Review |
+| **DEFECT-FIND-03** | **P1** | Findings / Scoring | `services/evidence_engine/finding_service.py`, `services/execution_engine/runners.py` | `cvss_score` and `cvss_vector` Are `NULL` on 39/39 (100%) Production Confirmed Findings | Open (Documented) | Phase 9 (Deterministic CVSS v3.1 Scoring & Validation) |
+| **DEFECT-REP-01** | **P1** | Reporting | `services/reporting_engine/context_builder.py`, `renderer.py` | Empty Reports Claim `"STRONG SECURITY POSTURE"` & Unconfirmed Candidates Conflated with Confirmed Findings | Open (Documented) | Phase 9 (Safe Empty Posture & Confirmed-Only / Separated Counts) |
+| **DEFECT-REP-02** | **P2** | Reporting | `services/reporting_engine/templates/ptes_standard.html` | PTES HTML Report Hardcodes 4 Ungrounded Capability Claims (Layer-2 Proxy, Katana, Httpx, LangGraph) | Open (Documented) | Phase 9 (Truthful Runtime Tooling & Architecture Disclosure) |
+| **DEFECT-REDACT-01** | **P2** | Privacy / Redaction | `services/evidence_engine/finding_service.py`, `redactor.py` | Custom Project Secrets Not Passed to Redactor & Finding Text Fields Unscrubbed (`description`/`title`) | Open (Documented) | Phase 9 (AuthProfile Custom Secret Redaction & Text Field Scrubbing) |
+| **DEFECT-DEDUP-01** | **P2** | Deduplication | `services/evidence_engine/finding_service.py` | No Ingestion-Time Deduplication & `endpoint_id=None` Findings Over-Clustered on `"global|ANY"` | Open (Documented) | Phase 9 (Ingestion Dedup Key + Raw-Request URL Fallback in Signature) |
+| **DEFECT-LIFE-01** | **P3** | Findings / Lifecycle | `database/models/finding.py`, `apps/api/routers/findings.py` | Finding Assignment (`assigned_to` Field / Route) Not Implemented | Open (Not Implemented) | Phase 9 (Add `assigned_to` FK & Assignment Endpoint) |
+| **DEFECT-REPRO-01** | **P3** | Evidence / cURL | `services/evidence_engine/curl_generator.py` | Generated `reproduction_curl` Omits Redirect Flag (`-L`) When Target Root Redirects (`bench-dvwa` 302 vs 200) | Open (Documented) | Phase 9 (Record Exact Final Redirected URL in Evidence & cURL) |
 
 ---
 
@@ -395,6 +402,66 @@
 - **`P2-TEST-01` (P2 Test Improvement — State-Based Injection Judge):** Upgrade `benchmark/p6b/test_runner_p6b.py::test_prompt_injection_battery` from direct gateway calls + keyword judge (model-level `Partially Verified`) to a real workflow-level test with a state-based judge asserting: (1) zero unauthorized tool calls logged/executed, (2) zero scope rule mutations, and (3) zero unauthorized DB state mutations.
 - **`P3-TEST-01` (P3 Test Improvement — RBAC Matrix Valid Inputs):** Upgrade `benchmark/p6b/test_runner_p6b.py::test_rbac_matrix` to pass valid seeded object UUIDs and schema-valid request bodies per route so the 124 expected-allow cells currently returning 404/422 exercise real post-validation authorization logic.
 - **`P3-INFRA-02` (P3 Hardening Note — DB/Redis Port Publishing):** Production `docker-compose.yml` publishes zero host ports for `pentesa-db` (`5432/tcp: null`) and `pentesa-redis` (`6379/tcp: null`). The `127.0.0.1:5433` mapping existed only in retired `docker-compose.sec.yml`. Any future harness/dev overlay exposing DB/Redis ports must remain strictly loopback-only (`127.0.0.1`) and never be merged into `docker-compose.yml`.
+
+### 3.28 DEFECT-FIND-03 / P1: `cvss_score` and `cvss_vector` Are `NULL` on 100% of Automated Findings
+- **Components:** `services/evidence_engine/finding_service.py`, `services/execution_engine/runners.py`, `agents/wstg/wstg_agent.py`, `agents/validation/validation_agent.py`
+- **Severity:** **P1 (High — Core Findings Quality & PTES Scoring Defect)**
+- **Problem:** Across all 39 confirmed production findings evaluated in Phase 7 (`P7-TC-ACC-01`, `P7-TC-COMP-01`), **0/39 (0.0%)** have `cvss_score` or `cvss_vector` populated (`NULL`), resulting in `0.0%` CVSS-to-severity band consistency and `"Score: None"` / `"N/A"` rendered in exported PTES reports.
+- **Root Cause:** Automated runners and `FindingService.create_finding()` accept `cvss_score=None` and `cvss_vector=None` without invoking a deterministic CVSS v3.1 calculator or validating that `cvss_score` matches the declared severity band.
+- **Evidence:** `docs/audit/evidence/phase7/score_p7.txt`, `docs/audit/evidence/phase7/p7_accuracy_audit.json`, `docs/audit/evidence/phase7/p7_completeness_audit.json`.
+- **Recommended Fix:** Add deterministic default CVSS v3.1 base vector & score computation by CWE/WSTG class in `FindingService.create_finding()` when unset, and validate `cvss_score` lies within the severity band (`Critical: 9.0–10.0`, `High: 7.0–8.9`, `Medium: 4.0–6.9`, `Low: 0.1–3.9`, `Informational: 0.0`).
+- **Regression Test:** `tests/unit/test_finding_cvss_validation.py` asserting non-null `cvss_score`/`cvss_vector` and band consistency on created findings.
+- **Acceptance Criteria:** 100% of confirmed findings return valid CVSS v3.1 score & vector consistent with severity in `FindingResponse` and reports.
+
+### 3.29 DEFECT-REP-01 / P1: Empty Report Claims `"STRONG SECURITY POSTURE"` & Unconfirmed Candidates Conflated with Confirmed Findings
+- **Components:** `services/reporting_engine/context_builder.py:102-192`, `services/reporting_engine/renderer.py:210-241`
+- **Severity:** **P1 (High — Misleading Security Deliverable & Integrity Breach)**
+- **Problem:** (1) On a zero-finding project (even with 0 endpoints discovered or 0 tests executed), `context_builder.py:191` emits `"The assessment revealed a STRONG SECURITY POSTURE with zero confirmed high-severity vulnerabilities across the tested target scope"`, falsely claiming the target is secure. (2) `context_builder.py:109` filters only `Finding.status != "False Positive"`, counting unconfirmed `Detected`/`Triaged` candidates directly inside `total_findings` and `risk_summary`, while `renderer.py` (PDF) omits the `Status` column completely.
+- **Root Cause:** Hardcoded optimistic `else:` narrative in `context_builder.py:190-191`, and lack of status-based separation (`Confirmed` vs `Candidate`/`Needs Manual Review`) in `ReportContext` and PDF table columns.
+- **Evidence:** `docs/audit/evidence/phase7/score_p7.txt` (`P7-TC-REP-02`), `docs/audit/evidence/phase7/p7_report_quality_audit.json` (`empty_report_claims_secure=True`, `mixed_total_reported=2`, `pdf_shows_detected_status=False`).
+- **Recommended Fix:** Replace zero-finding text with neutral scope-and-coverage-qualified wording (stating zero confirmed findings were recorded within the executed coverage percentage and noting untested scope); restrict executive risk counts to `Confirmed` findings and render any `Detected`/`Needs Manual Review` items in a clearly separated `"Unconfirmed / Pending Review"` table across both HTML and PDF.
+- **Regression Test:** `tests/unit/test_reporting_safety_and_status.py` asserting zero-finding reports never match security-claim phrases and mixed-status projects separate confirmed vs candidate counts in both HTML and PDF.
+- **Acceptance Criteria:** `P7-TC-REP-02` passes with `empty_report_claims_secure=False` and `candidate_confirmed_separated=True`.
+
+### 3.30 DEFECT-REP-02 / P2: Ungrounded Capability Boilerplate Claims in PTES HTML Report Template
+- **Components:** `services/reporting_engine/templates/ptes_standard.html:334,354,355`
+- **Severity:** **P2 (Medium — Factual Accuracy of Client Deliverables)**
+- **Problem:** Every generated HTML report hardcodes 4 false platform claims: `"Layer 2 kernel/proxy egress enforcement prevented out-of-scope transmissions"` (`NI-03` absent), `"Katana (headless crawler)"`, `"Httpx (probing)"` (`NI-04` absent), and `"governed by LangGraph"` (`NI-01` absent).
+- **Root Cause:** Static aspirational prose from early design docs left in `ptes_standard.html` instead of binding actual executed tools and runtime architecture from `ReportContext`.
+- **Evidence:** `docs/audit/evidence/phase7/p7_report_quality_audit.json` (`ungrounded_boilerplate_count=4`).
+- **Recommended Fix:** Populate Methodology & Scope sections dynamically from `ReportContext` reflecting actual tools executed (`nuclei`, `ffuf`, Python `httpx` crawler/prober, Layer-1 scope engine, sequential `WorkflowSupervisor`).
+- **Regression Test:** Assert generated HTML/PDF contains zero mentions of unimplemented components unless actually executed.
+- **Acceptance Criteria:** `ungrounded_boilerplate_count == 0` in `P7-TC-REP-02`.
+
+### 3.31 DEFECT-REDACT-01 / P2: Custom Project Secrets Not Passed to Redactor & Finding Text Fields Unscrubbed
+- **Components:** `services/evidence_engine/finding_service.py:478-518`, `services/evidence_engine/redactor.py`
+- **Severity:** **P2 (Medium — Incomplete Credential / Canary Redaction)**
+- **Problem:** While standard regex patterns redacted 5/5 planted secrets (Bearer JWT, Cookie session, JSON password, form password, Luhn PAN), a planted custom canary secret (`PENTESA_P7_CANARY_SECRET_9f8e7d6c`) leaked unredacted in `raw_response`, `finding_description`, and exported `html_report` (`83.33%` overall).
+- **Root Cause:** `FindingService.create_finding()` calls `redact_raw_stream(payload.raw_request)` without passing decrypted project `AuthProfile` secret values as `custom_secrets`, and never runs `redact_raw_stream()` on `finding.title`, `finding.description`, or `finding.remediation_guidance`.
+- **Evidence:** `docs/audit/evidence/phase7/score_p7.txt` (`P7-TC-REDACT-02`), `docs/audit/evidence/phase7/p7_test_results.json`.
+- **Recommended Fix:** Query project `AuthProfile` secret values (decrypted in memory only) and pass as `custom_secrets` into `redact_raw_stream()` for `raw_request`, `raw_response`, `reproduction_curl`, AND finding narrative fields (`title`, `description`, `remediation_guidance`), plus apply a final redaction pass in `context_builder.py` before report rendering.
+- **Regression Test:** `tests/unit/test_canary_redaction_all_surfaces.py` verifying 0 leaks across evidence, finding fields, HTML, and PDF for both standard patterns and project `AuthProfile` custom secrets.
+- **Acceptance Criteria:** `canary_secret_redaction_rate_pct == 100.0%` in `P7-TC-REDACT-02`.
+
+### 3.32 DEFECT-DEDUP-01 / P2: No Ingestion-Time Deduplication & Null-Endpoint Over-Clustering on `"global|ANY"`
+- **Components:** `services/evidence_engine/finding_service.py:424-553, 899-936`
+- **Severity:** **P2 (Medium — Duplicate Bloat & Incorrect Clustering)**
+- **Problem:** (1) `POST /api/v1/projects/{id}/findings` inserts duplicate records unconditionally (`ingestion_auto_dedup=False`). (2) `GET /findings/deduplicate` falls back to `path="global", method="ANY"` whenever `finding.endpoint_id is None`, falsely clustering completely distinct findings (`/.env` and `/debug/vars`) with the same CWE as duplicates (`exact_cluster_accuracy=66.7%`).
+- **Root Cause:** `create_finding()` does not compute or check a deduplication signature before insertion, and `deduplicate_findings()` does not parse target path/method from `FindingEvidence.raw_request` or `title` when `endpoint_id` is `None`.
+- **Evidence:** `docs/audit/evidence/phase7/score_p7.txt` (`P7-TC-DEDUP-01`).
+- **Recommended Fix:** Extract normalized `(path, method)` from `Endpoint` or fallback `FindingEvidence.raw_request` (falling back to normalized title hash if neither exists instead of `"global|ANY"`), store `dedup_signature` on `Finding`, and optionally merge/increment `occurrence_count` on `create_finding()`.
+- **Regression Test:** `tests/unit/test_finding_dedup_null_endpoint.py` asserting distinct `endpoint_id=None` findings are never merged while exact duplicates cluster cleanly.
+- **Acceptance Criteria:** `exact_cluster_accuracy_pct == 100.0%` and `null_endpoint_overclustered == False`.
+
+### 3.33 DEFECT-LIFE-01 / P3 & DEFECT-REPRO-01 / P3: Missing Finding Assignment & cURL Redirect Omission
+- **`DEFECT-LIFE-01` (P3 — Finding Assignment Not Implemented):**
+  - **Components:** `database/models/finding.py`, `packages/schemas/finding.py`, `apps/api/routers/findings.py`
+  - **Problem & Root Cause:** No `assigned_to` FK or assignment API endpoint exists (`P7-TC-LIFE-01`).
+  - **Fix & Acceptance Criteria:** Add `assigned_to: Optional[UUID]` FK to `users.id` on `Finding`, expose on `FindingResponse`, and add `PATCH /api/v1/projects/{pid}/findings/{fid}/assign` with audit logging (`FINDING_ASSIGNED`). Regression test verifying assignment + audit entry.
+- **`DEFECT-REPRO-01` (P3 — cURL Redirect Omission on `bench-dvwa`):**
+  - **Components:** `services/evidence_engine/curl_generator.py`, `agents/wstg/wstg_agent.py`
+  - **Problem & Root Cause:** When `wstg_agent` checks a redirecting root URL (`http://bench-dvwa` -> 302 -> `/login.php` 200), stored `raw_response` captures HTTP 200 while generated `curl -i -s 'http://bench-dvwa'` omits `-L` (or the final URL), yielding HTTP 302 on replay (`21/24` = 87.5% status match in `P7-TC-REPRO-01`).
+  - **Fix & Acceptance Criteria:** Record the exact final in-scope URL in `raw_request` and `reproduction_curl` so replay HTTP status matches stored `raw_response` 100% (24/24) without requiring unsafe blind `-L` redirect following.
 
 
 

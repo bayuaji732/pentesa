@@ -1,7 +1,7 @@
 # Pentesa — Requirement-to-Implementation Traceability Matrix
 
-> **Document Identifier:** PENTESA-AUDIT-02-TRACEABILITY-V1.3  
-> **Audit Phase:** Phase 3 — Pentest Effectiveness Benchmark Conclusion  
+> **Document Identifier:** PENTESA-AUDIT-02-TRACEABILITY-V1.4  
+> **Audit Phase:** Phase 7 — Findings and Evidence Quality Conclusion  
 > **Auditors:** Independent Principal Software Architect, Senior AppSec Engineer, Senior Penetration Tester, Security QA Engineer  
 > **Date:** November 2026  
 > **Methodology:** Direct Source Code Inspection + Isolated Running-Stack Vulnerability Benchmarking  
@@ -97,10 +97,10 @@
 
 | Req ID | Requirement Description | Implementation Files | Status | Execution Evidence / Verification Notes |
 |---|---|---|---|---|
-| **FR-VV-01** | 10-step finding lifecycle | `database/models/finding.py`<br>`apps/api/routers/findings.py` | **Verified** | `FindingStatusHistory` tracks transitions from Detected to Confirmed/False Positive. In Phase 3 benchmarking, candidate findings from probers remained unpromoted for passive header issues (documented as `P2-FIND-01`), but active probers successfully transitioned confirmed exploits with full reproduction evidence and SHA-256 digests when endpoints were seeded. |
-| **FR-VV-02** | Evidence artifact collection (raw bytes, headers, curl command) | `services/evidence_engine/collector.py`<br>`services/evidence_engine/curl_generator.py` | **Verified** | `test_generate_reproduction_curl`, `test_serialize_raw_http_wire_format` passed. Plaintext credential leak in cURL body resolved via FIX-10 (`b65eaf3`). In Phase 3 benchmarking, confirmed findings on seeded `pentesa-bench` captured raw HTTP request, raw HTTP response, and runnable reproduction curl command with request/response SHA-256 hashes. |
-| **FR-VV-03** | Evidence integrity: SHA-256 hash for request/response pairs | `services/evidence_engine/hasher.py` | **Verified** | `test_compute_evidence_hash` passed. In Phase 3 benchmarking, request_hash_sha256 and response_hash_sha256 computed and persisted for every confirmed finding. |
-| **FR-VV-04** | Sensitive data masking: automatically redact cards, passwords, tokens | `services/evidence_engine/redactor.py` | **Verified** | 3 unit tests passed (`test_mask_sensitive_headers`, `test_redact_raw_stream_credentials`, `test_redact_raw_stream_credit_card`). Body redaction in reproduction commands enforced via FIX-10 (`b65eaf3`). |
+| **FR-VV-01** | 10-step finding lifecycle | `database/models/finding.py`<br>`apps/api/routers/findings.py` | **Partially Verified** | Re-evaluated live over wire in Phase 7 (`P7-TC-LIFE-01`): valid transitions (`Detected -> Triaged -> Validating -> Confirmed -> Accepted Risk -> Confirmed -> Remediated -> Retested`), illegal-transition HTTP 400 rejection, false-positive refutation, retest, and audit logging passed 5/5 (100%). Downgraded to **Partially Verified** because `FLAGGED_FOR_HUMAN_REVIEW` (`DEFECT-BUSL-01`) and finding assignment (`DEFECT-LIFE-01`) are `Not Implemented`. Evidence: `docs/audit/evidence/phase7/score_p7.txt`. |
+| **FR-VV-02** | Evidence artifact collection (raw bytes, headers, curl command) | `services/evidence_engine/collector.py`<br>`services/evidence_engine/curl_generator.py` | **Partially Verified** | Re-evaluated in Phase 7 (`P7-TC-REPRO-01`, `P7-TC-COMP-01`): all 39 prod findings store raw HTTP req/resp and runnable curl achieving 24/24 (100%) vuln signature reproduction across 3× bench replays with 0 scope violations; however, `FindingResponse` omits root `endpoint`/`method`/`target`/`parameter` (`P1-FIND-02`, 46.7% strict / 60.0% joined API completeness), `cvss_score` is `NULL` on 39/39 (`DEFECT-FIND-03`), `bench-dvwa` curl omits redirect target (`DEFECT-REPRO-01`), and DOM screenshots are `Not Tested`. |
+| **FR-VV-03** | Evidence integrity: SHA-256 hash for request/response pairs | `services/evidence_engine/hasher.py` | **Verified** | Re-verified live in Phase 7 (`P7-TC-INT-01`, `P7-TC-INT-02`): recomputed SHA-256 matches stored `request_hash_sha256` and `response_hash_sha256` on 39/39 (100.0%) prod evidence rows via API; 78/78 (100.0%) 1-byte tamper mutations on in-memory copies detected with 0 prod mutations. Evidence: `docs/audit/evidence/phase7/score_p7.txt`. |
+| **FR-VV-04** | Sensitive data masking: automatically redact cards, passwords, tokens | `services/evidence_engine/redactor.py` | **Partially Verified** | Re-evaluated in Phase 7 (`P7-TC-REDACT-01`, `P7-TC-REDACT-02`): 0 leaks in existing 39 prod findings/evidence/demo report; 5/5 standard planted secrets (Bearer JWT, Cookie, JSON password, form password, Luhn PAN) 100% redacted across all 6 surfaces, **but** custom planted canary secret leaked in `raw_response`, `finding_description`, and `html_report` (83.33% overall; `DEFECT-REDACT-01`). |
 | **FR-VV-05** | Automated reproduction harness: re-execute minimal payloads | `agents/validation/validation_agent.py` | **Partially Verified** | Validation agent executes independent reproduction probes, but empirical evaluation in Phase 5 benchmark (`P5-TC-HALLUC-01`) proved that `ValidationAgent` blindly trusts LLM `is_valid: true` without gating on reproduction status codes. When an upstream LLM hallucinated a vulnerability on a non-existent endpoint returning HTTP 404, the finding was promoted to `confirmed_findings` (`DEFECT-AGENT-01`). Classified as **Partially Verified** pending empirical evidence gating. Evidence: `docs/audit/evidence/phase5/score_p5.txt`, `docs/audit/06-agent-evaluation.md`. |
 
 ---
@@ -121,10 +121,10 @@
 
 | Req ID | Requirement Description | Implementation Files | Status | Execution Evidence / Verification Notes |
 |---|---|---|---|---|
-| **FR-FM-01** | Findings dashboard with multi-dimensional filtering | `apps/web/src/app/findings/page.tsx`<br>`apps/api/routers/findings.py` | **Verified** | Filterable by Severity, Status, WSTG category, and search query. Verified in UI test: `docs/audit/evidence/phase2/12_ui_playwright.txt`. |
-| **FR-FM-02** | Intelligent deduplication based on endpoint, parameter, and CWE | `services/evidence_engine/finding_service.py` | **Verified** | `test_benchmark_deduplication_hashing` passed. |
-| **FR-FM-03** | False positive management with recorded justification | `database/models/finding.py`<br>`apps/api/routers/findings.py` | **Verified** | POST `/{finding_id}/false-positive` endpoint stores rationale in `false_positives` table. Verified in UI test: `docs/audit/evidence/phase2/12_ui_playwright.txt`. |
-| **FR-FM-04** | One-click retest capability | `apps/api/routers/findings.py` | **Verified** | POST `/{finding_id}/retest` endpoint invokes automated validation prober. Verified in UI test: `docs/audit/evidence/phase2/12_ui_playwright.txt`. |
+| **FR-FM-01** | Findings dashboard with multi-dimensional filtering | `apps/web/src/app/findings/page.tsx`<br>`apps/api/routers/findings.py` | **Partially Verified** | Filtering works (Phase 2 UI test), but Phase 7 API audit (`P7-TC-COMP-01`) confirmed `FindingResponse` omits `endpoint`, `method`, `target`, `parameter` alias (`P1-FIND-02`, 46.7% strict / 60.0% joined API completeness) and `cvss_score` is `NULL` on 39/39 prod findings (`DEFECT-FIND-03`). |
+| **FR-FM-02** | Intelligent deduplication based on endpoint, parameter, and CWE | `services/evidence_engine/finding_service.py` | **Partially Verified** | Re-evaluated via live API in Phase 7 (`P7-TC-DEDUP-01`): `GET /deduplicate` clusters exact linked-endpoint duplicates accurately and keeps near-duplicates separate, **but** `POST /findings` performs zero ingestion-time deduplication and `endpoint_id=None` findings over-cluster on `"global|ANY"` (66.7% accuracy; `DEFECT-DEDUP-01`). |
+| **FR-FM-03** | False positive management with recorded justification | `database/models/finding.py`<br>`apps/api/routers/findings.py` | **Verified** | Re-verified live in Phase 7 (`P7-TC-LIFE-01`): `POST /{finding_id}/false-positive` returns HTTP 201, transitions status to `False Positive`, records rationale in `false_positives`, and writes `FINDING_FALSE_POSITIVE_REFUTED` audit log. |
+| **FR-FM-04** | One-click retest capability | `apps/api/routers/findings.py` | **Verified** | Re-verified live in Phase 7 (`P7-TC-LIFE-01`): `POST /{finding_id}/retest` returns HTTP 200 with structured `verification_notes` and records `FINDING_RETEST_EXECUTED` audit log. |
 
 ---
 
@@ -132,16 +132,16 @@
 
 | Req ID | Requirement Description | Implementation Files | Status | Execution Evidence / Verification Notes |
 |---|---|---|---|---|
-| **FR-RP-01** | Generate PTES-aligned reports in PDF and standalone HTML | `services/reporting_engine/renderer.py` | **Verified** | `test_report_renderer_html` and `test_report_renderer_pdf` passed; verified on running stack in R6 (`docs/audit/evidence/phase2/r6_reporting.txt`). |
-| **FR-RP-02** | Comprehensive report sections (Cover, Exec Summary, WSTG, Findings, etc.) | `services/reporting_engine/context_builder.py`<br>`templates/ptes_standard.html` | **Verified** | Full PTES report context compiled from database entities. |
-| **FR-RP-03** | Report customization (logo, client details, tester signatures) | `database/models/report.py`<br>`services/reporting_engine/context_builder.py` | **Verified** | `report_templates` table and customizable metadata parameters supported. |
-| **FR-RP-04** | Report versioning: immutable snapshot preserved at publication | `database/models/report.py`<br>`apps/api/routers/reports.py` | **Verified** | Report records store complete snapshot JSON and generated file paths. |
+| **FR-RP-01** | Generate PTES-aligned reports in PDF and standalone HTML | `services/reporting_engine/renderer.py` | **Partially Verified** | Re-evaluated across 12 live generations (HTML & PDF × 3 × 2) in Phase 7 (`P7-TC-REP-01`): 12/12 generated, downloaded, verified via `/reports/verify`, and 100% consistent across 3 runs. Uses ReportLab (not specified WeasyPrint) for PDF; PDF omits `Status` column and 17-section structure (`DEFECT-REP-01`). |
+| **FR-RP-02** | Comprehensive report sections (Cover, Exec Summary, WSTG, Findings, etc.) | `services/reporting_engine/context_builder.py`<br>`templates/ptes_standard.html` | **Failed** | Phase 7 (`P7-TC-REP-02`) empirically proved: (1) zero-finding report asserts `"STRONG SECURITY POSTURE"` (`DEFECT-REP-01`); (2) unconfirmed `Detected` candidates are conflated into executive `total_findings` (`DEFECT-REP-01`); (3) HTML template hardcodes 4 ungrounded claims (`Layer 2 proxy`, `Katana`, `Httpx`, `LangGraph`; `DEFECT-REP-02`). Live LLM summary (`P7-TC-REP-03`) achieved 100% groundedness (6/6) and 0 fabricated CVEs/URLs. |
+| **FR-RP-03** | Report customization (logo, client details, tester signatures) | `database/models/report.py`<br>`services/reporting_engine/context_builder.py` | **Verified** | `report_templates` and customizable metadata parameters (`title`, `severity_filter`, `include_raw_evidence`, `executive_summary_override`) supported. |
+| **FR-RP-04** | Report versioning: immutable snapshot preserved at publication | `database/models/report.py`<br>`apps/api/routers/reports.py` | **Verified** | Re-verified live in Phase 7 (`P7-TC-REP-01`): 12/12 generated reports sealed with SHA-256 and cryptographically verified via `POST /api/v1/reports/verify` (`verified=True`). |
 
 ---
 
 ## 3. Implementation Statistics Summary (Strict Recount)
 
-The table below summarizes the exact row-by-row count across all 10 modules:
+The table below summarizes the exact row-by-row count across all 10 modules (reconciled through Phase 7):
 
 | Module | Total Reqs | Verified | Partially Verified | Failed | Not Tested | Not Implemented |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|
@@ -151,15 +151,15 @@ The table below summarizes the exact row-by-row count across all 10 modules:
 | **2.4 OWASP WSTG Test Planning (FR-WP)** | 5 | 5 | 0 | 0 | 0 | 0 |
 | **2.5 Automated Security Testing (FR-ST)** | 5 | 2 | 3 | 0 | 0 | 0 |
 | **2.6 AI Agent System (FR-AG)** | 4 | 1 | 3 | 0 | 0 | 0 |
-| **2.7 Vulnerability Validation (FR-VV)** | 5 | 4 | 1 | 0 | 0 | 0 |
+| **2.7 Vulnerability Validation (FR-VV)** | 5 | 1 | 4 | 0 | 0 | 0 |
 | **2.8 Authorization & Business Logic (FR-AB)** | 5 | 0 | 1 | 2 | 0 | 2 |
-| **2.9 Findings Management (FR-FM)** | 4 | 4 | 0 | 0 | 0 | 0 |
-| **2.10 PTES Reporting Engine (FR-RP)** | 4 | 4 | 0 | 0 | 0 | 0 |
+| **2.9 Findings Management (FR-FM)** | 4 | 2 | 2 | 0 | 0 | 0 |
+| **2.10 PTES Reporting Engine (FR-RP)** | 4 | 2 | 1 | 1 | 0 | 0 |
 | **Documented Arch Subsystems (NI-05, NI-09)** | 2 | 0 | 0 | 0 | 0 | 2 |
-| **TOTALS (Comprehensive Traceability)** | **51** | **33 (64.71%)** | **12 (23.53%)** | **2 (3.92%)** | **0 (0.00%)** | **4 (7.84%)** |
+| **TOTALS (Comprehensive Traceability)** | **51** | **26 (50.98%)** | **18 (35.29%)** | **3 (5.88%)** | **0 (0.00%)** | **4 (7.84%)** |
 
-> **Audit Note on "Not Implemented" Classification:**  
-> Of the 49 PRD functional requirements, 33 are Verified, 12 are Partially Verified, 2 are Failed (FR-AB-02, FR-AB-04), and 2 are Not Implemented (FR-AB-01, FR-AB-03) (0 Not Tested). Crucially, 2 major documented architectural capabilities are also Not Implemented: NI-05 (Dynamic Skill Execution Runtime Engine) and NI-09 (Scan Scheduling & Recurring Jobs), bringing total Not Implemented items to 4. A claim of "0 Not Implemented / 0 Not Tested" is not credible and has been corrected. In addition, architectural divergences and gaps (NI-01 through NI-09) are cataloged explicitly below.
+> **Audit Note on "Not Implemented" Classification (Updated Phase 7):**  
+> Of the 49 PRD functional requirements, 26 are Verified, 18 are Partially Verified, 3 are Failed (`FR-AB-02`, `FR-AB-04`, `FR-RP-02`), and 2 are Not Implemented (`FR-AB-01`, `FR-AB-03`) (0 Not Tested). Combined with 2 major unimplemented architectural subsystems (`NI-05`, `NI-09`), total Not Implemented items = 4 across 51 tracked rows. Phase 7 downgraded `FR-VV-01`, `FR-VV-02`, `FR-VV-04`, `FR-FM-01`, `FR-FM-02`, `FR-RP-01` to `Partially Verified` and `FR-RP-02` to `Failed` based on live empirical wire evidence (`docs/audit/08-findings-quality-assessment.md`).
 
 ---
 

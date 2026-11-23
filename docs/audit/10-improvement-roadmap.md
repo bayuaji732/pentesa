@@ -268,6 +268,55 @@ This document catalogs identified improvements, technical debt, and recommended 
 - **Proposed Solution**:
   Maintain zero DB/Redis host port publishing in `docker-compose.yml`, and enforce in CI/review that any temporary harness overlay binds exclusively to `127.0.0.1`.
 
+---
+
+### DEFECT-FIND-03: Deterministic CVSS v3.1 Base Vector & Score Population on All Findings
+- **Category**: Findings Quality & Severity Governance (Phase 7)
+- **Severity**: P1 (High — 0/39 prod findings currently have `cvss_score` or `cvss_vector`)
+- **Status**: Documented in Phase 7 (`docs/audit/08-findings-quality-assessment.md`); Scheduled for Phase 9.
+- **Proposed Solution**:
+  1. Compute deterministic CVSS v3.1 base vector and numeric score in `FindingService.create_finding()` whenever runners omit CVSS metadata.
+  2. Enforce Pydantic validation that `cvss_score` falls inside the declared severity band (`Critical 9.0–10.0`, `High 7.0–8.9`, `Medium 4.0–6.9`, `Low 0.1–3.9`, `Informational 0.0`).
+
+---
+
+### DEFECT-REP-01 & DEFECT-REP-02: Safe Empty-Report Posture, Confirmed/Candidate Separation & Truthful Tooling Disclosure
+- **Category**: PTES Reporting Engine Integrity (Phase 7)
+- **Severity**: `DEFECT-REP-01`: **P1** (High); `DEFECT-REP-02`: **P2** (Medium)
+- **Status**: Documented in Phase 7 (`docs/audit/08-findings-quality-assessment.md`); Scheduled for Phase 9.
+- **Proposed Solution**:
+  1. Replace `"STRONG SECURITY POSTURE"` in `services/reporting_engine/context_builder.py:191` with a neutral coverage-qualified statement that never claims the target is secure.
+  2. Count only `Confirmed` findings in executive risk totals, separate `Detected`/`Needs Manual Review` items into a clearly labelled unconfirmed section, and add the `Status` column to `renderer.py` (PDF).
+  3. Remove the 4 hardcoded false claims (`Layer 2 kernel/proxy`, `Katana`, `Httpx`, `LangGraph`) from `services/reporting_engine/templates/ptes_standard.html` and bind actual executed tools/architecture dynamically from `ReportContext`.
+
+---
+
+### DEFECT-REDACT-01: AuthProfile Custom Secret Redaction & Finding Narrative Scrubbing
+- **Category**: Privacy & Evidence Redaction (Phase 7)
+- **Severity**: P2 (Medium — 5/6 canary redaction rate; custom canary leaked in `raw_response`, `description`, HTML)
+- **Status**: Documented in Phase 7; Scheduled for Phase 9.
+- **Proposed Solution**:
+  Pass decrypted project `AuthProfile` secret values as `custom_secrets` into `redact_raw_stream()` across raw HTTP streams, reproduction cURLs, finding text fields (`title`, `description`, `remediation_guidance`), and a final pre-render pass in `context_builder.py`.
+
+---
+
+### DEFECT-DEDUP-01: Ingestion-Time Deduplication & Null-Endpoint Signature Fix
+- **Category**: Findings Management & Deduplication (Phase 7)
+- **Severity**: P2 (Medium — `exact_cluster_accuracy=66.7%`)
+- **Status**: Documented in Phase 7; Scheduled for Phase 9.
+- **Proposed Solution**:
+  Replace `"global|ANY"` fallback in `FindingService.deduplicate_findings()` with URL/method extraction from `FindingEvidence.raw_request` (or normalized title hash), persist `dedup_signature` on `Finding`, and support ingestion-time duplicate merging with `occurrence_count`.
+
+---
+
+### DEFECT-LIFE-01 & DEFECT-REPRO-01: Finding Assignment Endpoint & Exact Final URL in cURL Reproduction
+- **Category**: Findings Lifecycle & Reproduction Fidelity (Phase 7)
+- **Severity**: P3 (Low)
+- **Status**: Documented in Phase 7; Scheduled for Phase 9.
+- **Proposed Solution**:
+  1. Add `assigned_to` FK to `Finding` and `PATCH /api/v1/projects/{pid}/findings/{fid}/assign` with audit logging (`DEFECT-LIFE-01`).
+  2. Record the exact final in-scope URL after redirects in `raw_request` and `reproduction_curl` so replay status matches stored `raw_response` 100% without unsafe blind `-L` (`DEFECT-REPRO-01`).
+
 
 
 

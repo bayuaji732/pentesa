@@ -212,6 +212,62 @@ This document catalogs identified improvements, technical debt, and recommended 
   )
   ```
 
+---
+
+### SEC-LEAK-02: Remove Hardcoded Harness Credentials & Rotate `benchmark-admin` on Reactivation
+- **Category**: Credential Hygiene & Secrets Management
+- **Severity**: P1 (High — while `benchmark-admin@pentesa.lab` can be reactivated; currently `is_active=false`)
+- **Status**: Open (Deactivated in prod DB); Scheduled for remediation before any reactivation.
+- **Problem Statement**:
+  `benchmark/setup_engagement_and_scope_check.py` (commit `55c0a09`, in git history) referenced the `benchmark-admin` harness credential rather than reading exclusively from environment variables or an untracked local file.
+- **Proposed Solution**:
+  1. Refactor benchmark setup scripts to read credentials solely from environment variables or gitignored `.env.bench`/`.env.production`.
+  2. Rotate the `benchmark-admin@pentesa.lab` password to a fresh cryptographically random value before any reactivation (`is_active=true`).
+
+---
+
+### DEFECT-DEP-01 & DEFECT-DEP-02: Upgrade `next` in `apps/web` to Remediate High/Critical `npm audit` Advisories
+- **Category**: Frontend Supply Chain & Dependency Security
+- **Severity**: `DEFECT-DEP-01`: **P1** (reachable App Router RSC DoS & `/_next/image` surface on `next@14.2.18`); `DEFECT-DEP-02`: **P3** (build-time-only nested `postcss@8.4.31`).
+- **Status**: Documented in Phase 6 Part 0 Reconciliation (`docs/audit/07-security-assessment.md` Section 4.5); Scheduled for Phase 9.
+- **Proposed Solution**:
+  1. Upgrade `next` in `apps/web/package.json` from `14.2.18` to patched release (`>=16.4.6`), which also upgrades nested `postcss`.
+  2. Configure `images: { unoptimized: true }` in `apps/web/next.config.mjs` if Image Optimization is not required.
+  3. Add CI `npm audit` and `pip-audit` gates (installing `pip-audit` in CI test image so Python CVE scanning is no longer `Not Tested`).
+
+---
+
+### P2-TEST-01: State-Based Workflow Judge for Prompt Injection Security Battery
+- **Category**: AI Security Evaluation Harness
+- **Severity**: P2 (Test-Harness Rigor Improvement)
+- **Status**: Documented in Phase 6 Part 0 Reconciliation; Scheduled for Phase 9 test harness upgrade.
+- **Problem Statement**:
+  `P6B-TC-INJECT-01` tested prompt injection via direct LiteLLM gateway calls with a keyword/substring judge (`Partially Verified`, model-level only).
+- **Proposed Solution**:
+  Execute adversarial payloads inside a live `ValidationAgent` / orchestrator workflow and assert state-based invariants: zero unauthorized tool calls logged/executed, zero scope rule changes, and zero unauthorized DB state modifications.
+
+---
+
+### P3-TEST-01: Valid Seeded Object IDs and Request Bodies per Route in RBAC Matrix Harness
+- **Category**: Security QA & Authorization Test Harness
+- **Severity**: P3 (Test-Harness Coverage Improvement)
+- **Status**: Documented in Phase 6 Part 0 Reconciliation; Scheduled for Phase 9 test harness upgrade.
+- **Problem Statement**:
+  In `P6B-TC-RBAC-01`, 124 of 215 expected-allow cells returned HTTP 404/422 due to placeholder UUIDs and empty `{}` JSON bodies, leaving only 88 cells exercising real post-validation authorization logic.
+- **Proposed Solution**:
+  Seed valid resource IDs (endpoints, findings, evidence, reports, auth profiles, WSTG instances) and schema-valid request payloads per OpenAPI route in `benchmark/p6b/test_runner_p6b.py`.
+
+---
+
+### P3-INFRA-02: Enforce Loopback-Only Policy for Any Future Harness DB/Redis Port Publishing
+- **Category**: Container & Network Hardening
+- **Severity**: P3 (Hardening Note)
+- **Status**: Operational Policy (prod `docker-compose.yml` currently publishes zero DB/Redis host ports).
+- **Problem Statement**:
+  Retired `docker-compose.sec.yml` published `127.0.0.1:5433:5432` and `127.0.0.1:6381:6379`. Production `docker-compose.yml` has zero host port publishing for `pentesa-db` and `pentesa-redis`.
+- **Proposed Solution**:
+  Maintain zero DB/Redis host port publishing in `docker-compose.yml`, and enforce in CI/review that any temporary harness overlay binds exclusively to `127.0.0.1`.
+
 
 
 

@@ -44,6 +44,12 @@
 | **DEFECT-AUTH-03** | **P2** | Authentication | `apps/api/routers/auth.py` | Missing Rate Limiting on User Login Endpoint (`POST /api/v1/auth/login`) | Open (Documented) | Phase 9 (Redis-backed token bucket rate limiting) |
 | **DEFECT-API-02** | **P1** | API / Availability | `apps/api/dependencies.py`, `apps/api/routers/projects.py` | Unhandled HTTP 500 ResponseValidationError on `GET /api/v1/projects/{project_id}` (Core Read Path Broken) | Open (Documented / Patch Ready) | Phase 7 Prerequisite (Chained eager loading in verify_project_access) |
 | **P3-API-01** | **P3** | API / Admin | `apps/api/routers/users.py` | Missing User Deletion Route in API Router (`DELETE /api/v1/users/{id}`) | Open (Documented) | Phase 9 (Admin user deletion route implementation) |
+| **SEC-LEAK-02** | **P1** | Secrets / Leak | `benchmark/setup_engagement_and_scope_check.py` (commit `55c0a09`) | `benchmark-admin` Password / Credential Reference in Repository History (P1 While Reactivable; Currently Deactivated) | Open (Deactivated) | Read from env/untracked file & rotate password on any reactivation |
+| **DEFECT-DEP-01** | **P1** | Dependencies | `apps/web/package.json` (`next@14.2.18`) | Reachable High/Critical Advisories in Production Direct Dependency `next@14.2.18` (RSC DoS & `/_next/image`) | Open (Documented) | Phase 9 (Upgrade `next` to patched release `>=16.4.6`) |
+| **DEFECT-DEP-02** | **P3** | Dependencies | `apps/web/package-lock.json` (`next > postcss@8.4.31`) | Build-Time Transitive High Advisories in Nested `postcss@8.4.31` (Unreachable at Runtime) | Open (Documented) | Phase 9 (Resolved via Next.js upgrade) |
+| **P2-TEST-01** | **P2** | Test Harness | `benchmark/p6b/test_runner_p6b.py` | Prompt Injection Battery Uses Model-Level Direct Gateway Calls + Keyword Judge Instead of State-Based Workflow Judge | Open (Test Improvement) | Phase 9 Test Harness (Assert no tool call, no scope change, no DB state change) |
+| **P3-TEST-01** | **P3** | Test Harness | `benchmark/p6b/test_runner_p6b.py` | RBAC Matrix Uses Placeholder UUIDs/Empty Bodies Causing 124/215 Expected-Allow Cells to Return 404/422 | Open (Test Improvement) | Phase 9 Test Harness (Seed valid object IDs and schema-valid bodies per route) |
+| **P3-INFRA-02** | **P3** | Infrastructure | `docker-compose.yml` / `docker-compose.sec.yml` (retired) | Hardening Note: Keep DB/Redis Unpublished in Prod; Any Harness DB Port (`127.0.0.1:5433`) Must Stay Loopback-Only | Open (Hardening Note) | Operational Policy / Compose Review |
 
 ---
 
@@ -366,6 +372,29 @@
   `benchmark/p6/cleanup_prod.py` (asserting HTTP 204 on `DELETE /api/v1/users/{id}`).
 - **Acceptance Criteria:**
   Administrators can delete user accounts over the wire via API call with proper cascade handling.
+
+### 3.25 SEC-LEAK-02 / P1: `benchmark-admin` Credential Reference in Repository History (`commit 55c0a09`)
+- **Components:** `benchmark/setup_engagement_and_scope_check.py` (commit `55c0a09`), `pentesa-prod` `users` table (`benchmark-admin@pentesa.lab`)
+- **Severity:** **P1 (High — while the account can be reactivated)**
+- **Current Account State:** Deactivated (`is_active=false`) in `pentesa-prod`; verified HTTP 401 on login. Real bootstrap admin password is verified decoupled (HTTP 401 on single check).
+- **Problem & Root Cause:** The `benchmark-admin@pentesa.lab` credential reference was committed in `benchmark/setup_engagement_and_scope_check.py` (commit `55c0a09`, present in git history) instead of loading credentials strictly from environment variables or an untracked file.
+- **Evidence:** `git show 55c0a09`; `docs/audit/07-security-assessment.md` Section 6.
+- **Remediation Specification:** Read benchmark credentials exclusively from environment variables or an untracked local file (`.env.production` / `.env.bench`), and **rotate the `benchmark-admin@pentesa.lab` password immediately before any reactivation**.
+- **Acceptance Criteria:** Zero hardcoded harness credentials in tracked scripts; password rotated prior to any `is_active=true` transition.
+
+### 3.26 DEFECT-DEP-01 / P1 & DEFECT-DEP-02 / P3: Frontend Dependency Vulnerabilities (`apps/web` `npm audit`)
+- **Components:** `apps/web/package.json` (`next@14.2.18`), `apps/web/package-lock.json` (`next > postcss@8.4.31`)
+- **Severity:**
+  - **`DEFECT-DEP-01` (P1 — Reachable Prod Dependency):** Direct production dependency `next@14.2.18` has 5 reachable High App Router RSC DoS advisories (`GHSA-mwv6-3258-q52c`, `GHSA-5j59-xgg2-r9c4`, `GHSA-h25m-26qc-wcjf`, `GHSA-q4gf-8mx6-v5v3`, `GHSA-8h8q-6873-q5fj`) plus potentially reachable default `/_next/image` Critical advisories (`GHSA-2xp9-vwfh-vxw4`, `GHSA-2464-fhr4-w9xw`; `images.unoptimized` is not set in `next.config.mjs`). Additional Critical/High advisories (`GHSA-f82v-jwr5-mffw`, `GHSA-p293-qw3h-jr36`, `GHSA-c4j6-fc7j-m34r`, `GHSA-36qx-fr4f-26g5`, `GHSA-m99w-x7hq-7vfj`, `GHSA-89xv-2m56-2m9x`, `GHSA-p9j2-gv94-2wf4`, `GHSA-p3m5-59mp-jv5r`) are not directly reachable in the current Linux Docker deployment (no middleware, no Server Actions, no Pages Router/i18n, static rewrite host).
+  - **`DEFECT-DEP-02` (P3 — Unreachable Build-Time Transitive):** Nested `node_modules/next/node_modules/postcss@8.4.31` has 2 High advisories (`GHSA-6g55-p6wh-862q`, `GHSA-r28c-9q8g-f849`) reachable only during build-time CSS processing on trusted repository assets.
+- **Evidence:** `docs/audit/evidence/phase6/p6_part0_reconciliation_addendum.txt`, `docs/audit/07-security-assessment.md` Section 4.5.
+- **Remediation Specification:** Upgrade `next` in `apps/web/package.json` to patched release (`>=16.4.6`) and set `images: { unoptimized: true }` if Image Optimization is unused. Verify `npm audit --omit=dev` returns 0 High/Critical advisories.
+- **Note on `pip-audit`:** `pip-audit` is **Not Tested** in Phase 6/6b because the binary is not installed on host, `.venv`, or `pentesa-api` (not "no packages").
+
+### 3.27 Test-Harness & Infrastructure Hardening Notes (`P2-TEST-01`, `P3-TEST-01`, `P3-INFRA-02`)
+- **`P2-TEST-01` (P2 Test Improvement — State-Based Injection Judge):** Upgrade `benchmark/p6b/test_runner_p6b.py::test_prompt_injection_battery` from direct gateway calls + keyword judge (model-level `Partially Verified`) to a real workflow-level test with a state-based judge asserting: (1) zero unauthorized tool calls logged/executed, (2) zero scope rule mutations, and (3) zero unauthorized DB state mutations.
+- **`P3-TEST-01` (P3 Test Improvement — RBAC Matrix Valid Inputs):** Upgrade `benchmark/p6b/test_runner_p6b.py::test_rbac_matrix` to pass valid seeded object UUIDs and schema-valid request bodies per route so the 124 expected-allow cells currently returning 404/422 exercise real post-validation authorization logic.
+- **`P3-INFRA-02` (P3 Hardening Note — DB/Redis Port Publishing):** Production `docker-compose.yml` publishes zero host ports for `pentesa-db` (`5432/tcp: null`) and `pentesa-redis` (`6379/tcp: null`). The `127.0.0.1:5433` mapping existed only in retired `docker-compose.sec.yml`. Any future harness/dev overlay exposing DB/Redis ports must remain strictly loopback-only (`127.0.0.1`) and never be merged into `docker-compose.yml`.
 
 
 

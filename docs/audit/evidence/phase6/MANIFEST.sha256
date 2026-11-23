@@ -19,4 +19,5 @@ fc09de2e0406c0ad0257fc9382c5c2e3ae09ff6976a2edd0b757e2db8d4c2774  ../../../../be
 f50244e32e1ff1103430de65e0c19240afce86e6a3de0ac336096232f199fa2e  ../../../../benchmark/ground_truth_p6b.yaml
 3823b0cb0ab78899ec0b5ad3c803b157f39c182475e047666e6d5f9dc9e36547  ../../../../benchmark/score_p6b.py
 e4c283c9f50b6785e03dacda7432d8dc373f164ad4642605f2d8308821f39a26  ../../../../benchmark/p6b/test_runner_p6b.py
-513bad3221bb95800c9236f34e50d67635845687d5edfb7798ba5aefa7cab817  ../../../../benchmark/p6b/demo_smoke_test.py
+0e16e163d8a3fc5c7538a878be49617b053abeb983ed716fef8ea3dd4489b7ce  ../../../../benchmark/p6b/demo_smoke_test.py
+9b77f3ffcdb69b048a423c44f9f837f66f6f273dd3d129e7b72b26345ba61050  p6_part0_reconciliation_addendum.txt

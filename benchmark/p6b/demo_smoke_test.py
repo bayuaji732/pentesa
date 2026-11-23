@@ -31,10 +31,7 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
-from database.models.audit import AuditLog
-from database.session import AsyncSessionLocal
 from packages.common.audit import verify_audit_chain
-from sqlalchemy import select
 
 PROD_API_BASE = "http://127.0.0.1:8000"
 PROD_WEB_BASE = "http://127.0.0.1:3000"
@@ -253,33 +250,27 @@ async def run_smoke_test():
             "notes": f"Retrieved {len(audit_entries)} audit entries"
         })
 
-        # Verify live audit chain in DB
-        async with AsyncSessionLocal() as session:
-            stmt = select(AuditLog).order_by(AuditLog.created_at.asc(), AuditLog.id.asc())
-            db_res = await session.execute(stmt)
-            db_entries = db_res.scalars().all()
-            dict_entries = [
-                {
-                    "action": e.action,
-                    "resource_type": e.resource_type,
-                    "resource_id": str(e.resource_id) if e.resource_id else None,
-                    "project_id": str(e.project_id) if e.project_id else None,
-                    "user_id": str(e.user_id) if e.user_id else None,
-                    "details": e.details if isinstance(e.details, dict) else {},
-                    "created_at": e.created_at,
-                    "prev_hash": e.prev_hash,
-                    "hash": e.hash,
-                    "ip_address": e.ip_address,
-                }
-                for e in db_entries
-            ]
-            chain_valid, chain_err, failed_idx = verify_audit_chain(dict_entries)
+        # Verify live audit chain in production PostgreSQL container (pentesa-db),
+        # NOT host AsyncSessionLocal() which defaults to local SQLite ./pentesa.db.
+        t0_chain = time.time()
+        audit_q = (
+            "SELECT json_agg(t) FROM ("
+            "  SELECT prev_hash, created_at, user_id, action, resource_type, resource_id, details, ip_address, hash "
+            "  FROM audit_logs ORDER BY created_at ASC, id ASC"
+            ") t;"
+        )
+        chain_out = subprocess.check_output(
+            ["docker", "exec", "pentesa-db", "psql", "-U", "pentesa_user", "-d", "pentesa", "-A", "-t", "-c", audit_q]
+        ).decode().strip()
+        dict_entries = json.loads(chain_out) if chain_out else []
+        chain_valid, chain_err, failed_idx = verify_audit_chain(dict_entries)
+        lat_chain = (time.time() - t0_chain) * 1000
         results.append({
             "step": "9b. Audit Chain Cryptographic Verification",
             "endpoint": f"Cryptographic Ledger Check ({len(dict_entries)} entries)",
             "ui_page": "/audit-logs (Chain Status)",
             "status": 200 if chain_valid else 500,
-            "latency_ms": 45.2,
+            "latency_ms": round(lat_chain, 2),
             "verdict": "OK" if chain_valid else "FAIL",
             "notes": f"Cryptographic hash chain 100% unbroken from genesis to head ({len(dict_entries)} records)" if chain_valid else f"Tampering detected at idx {failed_idx}: {chain_err}"
         })

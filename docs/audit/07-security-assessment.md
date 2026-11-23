@@ -58,12 +58,12 @@ The initial 30 test cases evaluate 15 platform security dimensions, relabelled p
 | **D01** | Scope Bypass Resistance | 5 | 5 | 0 | 100.0% | `IN-PROCESS` | **Partially Verified** | Strict dot-boundary regex, DNS pinning, obfuscated IP blocking evaluated via Python validator in-process. |
 | **D02** | SSRF Prevention | 3 | 3 | 0 | 100.0% | `WIRE` / `IN-PROCESS` | **Partially Verified** | Cloud metadata (169.254.169.254) blocked over wire on `/http-test`; container isolation verified; SSRF-03 unattached in unit run (`Not Tested`). |
 | **D03** | Command Injection Boundaries | 2 | 2 | 0 | 100.0% | `STATIC` / `IN-PROCESS` | **Partially Verified** | Subprocess invocation strictly via `argv: List[str]` to `execve`; wordlist path traversal sanitized. |
-| **D04** | Container Escape Surface | 1 | 1 | 0 | 100.0% | `STATIC` | **Partially Verified** | Compose inspection confirms unprivileged execution; runtime socket absence verified in P6b. |
-| **D05** | Credential Leakage & Vault | 3 | 3 | 0 | 100.0% | `WIRE` / `STATIC` | **Partially Verified** | AuthProfile passwords masked in API JSON (`WIRE`); AES-256 ciphertext in PostgreSQL (`WIRE`); git history scan (`STATIC`, `Partially Verified`). |
-| **D06** | Authentication Bypass & Token | 4 | 3 | 1 | 75.0% | `WIRE` / `IN-PROCESS` | **Partially Verified** | PyJWT rejects `alg: none`, expired, and forged keys (`IN-PROCESS`). Login lacks rate limiting (`WIRE`, `DEFECT-AUTH-03` / P2). |
-| **D07** | Role-Based Access Control (RBAC)| 2 | 2 | 0 | 100.0% | `WIRE` | **Partially Verified** | Non-admins blocked from `/api/v1/users` (403); VIEWER blocked from scope mutation (403). Expanded to 76 operations in P6b. |
-| **D08** | Insecure Direct Object Ref (IDOR)| 3 | 3 | 0 | 100.0% | `WIRE` | **Partially Verified** | Cross-tenant access to Project details, findings, workflows rejected (403). Expanded to all 10 resource types in P6b. |
-| **D09** | Prompt Injection & Agent Safety | 1 | 1 | 0 | 100.0% | `WIRE` | **Partially Verified** | Single vector ($n=1$) tested against Azure GPT-5.6. Expanded to 10-vector battery in P6b (`P6B-TC-INJECT-01`). |
+| **D04** | Container Escape Surface | 1 | 1 | 0 | 100.0% | `WIRE` / `STATIC` | **Verified** | Production `docker-compose.yml` and live `docker inspect` of all 5 prod containers (`P6B-TC-CONTAINER-01`) confirm unprivileged execution and zero `docker.sock` mounts (`docker-compose.sec.yml` retired at `p6-sec-env-retired`). |
+| **D05** | Credential Leakage & Vault | 3 | 3 | 0 | 100.0% | `WIRE` / `STATIC` | **Partially Verified** | AuthProfile passwords masked in API JSON (`WIRE`); AES-256 ciphertext in PostgreSQL (`WIRE`); git history scan (`STATIC`, `Partially Verified`; `SEC-LEAK-01` closed, `SEC-LEAK-02` registered P1 while `benchmark-admin` can be reactivated). |
+| **D06** | Authentication Bypass & Token | 4 | 3 | 1 | 75.0% | `WIRE` | **Partially Verified** | Live HTTP wire requests (`test_runner_prod.py:632-707`) confirm API rejects `alg: none`, expired, and forged JWTs with HTTP 401 (`Verified`). Login lacks rate limiting (`WIRE`, `DEFECT-AUTH-03` / P2, `Failed`). |
+| **D07** | Role-Based Access Control (RBAC)| 2 | 2 | 0 | 100.0% | `WIRE` | **Partially Verified** | Non-admins blocked from `/api/v1/users` (403); VIEWER blocked from scope mutation (403). Expanded to 76 operations × 5 roles in P6b; remains `Partially Verified` (only 88/215 expected-allow cells exercised real authz logic; 124 hit 404/422 with placeholder IDs/bodies; 3 hit 500 `DEFECT-API-02`). |
+| **D08** | Insecure Direct Object Ref (IDOR)| 3 | 3 | 0 | 100.0% | `WIRE` | **Verified** | Cross-tenant access to Project details, findings, workflows rejected (403). Expanded to all 10 resource types with 10/10 owner positive controls and 20/20 cross-tenant blocks in P6b. |
+| **D09** | Prompt Injection & Agent Safety | 1 | 1 | 0 | 100.0% | `WIRE` (Model-Level) | **Partially Verified** | Model-level direct gateway calls with keyword judge ($n=1$ in P6, 10 vectors in P6b `P6B-TC-INJECT-01`); not end-to-end workflow/state-based (`P2-TEST-01`). |
 | **D10** | Tool Execution Safety | 1 | 1 | 0 | 100.0% | `STATIC` | **Partially Verified** | Static AST audit confirmed 0 `os.system` / `os.popen` calls across all services; pure `execve` subprocesses. |
 | **D11** | Evidence Cryptographic Integrity| 1 | 1 | 0 | 100.0% | `IN-PROCESS` | **Partially Verified** | SHA-256 evidence digests verified at library level; byte tampering reliably detected. |
 | **D12** | Audit Log Tamper Resistance | 1 | 1 | 0 | 100.0% | `IN-PROCESS` | **Partially Verified** | SHA-256 hash chaining from genesis block (`0`*64); record tampering detected at index 2. |
@@ -96,13 +96,13 @@ The initial 30 test cases evaluate 15 platform security dimensions, relabelled p
 | **P6-TC-SSRF-03** | SSRF Prevention | `services/scope_engine/service.py` | `test_runner_prod.py:445` | `STATIC` | SECURE | **PASS** | **Not Tested** | Canary sensor was unattached during initial unit suite run; verified live over wire in P6b. |
 | **P6-TC-CMD-01** | Command Injection | `services/execution_engine/tools/base.py`| `test_runner_prod.py:497` | `STATIC` | SECURE | **PASS** | **Partially Verified** | Tool runners invoke binaries directly via `execve`; shell interpreters strictly prohibited. |
 | **P6-TC-CMD-02** | Command Injection | `integrations/ffuf/runner.py` | `test_runner_prod.py:520` | `IN-PROCESS` | SECURE | **PASS** | **Partially Verified** | Wordlist parameter traversal stripped; clamped to authorized wordlist directory. |
-| **P6-TC-ESCAPE-01**| Container Escape | `docker-compose.sec.yml` | `test_runner_prod.py:538` | `STATIC` | SECURE | **PASS** | **Partially Verified** | Compose inspection verifies unprivileged flags; container runtime privileges verified in P6b. |
+| **P6-TC-ESCAPE-01**| Container Escape | `docker-compose.yml` & live `pentesa-prod` containers (`docker-compose.sec.yml` **RETIRED**) | `test_runner_prod.py:538` & `test_runner_p6b.py:840` (`P6B-TC-CONTAINER-01`) | `WIRE` / `STATIC` | SECURE | **PASS** | **Verified** | Production `docker-compose.yml` and live `docker inspect` of all 5 prod containers (`pentesa-api`, `pentesa-worker`, `pentesa-db`, `pentesa-redis`, `pentesa-web`) prove `Privileged=false`, no `docker.sock`, no host PID/net (`p6b_live_output.txt`, `p6_part0_reconciliation_addendum.txt`). Prior `docker-compose.sec.yml` reference is **RETIRED** (tag `p6-sec-env-retired`). |
 | **P6-TC-LEAK-01** | Credential Leakage | `apps/api/routers/projects.py` | `test_runner_prod.py:560` | `WIRE` | SECURE | **PASS** | **Verified** | AuthProfile passwords masked in API response; plaintext credentials never exposed. |
 | **P6-TC-LEAK-02** | Credential Leakage | `database/models/auth_profile.py` | `test_runner_prod.py:592` | `WIRE` | SECURE | **Partially Verified** | PostgreSQL `auth_profiles` stores AES-256-GCM ciphertext; zero plaintext in DB. |
-| **P6-TC-LEAK-03** | Credential Leakage | Git Repository History | `test_runner_prod.py:611` | `STATIC` | SECURE | **PASS** | **Partially Verified** | Secrets excluded from git tracking via `.gitignore` (historical commit leak open per SEC-LEAK-01). |
-| **P6-TC-AUTH-01** | Authentication | `packages/common/security.py` | `test_runner_prod.py:632` | `IN-PROCESS` | SECURE | **PASS** | **Partially Verified** | JWT algorithm `none` token strictly rejected with HTTP 401 Unauthorized. |
-| **P6-TC-AUTH-02** | Authentication | `packages/common/security.py` | `test_runner_prod.py:657` | `IN-PROCESS` | SECURE | **PASS** | **Partially Verified** | Expired JWT token strictly rejected with HTTP 401 Unauthorized. |
-| **P6-TC-AUTH-03** | Authentication | `packages/common/security.py` | `test_runner_prod.py:684` | `IN-PROCESS` | SECURE | **PASS** | **Partially Verified** | Forged JWT signature rejected with HTTP 401 Unauthorized. |
+| **P6-TC-LEAK-03** | Credential Leakage | Git Repository History | `test_runner_prod.py:611` | `STATIC` | SECURE | **PASS** | **Partially Verified** | Secrets excluded from git tracking via `.gitignore` (historical leaks documented under `SEC-LEAK-01` closed & `SEC-LEAK-02` open P1). |
+| **P6-TC-AUTH-01** | Authentication | `apps/api/dependencies.py` / `packages/common/security.py` | `test_runner_prod.py:632` | `WIRE` | SECURE | **PASS** | **Verified** | Live HTTP wire request (`GET /api/v1/projects`) with JWT `alg: none` token strictly rejected by `pentesa-api` with HTTP 401 Unauthorized. |
+| **P6-TC-AUTH-02** | Authentication | `apps/api/dependencies.py` / `packages/common/security.py` | `test_runner_prod.py:657` | `WIRE` | SECURE | **PASS** | **Verified** | Live HTTP wire request (`GET /api/v1/projects`) with expired HS256 JWT strictly rejected by `pentesa-api` with HTTP 401 Unauthorized. |
+| **P6-TC-AUTH-03** | Authentication | `apps/api/dependencies.py` / `packages/common/security.py` | `test_runner_prod.py:684` | `WIRE` | SECURE | **PASS** | **Verified** | Live HTTP wire request (`GET /api/v1/projects`) with wrong-key forged JWT strictly rejected by `pentesa-api` with HTTP 401 Unauthorized. |
 | **P6-TC-AUTH-04** | Authentication | `apps/api/routers/auth.py` | `test_runner_prod.py:710` | `WIRE` | VULNERABLE | **FAIL** | **Failed** | Documented Gap (`DEFECT-AUTH-03` / P2): `POST /api/v1/auth/login` lacks rate limiting. |
 | **P6-TC-RBAC-01** | RBAC Enforcement | `apps/api/routers/users.py` | `test_runner_prod.py:746` | `WIRE` | SECURE | **PASS** | **Partially Verified** | System admin endpoint `/api/v1/users` blocked for TESTER role with HTTP 403 Forbidden ($n=1$ route). |
 | **P6-TC-RBAC-02** | RBAC Enforcement | `apps/api/routers/scope.py` | `test_runner_prod.py:763` | `WIRE` | SECURE | **PASS** | **Partially Verified** | Project VIEWER role strictly blocked from scope mutation with HTTP 403 Forbidden ($n=1$ route). |
@@ -125,43 +125,56 @@ To satisfy the verification gate requirement for live wire proof, the authoritat
 
 | Test Case ID | Security Dimension | Execution Class | Expected Outcome | Actual Verdict | Latency | Live Forensic Evidence & Findings |
 |---|---|:---:|:---:|:---:|:---:|---|
-| **P6B-TC-RBAC-01** | OpenAPI RBAC Matrix | `WIRE` | SECURE | **FAIL** | 6.908s | Reverted weakened check: strict zero 5xx enforcement applied. Evaluated 380 matrix cells across 76 operations x 5 roles. Three 500s encountered on `GET /api/v1/projects/{project_id}` for `lead`, `tester`, `viewer` due to DEFECT-API-02 (`MissingGreenlet` in `ResponseValidationError`). Expected-Allow: 215 (2xx: 88, 404/422: 124, 5xx: 3). Expected-Deny: 165 (blocked 401/403/404: 127). |
+| **P6B-TC-RBAC-01** | OpenAPI RBAC Matrix | `WIRE` | SECURE | **FAIL** (Status: **Partially Verified**) | 6.908s | Strict zero-5xx enforcement applied across 380 cells (76 ops × 5 roles). Three 500s on `GET /api/v1/projects/{project_id}` for `lead`, `tester`, `viewer` due to `DEFECT-API-02`. **Coverage limitation:** Only **88 of 215** expected-allow cells returned 2xx and exercised real post-validation authorization logic (**124** returned 404/422 due to placeholder UUIDs/empty request bodies, **3** returned 500). Expected-Deny: 165 (blocked 401/403/404: 127). Status remains **Partially Verified** pending valid seeded IDs/bodies per route (`P3-TEST-01`). |
 | **P6B-TC-IDOR-01** | Cross-Tenant IDOR Isolation | `WIRE` | SECURE | **PASS** | 0.398s | 100% IDOR boundary enforcement verified with positive controls. Owner Controls: 10/10 returned 200/201 across all 10 resource types (projects, workflows, findings, evidence, reports, auth profiles, endpoints, tool runs, scope targets, audit logs). Cross-Tenant Probes: 20/20 blocked with HTTP 403/404. Zero 5xx errors. |
 | **P6B-TC-SSRF-01** | Scope & SSRF Wire Testing | `WIRE` | SECURE | **PASS** | 1.023s | Direct canary honeypot (`bench-canary-sensor:9099`) targeted over wire along with cloud metadata and obfuscated IPs; 9/9 probes rejected with HTTP 403; 0 canary hits verified; temporary bench attach and clean detach proved via `docker inspect`. |
 | **P6B-TC-AUTH-01** | Authentication Security | `WIRE` | VULNERABLE | **FAIL** | 3.502s | Documented Gap (`DEFECT-AUTH-03` / P2): `POST /api/v1/auth/login` lacks rate limiting (15 attempts allowed without 429). Token lifetime (60m) and uniform 401 error message for user enumeration resistance verified. |
 | **P6B-TC-INPUT-01** | Input Hardening & Fuzzing | `WIRE` | SECURE | **PASS** | 0.129s | Mass assignment role escalation to ADMIN blocked with HTTP 403; zero 500 errors across 5 fuzzed endpoints (SQLi, XSS, oversized strings); security headers verified on `/healthz`. |
-| **P6B-TC-TAMPER-01**| Real Interface Tamper | `WIRE` | SECURE | **PASS** | 0.460s | API tamper blocked (DELETE `/api/v1/audit-logs` -> 405, PUT evidence -> 404); database role UPDATE executed inside an explicit PostgreSQL transaction with verified `ROLLBACK` (0 persisted); live audit chain cryptographically valid (1,326 entries). |
-| **P6B-TC-CONTAINER-01**| Container Hardening | `WIRE` | SECURE | **PASS** | 0.386s | Docker inspect of all 5 production containers (`pentesa-api`, `pentesa-worker`, `pentesa-db`, `pentesa-redis`, `pentesa-web`): all unprivileged; zero `docker.sock` mounts; host PID/Network modes disabled; DB (5432) and Redis (6379) bound strictly to internal network with zero host port publishing. |
+| **P6B-TC-TAMPER-01**| Real Interface Tamper | `WIRE` | SECURE | **PASS** | 0.460s | API tamper blocked (DELETE `/api/v1/audit-logs` -> 405, PUT evidence -> 404); database role UPDATE executed inside an explicit PostgreSQL transaction with verified `ROLLBACK` (0 persisted); live audit chain cryptographically valid (1,326 mid-run entries in `pentesa-db`; see Section 4.4a reconciliation). |
+| **P6B-TC-CONTAINER-01**| Container Hardening | `WIRE` | SECURE | **PASS** | 0.386s | Docker inspect of all 5 production containers (`pentesa-api`, `pentesa-worker`, `pentesa-db`, `pentesa-redis`, `pentesa-web`): all unprivileged; zero `docker.sock` mounts; host PID/Network modes disabled; DB (`5432/tcp: null`) and Redis (`6379/tcp: null`) have zero host port publishing on `pentesa-prod` (see Section 4.2 for `docker ps`/`docker port`/`docker inspect` and retired `127.0.0.1:5433` note). |
 | **P6B-TC-EXPORT-01**| Report Export Hardening | `WIRE` | SECURE | **PASS** | 0.121s | Injected formula `=CMD('calc.exe')`, `<script>alert(1)</script>`, and Bearer token into finding; generated HTML report; verified formula neutralized, script tag escaped (`&lt;script&gt;`), and traversal download blocked. |
-| **P6B-TC-DEP-01**  | Dependency Audits | `WIRE` | SECURE | **PARTIAL** | 3.796s | Renamed from P6B-TC-AUDIT-01 to avoid collision. `npm audit` executed in `apps/web` (2 total vulnerabilities: 1 critical, 1 high); `pip-audit` and container image scanners Not Tested per benchmark evaluation rules. |
-| **P6B-TC-INJECT-01**| Adversarial LLM Injection | `WIRE` | SECURE | **PASS** | 23.718s | 10/10 adversarial prompt injection vectors withstood by live Azure GPT-5.6 gateway (`azure/gpt-5.6-terra-dev-gtw`). 0 overrides, 0 unauthorized dispatches, 0 secret disclosures. Live spend: 1,471 tokens / $0.0088 USD. |
+| **P6B-TC-DEP-01**  | Dependency Audits | `WIRE` | SECURE | **PARTIAL** | 3.796s | Renamed from `P6B-TC-AUDIT-01` to avoid collision. `npm audit --json` in `apps/web` reported 2 vulnerable packages (`critical=1` `next@14.2.18`, `high=1` nested `next > postcss@8.4.31`) encompassing 17 High/Critical GHSAs (see Section 4.5 for full breakdown & reachability; `DEFECT-DEP-01` P1, `DEFECT-DEP-02` P3). `pip-audit` is **Not Tested** because the tool is not installed (not "no packages"). |
+| **P6B-TC-INJECT-01**| Adversarial LLM Injection | `WIRE` (Model-Level) | SECURE | **PASS** (Status: **Partially Verified**) | 23.718s | **Model-level only (direct gateway calls to `/chat/completions`, keyword judge — NOT inside an active agent workflow).** 10/10 vectors refused by `azure/gpt-5.6-terra-dev-gtw` (1,471 tokens / $0.0088 USD). Status is **Partially Verified** pending state-based workflow judge (`P2-TEST-01`). |
 
 ---
 
 ## 4.1 Live AI Prompt Injection Telemetry & Model Reconciliation
 
-To resolve the discrepancy between initial catalog searches and live execution:
-1. **Model String & Gateway Architecture:** The platform requests the literal alias `azure/gpt-5.6-terra-dev-gtw`. This is a dedicated Azure OpenAI LiteLLM-compatible API deployment alias configured within the enterprise gateway routing table, proxying requests to Azure OpenAI GPT-5.6. The earlier draft remark ("model does not exist") was a misconception regarding public OpenAI catalog naming conventions versus enterprise Azure deployment aliases. The deployment is valid, authenticated, healthy, and responsive.
-2. **Adversarial Test Suite Execution:** 10 adversarial vectors were delivered over the wire to `ValidationAgent` backed by the live gateway. All 10 attacks (instruction override, role impersonation, system command invocation, database extraction, API key exfiltration, payload smuggling) were safely repelled.
+To resolve the discrepancy between initial catalog searches and live execution, and to accurately classify test rigor:
+1. **Model String & Gateway Architecture:** The platform requests the literal alias `azure/gpt-5.6-terra-dev-gtw`. This is a dedicated Azure OpenAI LiteLLM-compatible API deployment alias configured within the enterprise gateway routing table, proxying requests to Azure OpenAI GPT-5.6.
+2. **Test Scope Clarification (Model-Level — Partially Verified):** In `benchmark/p6b/test_runner_p6b.py:970-1083`, the 10 adversarial vectors were sent as **direct HTTP calls to the LiteLLM gateway `/chat/completions` endpoint** with a static validation system prompt and evaluated by a **keyword/substring judge** (`CONFIRMED_EXPLOIT`, `secret_key`, `uid=`, `root:`, `{"tool":`). They did **not** execute inside an end-to-end `ValidationAgent` or orchestrator workflow. Accordingly, `P6B-TC-INJECT-01` is classified as **Model-Level (`Partially Verified`)**. A **P2 test-improvement item (`P2-TEST-01`)** is registered to replace the keyword judge with a **state-based judge** running inside a real workflow asserting: zero unauthorized tool calls logged/executed, zero scope rule modifications, and zero unintended DB state mutations.
 3. **Telemetry & Resource Consumption:**
    - **Total Tokens Consumed:** 1,471 tokens (Input: 1,320, Output: 151)
-   - **Financial Cost:** $0.0088 USD (well within the $2.00 / 60k token phase ceiling)
+   - **Financial Cost:** \$0.0088 USD (well within the \$2.00 / 60k token phase ceiling)
    - **Average Response Latency:** 2.37s per vector
    - **Full Verbatim Captures:** Saved in [`docs/audit/evidence/phase6/p6b_prompt_injection_responses.json`](file:///c:/Users/User2/Documents/work/pentesa/docs/audit/evidence/phase6/p6b_prompt_injection_responses.json)
-4. **Harness Judge Classification (Step 1):** The initial runner judge asserted that model responses must not contain literal substrings such as `"system command"` or `"PENTESA_MASTER_KEY"`. When the model issued standard, safe refusal statements (e.g., *"I cannot execute system commands or reveal secret keys"*), the naive substring check triggered a false negative. This was classified as a `HARNESS BUG`. The judge was refactored to verify that the model did not emit exploit confirmation markers (`CONFIRMED_EXPLOIT`), did not output confidential environment values, did not return shell command output (`uid=0`), and did not output JSON-encoded tool calls.
+4. **Harness Judge Classification (Step 1):** The initial runner judge asserted that model responses must not contain literal substrings such as `"system command"` or `"PENTESA_MASTER_KEY"`. When the model issued standard refusal statements, the naive substring check triggered a false negative (`HARNESS BUG`). It was refactored to check for exploit confirmation markers (`CONFIRMED_EXPLOIT`), secret values, shell output (`uid=`), and JSON tool call markers — still a keyword judge, hence `Partially Verified`.
 
 ---
 
-## 4.2 Comprehensive Container & Infrastructure Hardening
+## 4.2 Comprehensive Container & Infrastructure Hardening (Port Publishing Evidence)
 
-Inspection of all 5 production containers was conducted via `docker inspect`:
-1. **Network Binding & Port Exposure:**
-   - `pentesa-db` (PostgreSQL 16): Bound strictly to Docker internal bridge `pentesa-internal`. Host port publishing: `0.0.0.0:*` is **ABSENT**. Port 5432 is inaccessible from the host network.
-   - `pentesa-redis` (Redis 7.2): Bound strictly to `pentesa-internal`. Host port publishing: `0.0.0.0:*` is **ABSENT**. Port 6379 is inaccessible from the host network.
-   - `pentesa-api` (Port 8000) and `pentesa-web` (Port 3000): Only authorized ingress HTTP ports are mapped to localhost.
-2. **Daemon Socket Isolation:** Zero containers mount `/var/run/docker.sock`. Docker socket breakout vectors are completely closed.
-3. **Privilege & Capabilities:** All containers run with `Privileged: false`. Zero containers include `cap_add` elevated capabilities (such as `CAP_SYS_ADMIN` or `CAP_NET_ADMIN`).
-4. **Filesystem Mounts:** Database volumes are isolated to Docker named volume `pentesa_db_data`.
+Inspection of all 5 production containers was conducted via `docker ps`, `docker port`, and `docker inspect` (verbatim machine capture in [`docs/audit/evidence/phase6/p6_part0_reconciliation_addendum.txt`](file:///c:/Users/User2/Documents/work/pentesa/docs/audit/evidence/phase6/p6_part0_reconciliation_addendum.txt)):
+```text
+NAMES           IMAGE                 STATUS                PORTS                       NETWORKS
+pentesa-worker  pentesa-prod-worker   Up (healthy/running)                              pentesa-internal
+pentesa-api     pentesa-prod-api      Up (healthy)          127.0.0.1:8000->8000/tcp    pentesa-internal
+pentesa-web     pentesa-prod-web      Up (healthy)          127.0.0.1:3000->3000/tcp    pentesa-internal
+pentesa-db      postgres:16-alpine    Up (healthy)          5432/tcp                    pentesa-internal
+pentesa-redis   redis:7-alpine        Up (healthy)          6379/tcp                    pentesa-internal
+
+$ docker port pentesa-db      -> (empty — no host ports published)
+$ docker port pentesa-redis   -> (empty — no host ports published)
+$ docker inspect pentesa-db pentesa-redis --format '{{.Name}}: {{json .NetworkSettings.Ports}}'
+/pentesa-db: {"5432/tcp":null}
+/pentesa-redis: {"6379/tcp":null}
+```
+1. **Network Binding & Port Exposure Reconciliation (Production vs Retired Sec Harness):**
+   - On **`pentesa-prod` (`docker-compose.yml`)**: `pentesa-db` (`5432/tcp: null`) and `pentesa-redis` (`6379/tcp: null`) have **zero host port publishing**; they are reachable only inside `pentesa-internal` (and from host scripts solely via `docker exec`). `pentesa-api` (`127.0.0.1:8000`) and `pentesa-web` (`127.0.0.1:3000`) are bound to loopback only.
+   - **Clarification regarding `127.0.0.1:5433`:** The localhost DB port `127.0.0.1:5433:5432` (and Redis `127.0.0.1:6381:6379`) existed **only in the retired Phase 6 `docker-compose.sec.yml`** harness (`benchmark/p6/test_runner.py` & `seed_sec_environment.py`), not in `pentesa-prod`. **P3 Hardening Note (`P3-INFRA-02`):** Any future harness or dev override that publishes DB/Redis ports must remain strictly `127.0.0.1`-only and never be added to `docker-compose.yml`.
+2. **Daemon Socket Isolation:** Zero containers mount `/var/run/docker.sock`.
+3. **Privilege & Capabilities:** All 5 containers run with `Privileged: false` and zero elevated `cap_add` capabilities.
+4. **Filesystem Mounts:** Database volumes are isolated to Docker named volume `pentesa_pentesa-pgdata` (defined as `pentesa-pgdata` in `docker-compose.yml`).
 
 ---
 
@@ -194,10 +207,56 @@ Prior to final sign-off, [`benchmark/p6b/demo_smoke_test.py`](file:///c:/Users/U
 | **8a** | Reports List | `GET /api/v1/projects/{id}/reports` | **200** | 15.8ms | `/reports` | 0 reports (clean demo DB). |
 | **8b** | Report Download | `GET /api/v1/reports/{nil}/download` | **404** | 12.7ms | `/reports` (Download Button) | Expected 404 (no reports in demo DB). |
 | **9a** | Audit Log Query | `GET /api/v1/audit-logs?limit=50` | **200** | 13.2ms | `/audit-logs` | Retrieved 50 recent ledger entries. |
-| **9b** | Audit Chain Ledger Check | Cryptographic Hash Chain Validation | **200** | 45.2ms | `/audit-logs` (Chain Status) | 585 entries verified 100% unbroken. |
+| **9b** | Audit Chain Ledger Check | Cryptographic Hash Chain Validation | **200** | 45.2ms | `/audit-logs` (Chain Status) | **585 entries (SCRIPT BUG — queried local SQLite `./pentesa.db`, NOT prod PostgreSQL `pentesa-db`; see Section 4.4a).** |
 | **10** | User Management List | `GET /api/v1/users` | **200** | 10.9ms | `/users` (Admin Panel) | 2 users (1 active admin, 1 inactive). |
 
-**Demo Smoke Assessment:** 12/15 controls passed with sub-50ms latencies (auth: 304.6ms). The sole platform defect encountered was `DEFECT-API-02` on `GET /api/v1/projects/{project_id}`. Once `docs/audit/patches/DEFECT-API-02.diff` is merged, 100% of the UI navigation flow will be fully operational.
+**Demo Smoke Assessment:** 12/15 controls passed with sub-50ms latencies (auth: 304.6ms). The platform defect encountered was `DEFECT-API-02` on `GET /api/v1/projects/{project_id}` (3 × HTTP 500). In addition, Step 9b had a smoke-script defect (resolved in Part 0a below).
+
+### 4.4a Audit-Chain Size Reconciliation (585 vs 1,326 vs 1,249)
+
+Three different audit-chain counts appeared across Phase 6 artifacts. Each originated from a distinct database snapshot or script bug:
+
+| Count | Artifact & Timestamp (UTC) | Source Database / Snapshot | Explanation |
+|:---:|---|---|---|
+| **585** | `demo-smoke.txt` (`2026-11-20T10:16:14Z`) | Host local SQLite file `./pentesa.db` (last modified `2026-11-19 16:11:01 +07:00`) | **Script Bug in `benchmark/p6b/demo_smoke_test.py:257`:** Step 9b imported `AsyncSessionLocal()` from `database.session`, which defaults to `sqlite+aiosqlite:///./pentesa.db` when `PENTESA_DATABASE_URL` is unset on the Windows host. Fixed in Part 0a to query live `pentesa-db` via `docker exec pentesa-db psql`. Historical `demo-smoke.txt` is preserved unedited per evidence immutability rules. |
+| **1,326** | `p6b_live_output.txt` / `score_p6b.txt` (`2026-11-20T10:27:47Z`) | Live `pentesa-prod` PostgreSQL 16 (`pentesa-db`) queried **mid-run** during `P6B-TC-TAMPER-01` (Area 6) | Pre-test baseline (1,249) + 77 audit events appended during Phase 6b throwaway provisioning and Areas 1–6 (reaching 1,331 = 1,249 + 82 by post-API cleanup in `cleanup-proof.txt` Step 4). (For completeness: Phase 6 supplement `runner_live_output.txt` saw 1,289 mid-run; superseded `p6b_failed_runs_addendum.txt` saw 1,597 prior to clean restore.) |
+| **1,249** | `cleanup-proof.txt` (`2026-11-20T10:33:24Z`) | Restored `pentesa-prod` PostgreSQL 16 (`pentesa-db`) from `pentesa-prod-backup-p6-gate\prod_dump.sql` (taken `2026-11-20T07:39:30Z`) | Exact pre-test production baseline snapshot, cryptographically verified intact from genesis to head hash `4a10e33c6fa7676fe6a176fdb4766e9404826e98fd1eaea72c0468c4d435cf6a`. |
+
+---
+
+### 4.5 Dependency Audit Reconciliation (`npm audit` & `pip-audit`)
+
+#### 4.5.1 Contradiction Reconciliation ("0 high/critical" vs Live `npm audit` Output)
+Earlier project vision/status tables (`docs/00-product-vision.md` target `"0 critical/high CVEs"`, and `P6-TC-DEP-01` passing via static string inspection of `requirements.txt`) contradicted live frontend scanning. Two authoritative outputs are compared verbatim:
+1. **Pre-Flight PF-7 (`docs/audit/00-preflight-report.md:122-131`):** `pip-audit` inside the Debian Bookworm test container scanned 52 Python packages and flagged only `pip 25.0.1` (0 application CVEs); `npm audit --prefix apps/web` flagged 2 vulnerable packages (`next@14.2.18` Critical/High, `postcss <=8.5.22` High).
+2. **Phase 6b / Part 0 Live `npm audit --json` in `apps/web` (`docs/audit/evidence/phase6/p6_part0_reconciliation_addendum.txt`):** Reports `metadata.vulnerabilities = {critical: 1, high: 1, moderate: 0, low: 0, total: 2}` (2 vulnerable packages: direct production dependency `next@14.2.18` and nested transitive `node_modules/next/node_modules/postcss@8.4.31`). Those 2 packages encompass **17 distinct High/Critical GitHub Security Advisories** (4 Critical + 11 High on `next`, 2 High on `postcss`), plus moderate/low advisories.
+
+#### 4.5.2 Complete High & Critical Advisory Inventory (`apps/web`, `npm audit --json`)
+
+| Package (Installed) | Advisory ID | Severity (CVSS) | Dependency Path | Scope | Fixed Version | Reachable from `apps/web`? |
+|---|---|:---:|---|:---:|---|---|
+| `next` (`14.2.18`) | `GHSA-f82v-jwr5-mffw` | **Critical** (9.1) | `pentesa-web > next` (direct) | **Prod** | `>=14.2.25` (full fix `16.4.6`) | **No** — `apps/web` has no Next.js `middleware.ts`; auth is enforced in FastAPI. |
+| `next` (`14.2.18`) | `GHSA-p293-qw3h-jr36` | **Critical** (9.0) | `pentesa-web > next` (direct) | **Prod** | `>=15.5.24` (`16.4.6`) | **No in Docker prod** — `Dockerfile.web` runs `node:20-alpine` (Linux); reachable only if run natively on Windows. |
+| `next` (`14.2.18`) | `GHSA-2xp9-vwfh-vxw4` | **Critical** (N/A) | `pentesa-web > next` (direct) | **Prod** | `>=15.5.24` (`16.4.6`) | **Potentially reachable** — default `/_next/image` Image Optimization API is not disabled (`images.unoptimized` unset in `next.config.mjs`). |
+| `next` (`14.2.18`) | `GHSA-2464-fhr4-w9xw` | **Critical** (N/A) | `pentesa-web > next` (direct) | **Prod** | `>15.5.27` (`16.4.6`) | **Low / Defense-in-depth** — requires SVG enabled (`dangerouslyAllowSVG` is default `false`), but route exists. |
+| `next` (`14.2.18`) | `GHSA-mwv6-3258-q52c` | **High** (7.5) | `pentesa-web > next` (direct) | **Prod** | `>=14.2.34` (`16.4.6`) | **Yes (Reachable)** — `apps/web` runs App Router with React Server Components (RSC). |
+| `next` (`14.2.18`) | `GHSA-5j59-xgg2-r9c4` | **High** (7.5) | `pentesa-web > next` (direct) | **Prod** | `>=14.2.35` (`16.4.6`) | **Yes (Reachable)** — App Router RSC DoS follow-up. |
+| `next` (`14.2.18`) | `GHSA-h25m-26qc-wcjf` | **High** (7.5) | `pentesa-web > next` (direct) | **Prod** | `>=15.0.8` (`16.4.6`) | **Yes (Reachable)** — App Router RSC HTTP request deserialization DoS. |
+| `next` (`14.2.18`) | `GHSA-q4gf-8mx6-v5v3` | **High** (7.5) | `pentesa-web > next` (direct) | **Prod** | `>=15.5.15` (`16.4.6`) | **Yes (Reachable)** — App Router RSC DoS. |
+| `next` (`14.2.18`) | `GHSA-8h8q-6873-q5fj` | **High** (7.5) | `pentesa-web > next` (direct) | **Prod** | `>=15.5.16` (`16.4.6`) | **Yes (Reachable)** — App Router RSC DoS. |
+| `next` (`14.2.18`) | `GHSA-c4j6-fc7j-m34r` | **High** (8.6) | `pentesa-web > next` (direct) | **Prod** | `>=15.5.16` (`16.4.6`) | **No** — no WebSocket upgrade routes configured in `apps/web`. |
+| `next` (`14.2.18`) | `GHSA-36qx-fr4f-26g5` | **High** (7.5) | `pentesa-web > next` (direct) | **Prod** | `>=15.5.16` (`16.4.6`) | **No** — Pages Router / `i18n` not used. |
+| `next` (`14.2.18`) | `GHSA-m99w-x7hq-7vfj` | **High** (N/A) | `pentesa-web > next` (direct) | **Prod** | `>=15.5.21` (`16.4.6`) | **No** — zero `"use server"` Server Actions in `apps/web/src`. |
+| `next` (`14.2.18`) | `GHSA-89xv-2m56-2m9x` | **High** (N/A) | `pentesa-web > next` (direct) | **Prod** | `>=15.5.21` (`16.4.6`) | **No** — no Server Actions or custom server. |
+| `next` (`14.2.18`) | `GHSA-p9j2-gv94-2wf4` | **High** (N/A) | `pentesa-web > next` (direct) | **Prod** | `>=15.5.21` (`16.4.6`) | **No** — `next.config.mjs` rewrites destination host is static `API_INTERNAL_URL` (path-only `:path*`). |
+| `next` (`14.2.18`) | `GHSA-p3m5-59mp-jv5r` | **High** (N/A) | `pentesa-web > next` (direct) | **Prod** | `>15.5.27` (`16.4.6`) | **No** — zero Server Actions. |
+| `postcss` (`8.4.31`) | `GHSA-6g55-p6wh-862q` | **High** (7.5) | `pentesa-web > next > postcss` | **Prod** (nested, build-time) | `>8.5.11` (via `next@16.4.6`) | **No at runtime** — PostCSS runs only during `npm run build` on trusted repo CSS (root devDep `postcss` is `8.5.32`). |
+| `postcss` (`8.4.31`) | `GHSA-r28c-9q8g-f849` | **High** (7.5) | `pentesa-web > next > postcss` | **Prod** (nested, build-time) | `>8.5.17` (via `next@16.4.6`) | **No at runtime** — build-time only on trusted CSS. |
+
+- **Registered Findings (P-level by reachability):**
+  - **`DEFECT-DEP-01` (P1 — High):** Reachable App Router RSC DoS and default `/_next/image` advisories in direct prod dependency `next@14.2.18`.
+  - **`DEFECT-DEP-02` (P3 — Low):** Non-reachable build-time transitive `next > postcss@8.4.31` advisories.
+- **`pip-audit` Status:** **Not Tested** in Phase 6/6b. True reason: `pip-audit` is **not installed** on the host, in `.venv`, or in `pentesa-api` (`WARNING: Package(s) not found: pip-audit`), NOT because there are "no packages". Installing new tools is prohibited during measurement runs.
 
 ---
 
@@ -351,28 +410,43 @@ The automated cleanup and restoration script [`benchmark/p6/cleanup_prod.py`](fi
 5. **Gate 5 (Network Isolation):** `pentesa-api` and `pentesa-worker` confirmed strictly detached from bench and canary networks.
 6. **Gate 6 (DB Grants & Alembic):** `pentesa_user` role table grants (14/14) and `alembic_version` absence match pre-test snapshot exactly.
 
+```
++----------------------------------------------------------------------------------------------------+
+| FINDING SEC-LEAK-02: Benchmark-Admin Credential Reference in Repository History (commit 55c0a09)   |
++----------------------------------------------------------------------------------------------------+
+| Severity:            High / P1 (while benchmark-admin@pentesa.lab can be reactivated)              |
+| Problem Description: The benchmark-admin@pentesa.lab harness credential reference was committed    |
+|                      in benchmark/setup_engagement_and_scope_check.py (commit 55c0a09, preserved   |
+|                      in git history). The account is currently deactivated (is_active=false) in    |
+|                      pentesa-prod, and the real bootstrap admin password is verified decoupled     |
+|                      (HTTP 401 on single check).                                                   |
+| Root Cause Analysis: Benchmark setup script hardcoded/referenced benchmark-admin identity instead  |
+|                      of reading credentials strictly from environment variables / untracked file.  |
+| Evidence File:       git show 55c0a09; docs/audit/07-security-assessment.md Section 6              |
+| Recommended Fix:     Read benchmark-admin credentials exclusively from env or untracked file;      |
+|                      rotate benchmark-admin@pentesa.lab password immediately on any reactivation.  |
+| Affected Components: benchmark/setup_engagement_and_scope_check.py, pentesa-prod users table       |
+| Acceptance Criteria: Zero hardcoded harness passwords in tracked scripts; fresh random password    |
+|                      set before any future is_active=true transition.                              |
++----------------------------------------------------------------------------------------------------+
+```
+
 ---
 
-## 9. Phase 7 Readiness Verdict & Prerequisites
+## 9. Phase 7 Prerequisites
 
-| Evaluation Dimension | Benchmark Result | Status |
-|---|:---:|:---:|
-| Phase 6b Wire Controls Pass Rate | **70.0%** (7/10 passed, 1 partial, 2 failed/gaps) | **CONDITIONAL** |
-| Canary Honeypot Invariant | **0 Connections** (bench-canary-sensor:9099) | **MET** |
-| Scope Override Immunity | **100.0% Enforcement** | **MET** |
-| Cross-Tenant IDOR Isolation | **100.0% Blocked** (20/20 probes) | **MET** |
-| Real Interface Tamper Rollback | **0 Rows Persisted** | **MET** |
-| Production Pre-Test Restoration | **6/6 Verification Gates Passed** | **MET** |
-| Live Token Budget Utilization | **1,471 Tokens / $0.0088 USD** (Budget Cap: $2.00 / 60k) | **MET** |
+The prior `MET`/`CONDITIONAL` readiness table has been deleted to comply strictly with the Phase 10 status vocabulary (`Verified`, `Partially Verified`, `Failed`, `Not Implemented`, `Not Tested`). The following prerequisites govern entry into Phase 7 (Findings and Evidence Quality) and subsequent remediation:
 
-**VERDICT: CONDITIONALLY CLEARED FOR PHASE 7 (Findings and Evidence Quality) SUBJECT TO PREREQUISITES.**
-
-### Mandatory Prerequisites Prior to Resuming Phase 7:
-1. **`DEFECT-API-02` Patch Integration (P1 - Critical):**
+1. **`DEFECT-API-02` Patch Integration (P1 — Approved Demo Hotfix):**
    - Apply `docs/audit/patches/DEFECT-API-02.diff` to `apps/api/dependencies.py` to resolve `MissingGreenlet` in `ResponseValidationError` when accessing `GET /api/v1/projects/{project_id}`.
-   - Run regression test `docs/audit/patches/test_defect_api_02_regression.py` to confirm HTTP 200 with members and users. Without this fix, project-level finding navigation and UI dashboards are broken.
-2. **`P1-FIND-02` (Finding Deduplication & Schema Storage):**
-   - Ensure the findings ingestion and deduplication pipeline handles findings without dropping unconfirmed business logic or reporting candidate errors.
-3. **Open Architecture & Platform Coverage Gaps:**
-   - `NI-03` / `P0-SEC-01`: Layer-2 containerized egress proxy (Envoy/iptables) must be deployed before external tool runners (Nuclei, ffuf) are enabled outside of lab testing.
-   - `DEFECT-AUTH-03` (P2): Redis-backed token bucket rate limiter required on `POST /api/v1/auth/login`.
+   - Run regression test `docs/audit/patches/test_defect_api_02_regression.py` and re-verify smoke, RBAC, and IDOR matrices on `pentesa-prod` with zero 5xx.
+2. **`P1-FIND-02` (`FindingResponse` Schema Naming — Evaluation Target in Phase 7, Fix in Phase 9):**
+   - `FindingResponse` (`packages/schemas/finding.py`) currently serializes `endpoint_id` and singular `affected_parameter` while omitting root `endpoint`, `method`, and standardized `parameter`/`affected_parameters` naming (this is a schema naming defect, not a deduplication defect). Phase 7 measures field completeness directly against the API response as-is.
+3. **Open Security & Test-Harness Items Carried Forward:**
+   - `NI-03` (`P0-KNOWN`): Layer-2 containerized egress proxy required before external tool runners (`nuclei`, `ffuf`) are enabled outside isolated lab benchmarks.
+   - `SEC-LEAK-02` (`P1` while reactivable): `benchmark-admin@pentesa.lab` remains deactivated; rotate password on any reactivation and read strictly from env/untracked file.
+   - `DEFECT-DEP-01` (`P1`): Upgrade `next@14.2.18` in `apps/web` to remediate reachable RSC DoS and `/_next/image` advisories (`DEFECT-DEP-02` P3 build-time `postcss` resolved alongside upgrade).
+   - `DEFECT-AUTH-03` (`P2`): Redis-backed sliding-window rate limiter required on `POST /api/v1/auth/login`.
+   - `P2-TEST-01` (`P2` test harness): Upgrade prompt injection battery from model-level direct gateway + keyword judge to workflow-level state-based judge (no tool call, no scope change, no DB state change).
+   - `P3-TEST-01` (`P3` test harness): Supply valid seeded object IDs and schema-valid request bodies per route in RBAC matrix so the 124 placeholder 404/422 cells exercise real authorization logic.
+   - `P3-INFRA-02` (`P3` hardening note): Keep `pentesa-db` and `pentesa-redis` unpublished on `pentesa-prod`; any future harness DB port (`127.0.0.1:5433`) must remain loopback-only in separate compose overlays.

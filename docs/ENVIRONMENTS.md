@@ -1,6 +1,6 @@
 # Pentesa Environments and Operations Guide
 
-This document establishes the official operational standard for Pentesa environments. The platform maintains exactly three supported environments: **Production (`prod`)**, **Benchmark (`bench`)**, and **Development (`dev`)**. There is no separate "demo" environment; live demonstrations are conducted using the production configuration.
+This document establishes the official operational standard for Pentesa environments. The platform maintains exactly three supported environments: **Production (`prod`)**, **Benchmark (`bench`)**, and **Development (`dev`)**. No separate demo environment or snapshot restore is supported.
 
 ---
 
@@ -8,7 +8,7 @@ This document establishes the official operational standard for Pentesa environm
 
 | Environment | Purpose | Compose Project | Compose File | Configuration | Host Ports | Docker Volumes | Reset Policy |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **`prod`** | Live operational pentesting & demonstrations | `pentesa-prod` | `docker-compose.yml` | `.env.production` (`PENTESA_ENV=production`) | `127.0.0.1:8000` (API)<br>`127.0.0.1:3000` (Web UI) | `pentesa-prod_pentesa-pgdata`<br>`pentesa-prod_pentesa-redisdata`<br>`pentesa-prod_pentesa-reports`<br>`pentesa-prod_pentesa-evidence` | **Strictly Persistent**.<br>`down -v` is prohibited. |
+| **`prod`** | Operational pentesting & platform runtime | `pentesa-prod` | `docker-compose.yml` | `.env.production` (`PENTESA_ENV=production`) | `127.0.0.1:8000` (API)<br>`127.0.0.1:3000` (Web UI) | `pentesa-prod_pentesa-pgdata`<br>`pentesa-prod_pentesa-redisdata`<br>`pentesa-prod_pentesa-reports`<br>`pentesa-prod_pentesa-evidence` | **Strictly Persistent**.<br>`down -v` is prohibited except for total disaster rebuild from `.env.production`. |
 | **`bench`** | Security benchmarks & ground-truth validation | `pentesa-bench` | `benchmark/docker-compose.bench.yml` | Inherent bench stack config | None (0 host ports exposed;<br>`internal: true` network) | `pentesa-bench_crapi-db-data`<br>`pentesa-bench_crapi-mongo-data` | **Automated Reset**.<br>Managed via `benchmark/reset_bench.py` with safety guard. |
 | **`dev`** | Local feature development & testing | `pentesa-dev` | `docker-compose.yml` (dev overrides) | `.env` (`PENTESA_ENV=development`) | `127.0.0.1:8000` (API)<br>`127.0.0.1:3000` (Web UI) | `pentesa-dev_*` | Developer managed. |
 
@@ -74,15 +74,15 @@ The benchmark environment hosts intentionally vulnerable evaluation targets (DVW
 The development environment is used for rapid local testing and development.
 - **Key Settings**:
   - `PENTESA_ENV=development`
-  - `PENTESA_SEED_DEMO_DATA=1` (demo seeds are only populated when explicitly set in development)
-- **Demo Data Seeding**:
-  Default demo data is never seeded unconditionally. In `prod` or `staging`, `PENTESA_SEED_DEMO_DATA` is ignored by `database/seeds/seed_data.py` to prevent unauthorized mock accounts.
+  - `PENTESA_SEED_DEMO_DATA=1` (development fixture seeding flag; ignored in production).
+- **Initial Data Seeding**:
+  Default mock data is never seeded unconditionally. In `prod` or `staging`, `PENTESA_SEED_DEMO_DATA` is ignored by `database/seeds/seed_data.py` to prevent unauthorized mock accounts.
 
 ---
 
-## 3. How to Run a Live Demonstration
+## 3. Platform Verification & Operational Access
 
-To demonstrate Pentesa:
+To verify and access Pentesa in production:
 
 ### 1. Start the Production Stack
 Ensure Docker is running and `.env.production` has been populated with local secret keys and administrative passwords (copied from `.env.production.example`):
@@ -103,7 +103,7 @@ Verify that all core services report healthy:
 - The system issues a signed JWT with `ADMIN` privileges upon authentication.
 
 ### 4. What Is Audited vs. Not Yet Audited
-When demonstrating the platform, clearly communicate the audit boundaries:
+When assessing or testing the platform, observe the audit boundaries:
 - **Audited & Verified (Phases 1, 2, and 3A)**:
   - Fail-closed security initialization (rejection of default keys, weak passwords, and insecure database strings).
   - Scope and egress enforcement (strict CIDR/IP validation, loopback restriction, canary hit detection).

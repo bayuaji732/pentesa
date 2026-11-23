@@ -86,55 +86,45 @@ Pentesa maintains strict separation across three official containerized environm
 
 ---
 
-## 4. Production Environment (`pentesa-prod`) Backup & Recovery Procedure
+## 4. Production Environment (`pentesa-prod`) Operational Policy (ENV RULES v2)
 
-### 4.1 Pre-Test Backup Archive (Stored Outside Repository)
-- **Backup Directory:** `c:\Users\User2\Documents\work\pentesa-prod-backup-p6`
-- **Database Dump File:** `c:\Users\User2\Documents\work\pentesa-prod-backup-p6\prod_dump.sql` (PostgreSQL 16 logical dump via `pg_dump`)
-- **Volume Replicas:**
-  - `c:\Users\User2\Documents\work\pentesa-prod-backup-p6\reports\` (`/app/data/reports`)
-  - `c:\Users\User2\Documents\work\pentesa-prod-backup-p6\evidence\` (`/app/data/evidence`)
-- **Pre-Test Baseline State (`pentesa-prod`):**
-  - `users`: 2 rows (`benchmark-admin@pentesa.lab`, `ahmad.aji@siloamhospitals.com`)
-  - `projects`: 28 rows
-  - `findings`: 39 rows
-  - `finding_evidence`: 39 rows
-  - `audit_logs`: 1247 rows
-  - `audit_logs` Head Record ID: `af4f6452-16cc-40a5-841b-860503ecdf72`
-  - `audit_logs` Head Hash: `b01c7509be114f6a697a79abd058cfa60cb7525a129f0546a9c86dd1c93f7cbc`
-  - `audit_logs` Head Prev Hash: `80a385345924541eedda8c6c5995e927673480cf9d1e453b41d584d7823c1efb`
+In accordance with ENV RULES v2, snapshot restores and pre-test backups have been decommissioned:
+- **Test-Only Data:** The target `pentesa-prod` database contains only benchmark and evaluation data; no real client assets exist.
+- **Critical Asset Protection:** The sole asset requiring protection is `.env.production`. It must never be deleted, overwritten, or printed.
+- **Throwaway Entities:** Any test users and projects must use designated prefixes (`p6test-`, `p7test-`, `p8test-`). Projects must be deleted via API; users must be deactivated via API (due to `P3-API-01`).
+- **Network Boundaries:** Temporary bench/canary network attachments (`pentesa-bench-net`, `pentesa-canary-net`) are attached strictly during tests requiring them, detached immediately upon test completion, and verified detached via `docker inspect`.
+- **End-of-Step State Verification:**
+  - Delete or deactivate all throwaway objects.
+  - Verify prod API healthy (`/healthz` 200, `/readyz` 200).
+  - Real admin login returns HTTP 200.
+  - Default `admin@example.com` returns HTTP 401 Unauthorized.
+  - `benchmark-admin` is verified inactive (`is_active = false`).
+  - `pentesa-api` and `pentesa-worker` are detached from `pentesa-bench-net` and `pentesa-canary-net`.
+  - Live audit chain verified cryptographically.
+- **Disaster Recovery:** If `pentesa-prod` breaks beyond repair, the recovery procedure is:
+  ```powershell
+  docker compose -p pentesa-prod down -v
+  docker compose -p pentesa-prod --env-file .env.production up -d
+  ```
+  The platform bootstraps fresh from `.env.production`. No backups are kept.
 
-### 4.2 Restoration & Rollback Execution Procedure
-In the event of database mutation or upon completion of Phase 6 testing on `pentesa-prod`, execute the following restoration sequence:
+---
 
-1. **Terminate Active Database Connections & Re-create Database:**
-   ```bash
-   docker exec -i pentesa-db psql -U pentesa_user -d postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'pentesa' AND pid <> pg_backend_pid();"
-   docker exec -i pentesa-db psql -U pentesa_user -d postgres -c "DROP DATABASE IF EXISTS pentesa WITH (FORCE);"
-   docker exec -i pentesa-db psql -U pentesa_user -d postgres -c "CREATE DATABASE pentesa OWNER pentesa_user;"
-   ```
+## 5. Repository Hygiene
 
-2. **Restore PostgreSQL Logical Dump:**
-   ```powershell
-   docker cp c:\Users\User2\Documents\work\pentesa-prod-backup-p6\prod_dump.sql pentesa-db:/tmp/prod_dump.sql
-   docker exec pentesa-db psql -U pentesa_user -d pentesa -f /tmp/prod_dump.sql
-   docker exec pentesa-db rm /tmp/prod_dump.sql
-   ```
+To prevent artifact drift, clutter, and unverified files across benchmark evaluation cycles:
+- **Scratch Workspace:** All temporary scripts, exploratory code, and intermediate dumps must reside in `.scratch/` (gitignored).
+- **Harness Placement:** Test runners, cleanup scripts, and fixtures must be located exclusively in `benchmark/pN/` (e.g. `benchmark/p6/`, `benchmark/p7/`, `benchmark/p8/`).
+- **Evidence Placement:** All raw output, forensic captures, matrices, and cost logs must be stored exclusively in `docs/audit/evidence/phaseN/` with forensic headers and recorded in `MANIFEST.sha256`.
+- **Step Cleanliness Gate:** At the conclusion of every benchmark step, the working tree must be clean:
+  ```powershell
+  git status
+  git clean -nd  # Dry-run check for untracked files
+  ```
+- **Planned Final Purge (Post-Phase 10):**
+  Upon completion of Phase 10:
+  1. Tag release `audit-final`.
+  2. Archive all `RETIRED-BUT-REFERENCED` scratch runners and transitional scripts to an archive branch off `main`.
+  3. Retain `docs/audit/`, frozen ground truth matrices (`ground_truth_pN.yaml`), deterministic scorers (`score_pN.py`), and `docker-compose.bench.yml` for future regression benchmarking.
+  4. Wipe the `pentesa-prod` stack (`docker compose -p pentesa-prod down -v`), re-bootstrap clean from `.env.production`, and tear down all benchmark target resources.
 
-3. **Restore Report & Evidence Volume Artifacts:**
-   ```powershell
-   docker cp c:\Users\User2\Documents\work\pentesa-prod-backup-p6\reports\. pentesa-api:/app/data/reports
-   docker cp c:\Users\User2\Documents\work\pentesa-prod-backup-p6\evidence\. pentesa-api:/app/data/evidence
-   ```
-
-4. **Restart API & Worker Services:**
-   ```powershell
-   docker restart pentesa-api pentesa-worker
-   ```
-
-5. **Post-Restoration State Verification:**
-   - Confirm row counts match baseline (`users` = 2, `projects` = 28, `findings` = 39, `finding_evidence` = 39, `audit_logs` = 1247).
-   - Verify audit log chain head hash equals `b01c7509be114f6a697a79abd058cfa60cb7525a129f0546a9c86dd1c93f7cbc`.
-   - Confirm real admin authentication succeeds on `http://127.0.0.1:8000/api/v1/auth/login`.
-   - Confirm `admin@example.com` returns HTTP 401 Unauthorized.
-   - Confirm `pentesa-api` and `pentesa-worker` are completely detached from `pentesa-bench-net` and `pentesa-canary-net`.

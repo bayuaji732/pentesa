@@ -1,0 +1,160 @@
+# Pentesa Phase 7 — Frozen Ground Truth Specification: Findings & Evidence Quality
+# Frozen prior to Phase 7 test execution (committed and tagged: p7-design-complete).
+# Any modification after execution violates audit integrity and must be recorded as an addendum.
+
+metadata:
+  benchmark_phase: "Phase 7 — Findings and Evidence Quality"
+  schema_version: "1.0"
+  spec_document: "docs/audit/evidence/phase7/7A-spec.md"
+  target_environment: "pentesa-prod (docker-compose.yml on http://127.0.0.1:8000, post hotfix-api-02)"
+  llm_gateway_model: "azure/gpt-5.6-terra-dev-gtw"
+  llm_budget_cap_usd: 2.00
+  llm_token_cap: 60000
+  status_vocabulary:
+    - "Verified"
+    - "Partially Verified"
+    - "Failed"
+    - "Not Implemented"
+    - "Not Tested"
+
+reference_standards:
+  cvss_severity_bands:
+    Critical: [9.0, 10.0]
+    High: [7.0, 8.9]
+    Medium: [4.0, 6.9]
+    Low: [0.1, 3.9]
+    Informational: [0.0, 0.0]
+  wstg_cwe_valid_mappings:
+    WSTG-INPV-05: ["CWE-89"]
+    WSTG-INPV-01: ["CWE-79"]
+    WSTG-INPV-02: ["CWE-79"]
+    WSTG-INPV-12: ["CWE-78", "CWE-77"]
+    WSTG-INPV-18: ["CWE-1336", "CWE-94", "CWE-79"]
+    WSTG-INPV-19: ["CWE-918"]
+    WSTG-INPV-07: ["CWE-611"]
+    WSTG-ATHZ-01: ["CWE-22", "CWE-23"]
+    WSTG-ATHZ-04: ["CWE-639", "CWE-284", "CWE-285"]
+    WSTG-CONF-02: ["CWE-693", "CWE-16", "CWE-1021", "CWE-942"]
+    WSTG-CONF-04: ["CWE-200", "CWE-538", "CWE-530", "CWE-548"]
+    WSTG-CLNT-09: ["CWE-1021", "CWE-693"]
+    WSTG-INFO-02: ["CWE-200"]
+  reference_finding_severities:
+    CWE-89: ["Critical", "High"]
+    CWE-79: ["High", "Medium"]
+    CWE-78: ["Critical", "High"]
+    CWE-1336: ["Critical", "High"]
+    CWE-639: ["High", "Medium"]
+    CWE-200: ["Critical", "High", "Medium", "Low", "Informational"]
+    CWE-693: ["Medium", "Low", "Informational"]
+  supported_export_formats:
+    - "HTML"
+    - "PDF"
+  prohibited_empty_report_phrases:
+    - "strong security posture"
+    - "application is secure"
+    - "target is secure"
+    - "no vulnerabilities exist"
+    - "fully secure"
+    - "completely secure"
+  ungrounded_template_claims:
+    - "Layer 2 kernel/proxy egress enforcement prevented out-of-scope transmissions"
+    - "Katana (headless crawler)"
+    - "Httpx (probing)"
+    - "governed by LangGraph"
+
+test_cases:
+  - test_id: "P7-TC-COMP-01"
+    dimension: "field_completeness"
+    spec_ids: ["P7-REQ-A01", "P7-REQ-A02"]
+    title: "15-Field API Completeness Audit Across All 39 Production Findings"
+    execution_class: "WIRE"
+    pass_criteria: "100% of findings satisfy all 15 mandatory Phase 7 fields via user-facing API (including endpoint, method, parameter naming per P1-FIND-02)."
+    known_defect_ids: ["P1-FIND-02"]
+
+  - test_id: "P7-TC-INT-01"
+    dimension: "evidence_integrity"
+    spec_ids: ["P7-REQ-B01"]
+    title: "Cryptographic SHA-256 Verification of Stored Raw Request & Response Evidence (39 Prod Records)"
+    execution_class: "WIRE"
+    pass_criteria: "100% of stored finding_evidence records match recomputed SHA-256(raw_request) and SHA-256(raw_response)."
+    known_defect_ids: []
+
+  - test_id: "P7-TC-INT-02"
+    dimension: "evidence_integrity"
+    spec_ids: ["P7-REQ-B02"]
+    title: "Tamper Detection Verification on Non-Production Copy of Evidence Data"
+    execution_class: "IN-PROCESS"
+    pass_criteria: "100% of 1-byte mutated copies of raw_request and raw_response fail integrity verification; zero prod rows mutated."
+    known_defect_ids: []
+
+  - test_id: "P7-TC-REDACT-01"
+    dimension: "redaction"
+    spec_ids: ["P7-REQ-C01"]
+    title: "Secret & PII Redaction Scan Across All 39 Production Findings, Evidence, cURLs & Reports"
+    execution_class: "WIRE"
+    pass_criteria: "Zero unredacted credentials, Authorization/Cookie tokens, passwords, or PANs across all prod findings, evidence, curls, and reports."
+    known_defect_ids: []
+
+  - test_id: "P7-TC-REDACT-02"
+    dimension: "redaction"
+    spec_ids: ["P7-REQ-C02"]
+    title: "Planted Canary Secret Redaction Through Live Finding Ingestion API & Report Export"
+    execution_class: "WIRE"
+    pass_criteria: "All planted secrets (Bearer token, Cookie, JSON password, form password, credit card PAN, custom canary secret) redacted in stored evidence, reproduction_curl, and exported HTML/PDF reports."
+    known_defect_ids: []
+
+  - test_id: "P7-TC-REPRO-01"
+    dimension: "reproduction"
+    spec_ids: ["P7-REQ-D01", "P7-REQ-D02"]
+    title: "3x Live Reproduction Command Replay Against Reset Bench Targets (Scope & Non-Destructive Guarded)"
+    execution_class: "WIRE"
+    pass_criteria: "100% of unique confirmed reproduction commands are in-scope, non-destructive, achieve >=90% replay success across 3x replays matching stored evidence, with 0 canary hits and verified bench network detach."
+    known_defect_ids: []
+
+  - test_id: "P7-TC-ACC-01"
+    dimension: "accuracy"
+    spec_ids: ["P7-REQ-E01", "P7-REQ-E02"]
+    title: "Ground Truth & Oracle Accuracy, Severity/CVSS Plausibility, and WSTG/CWE Mapping Audit"
+    execution_class: "STATIC"
+    pass_criteria: "Confirmed findings verified against GT/oracle (TP/FP recorded), 100% CVSS-to-severity band consistency, plausible severities vs reference, and 100% valid WSTG/CWE mappings."
+    known_defect_ids: []
+
+  - test_id: "P7-TC-DEDUP-01"
+    dimension: "deduplication"
+    spec_ids: ["P7-REQ-F01"]
+    title: "Controlled Duplicate & Near-Duplicate Evaluation via Real Finding Service/API"
+    execution_class: "WIRE"
+    pass_criteria: "Exact duplicates accurately clustered without over-clustering distinct endpoints/parameters or collapsing null-endpoint findings; ingestion deduplication behavior documented."
+    known_defect_ids: []
+
+  - test_id: "P7-TC-REP-01"
+    dimension: "report_quality"
+    spec_ids: ["P7-REQ-G01"]
+    title: "Multi-Format (HTML & PDF) 3x Report Generation Factual Fidelity & Consistency (Findings + Empty Projects)"
+    execution_class: "WIRE"
+    pass_criteria: "All 12 reports (2 formats x 3 generations x 2 projects) generate cleanly, match DB counts/titles/endpoints/CWEs, and remain factually consistent across all 3 runs."
+    known_defect_ids: []
+
+  - test_id: "P7-TC-REP-02"
+    dimension: "report_quality"
+    spec_ids: ["P7-REQ-G02"]
+    title: "Empty Report Safety, Candidate-vs-Confirmed Labelling & Ungrounded Boilerplate Audit"
+    execution_class: "WIRE"
+    pass_criteria: "Zero-finding report never claims target is secure; candidate findings clearly distinguished from confirmed findings; zero ungrounded platform capability claims in rendered report."
+    known_defect_ids: []
+
+  - test_id: "P7-TC-REP-03"
+    dimension: "report_quality"
+    spec_ids: ["P7-REQ-G03"]
+    title: "LLM-Written Executive Summary & Remediation Groundedness, WSTG/CWE Correctness & 3x Consistency"
+    execution_class: "WIRE"
+    pass_criteria: "All factual claims mapped to DB findings (0 unsupported claims, 0 fabricated CVEs/URLs), remediations aligned with WSTG/CWE references, factually consistent across 3 live gateway runs within budget cap."
+    known_defect_ids: []
+
+  - test_id: "P7-TC-LIFE-01"
+    dimension: "lifecycle"
+    spec_ids: ["P7-REQ-H01", "P7-REQ-H02"]
+    title: "Finding Lifecycle Transitions, Retest, False Positive, Risk Acceptance, Assignment & Human-Review Audit"
+    execution_class: "WIRE"
+    pass_criteria: "Valid transitions, illegal-transition rejection, retest, false-positive refutation, risk acceptance, and audit logs succeed over API; absent assignment and FLAGGED_FOR_HUMAN_REVIEW (DEFECT-BUSL-01) explicitly documented as Not Implemented."
+    known_defect_ids: ["DEFECT-BUSL-01"]

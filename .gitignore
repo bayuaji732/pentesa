@@ -51,6 +51,7 @@ Thumbs.db
 
 # Scratch scripts
 scratch/
+.scratch/
 .env.*
 !.env.example
 !.env.production.example

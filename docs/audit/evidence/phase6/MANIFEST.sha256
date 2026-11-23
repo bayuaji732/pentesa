@@ -27,5 +27,5 @@ bfabfca7c79c8ba183b21f223c6118a501b819275415e17487bdeff085ee9a54  p6b_rerun_afte
 ae31470fa77cfa145734c240df49b81b5ae3dde14951438be8d77469551d3575  p6b_rerun_after_hotfix_idor_matrix.json
 907c9ebe2ec8b114df3bd9f0b95069567be544feac7e77c257168d1f4a8fef83  p6b_rerun_after_hotfix_regression_test.txt
 1424883d7b36c3958a1e42470a9a4441c15b5c568e498896ddc34fa6cdae208b  p6b_rerun_after_hotfix_cleanup_and_demo_prep.txt
-153d75e4909e26acb707c7f374e4f7c7308e53f2e03b4c5dc65de96822dc2507  ../../../../benchmark/p6b/rerun_after_hotfix.py
-277f38515707607bbfd2ec20109d1e0c66afa58df2c2c725630f2cd693da301e  ../../../../benchmark/p6b/hotfix_cleanup_and_demo_prep.py
+0ed3b6f456c1a7395751205cd266ca6bf585d31b096d51ddb2dc47c500f17b96  ../../../../benchmark/p6b/rerun_after_hotfix.py
+d0651cb05a7d17660e0642d2a27d4aa5fdb7a00d0e70c7f7f0fa619bd33e8dcc  ../../../../benchmark/p6b/hotfix_cleanup_and_demo_prep.py

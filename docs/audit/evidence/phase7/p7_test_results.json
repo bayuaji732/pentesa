@@ -10,7 +10,10 @@
     "target_environment": "pentesa-prod (docker-compose.yml, post hotfix-api-02)",
     "total_tokens": 2434,
     "total_cost_usd": 0.0144,
-    "canary_hits": 0
+    "canary_hits": 0,
+    "exact_command": ".venv\\Scripts\\python.exe -u benchmark/p7/test_runner_p7.py",
+    "database_engine": "PostgreSQL 16 Alpine (pentesa-db)",
+    "stack_mode": "running stack (pentesa-prod)"
   },
   "test_results": [
     {

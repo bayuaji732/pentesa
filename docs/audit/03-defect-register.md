@@ -57,6 +57,7 @@
 | **DEFECT-DEDUP-01** | **P2** | Deduplication | `services/evidence_engine/finding_service.py` | No Ingestion-Time Deduplication & `endpoint_id=None` Findings Over-Clustered on `"global|ANY"` | Open (Documented) | Phase 9 (Ingestion Dedup Key + Raw-Request URL Fallback in Signature) |
 | **DEFECT-LIFE-01** | **P3** | Findings / Lifecycle | `database/models/finding.py`, `apps/api/routers/findings.py` | Finding Assignment (`assigned_to` Field / Route) Not Implemented | Open (Not Implemented) | Phase 9 (Add `assigned_to` FK & Assignment Endpoint) |
 | **DEFECT-REPRO-01** | **P3** | Evidence / cURL | `services/evidence_engine/curl_generator.py` | Generated `reproduction_curl` Omits Redirect Flag (`-L`) When Target Root Redirects (`bench-dvwa` 302 vs 200) | Open (Documented) | Phase 9 (Record Exact Final Redirected URL in Evidence & cURL) |
+| **DEFECT-CFG-01** | **P3** | Configuration / Safety | `packages/common/config.py`, `apps/api/main.py`, `database/session.py` | Default `DATABASE_URL` Silently Falls Back to Local SQLite (`./pentesa.db`) When Env Missing; Production Mode Must Fail Closed | Open (Documented) | Phase 9 (Fail Closed in Production When `PENTESA_DATABASE_URL` Missing or SQLite) |
 
 ---
 
@@ -462,6 +463,16 @@
   - **Components:** `services/evidence_engine/curl_generator.py`, `agents/wstg/wstg_agent.py`
   - **Problem & Root Cause:** When `wstg_agent` checks a redirecting root URL (`http://bench-dvwa` -> 302 -> `/login.php` 200), stored `raw_response` captures HTTP 200 while generated `curl -i -s 'http://bench-dvwa'` omits `-L` (or the final URL), yielding HTTP 302 on replay (`21/24` = 87.5% status match in `P7-TC-REPRO-01`).
   - **Fix & Acceptance Criteria:** Record the exact final in-scope URL in `raw_request` and `reproduction_curl` so replay HTTP status matches stored `raw_response` 100% (24/24) without requiring unsafe blind `-L` redirect following.
+
+### 3.34 DEFECT-CFG-01 / P3: Default `DATABASE_URL` Silently Falls Back to Local SQLite in Production Mode
+- **Components:** `packages/common/config.py:51-55`, `apps/api/main.py:71-79`, `database/session.py:15-19`
+- **Severity:** **P3 (Low — Fail-Open Configuration & State-Split Hazard)**
+- **Problem:** When `PENTESA_DATABASE_URL` / `DATABASE_URL` is unset in the process environment, `Settings.database_url` (`packages/common/config.py:52`) silently defaults to `sqlite+aiosqlite:///./pentesa.db`. Meanwhile, `validate_encryption_key_startup()` (`apps/api/main.py:71-79`) only checks for hardcoded weak passwords inside `db_url` and does **not** reject `sqlite` URLs when `PENTESA_ENV` is `production` or `staging`. Consequently, misconfigured scripts or services silently read/write a stale local `./pentesa.db` file instead of failing closed (this directly caused the 585-row SQLite vs 1,249-row PostgreSQL audit-chain split in Phase 6 `demo-smoke.txt`).
+- **Root Cause:** Permissive SQLite development default in `Settings.database_url` combined with missing dialect/presence assertion in `validate_encryption_key_startup()`.
+- **Evidence:** `packages/common/config.py:51-55` (`default="sqlite+aiosqlite:///./pentesa.db"`), `apps/api/main.py:71-79`, `docs/audit/07-security-assessment.md` §4.4a.
+- **Recommended Fix:** In `apps/api/main.py:validate_encryption_key_startup()`, when `env not in ("development", "test")`, require `PENTESA_DATABASE_URL` (or `DATABASE_URL`) to be explicitly set and reject any URL starting with `sqlite` (raise `RuntimeError` fail-closed on startup).
+- **Regression Test:** `tests/unit/test_startup_fail_closed_db.py` asserting startup raises `RuntimeError` when `PENTESA_ENV=production` and `PENTESA_DATABASE_URL` is unset or `sqlite+aiosqlite:///...`.
+- **Acceptance Criteria:** Production/staging startup refuses to boot without an explicit non-SQLite PostgreSQL `PENTESA_DATABASE_URL`.
 
 
 

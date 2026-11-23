@@ -317,6 +317,42 @@ This document catalogs identified improvements, technical debt, and recommended 
   1. Add `assigned_to` FK to `Finding` and `PATCH /api/v1/projects/{pid}/findings/{fid}/assign` with audit logging (`DEFECT-LIFE-01`).
   2. Record the exact final in-scope URL after redirects in `raw_request` and `reproduction_curl` so replay status matches stored `raw_response` 100% without unsafe blind `-L` (`DEFECT-REPRO-01`).
 
+---
+
+### DEFECT-CFG-01: Fail-Closed `DATABASE_URL` Enforcement in Production Mode
+- **Category**: Configuration Safety & Fail-Closed Startup (Phase 7 Gate)
+- **Severity**: P3 (Low)
+- **Status**: Documented in Phase 7 Gate (`docs/audit/03-defect-register.md` §3.34); Scheduled for Phase 9.
+- **Problem Statement**:
+  `packages/common/config.py:51-55` defaults `database_url = "sqlite+aiosqlite:///./pentesa.db"` when `PENTESA_DATABASE_URL` is unset, and `apps/api/main.py:71-79` does not reject SQLite URLs when `PENTESA_ENV=production` or `staging`.
+- **Proposed Solution**:
+  Require explicit non-SQLite `PENTESA_DATABASE_URL` in `apps/api/main.py:validate_encryption_key_startup()` whenever `env not in ("development", "test")`, raising `RuntimeError` fail-closed if unset or `sqlite*`.
+
+---
+
+## npm Advisory Triage Plan (Phase 7 Gate — Do Not Apply Until Phase 9)
+
+Triaged from `apps/web` `npm audit --json` (`docs/audit/07-security-assessment.md` §4.5, `apps/web/package.json`):
+
+| Package (Current) | Advisories & Reachability | Fixed Version | Breaking-Change Risk | Recommended Phase 9 Action Plan |
+|---|---|---|---|---|
+| `next` (`14.2.18`, direct prod dep) | **15 High/Critical** (4 Critical, 11 High): 5 High App Router RSC DoS **reachable** (`GHSA-mwv6-3258-q52c`, `GHSA-5j59-xgg2-r9c4`, `GHSA-h25m-26qc-wcjf`, `GHSA-q4gf-8mx6-v5v3`, `GHSA-8h8q-6873-q5fj`); 2 Critical `/_next/image` **potentially reachable** (`GHSA-2xp9-vwfh-vxw4`, `GHSA-2464-fhr4-w9xw`); 8 not directly reachable in current Linux Docker app (no middleware, no Server Actions, no Pages Router/i18n). | **Interim partial (14.x):** `14.2.35` (fixes 3/15 only).<br>**Full fix:** `>=16.4.6` (reported by `npm audit`; resolves all 15 `next` + 2 nested `postcss` advisories). | **High** for 14 -> 16 major jump (React 19 peer dep upgrade from `react@18.3.1`, async `params`/`searchParams`/`cookies`/`headers`, changed `fetch`/route caching defaults, ESLint/TS config updates). **Low** for interim `images.unoptimized` config. | 1. **Immediate low-risk hardening:** Set `images: { unoptimized: true }` in `apps/web/next.config.mjs` to eliminate `/_next/image` exposure.<br>2. **Phase 9 major upgrade:** Upgrade `next` to `>=16.4.6` alongside `react`/`react-dom`/`@types/react` in a dedicated branch; run `npm run build`, UI smoke checks, and `npm audit --omit=dev` asserting 0 High/Critical. |
+| `postcss` (`8.4.31`, nested transitive `next > postcss`) | **2 High** (`GHSA-6g55-p6wh-862q`, `GHSA-r28c-9q8g-f849`) — **build-time only** on trusted repo CSS (unreachable at runtime; root devDep `postcss` is already `8.5.32`). | `>8.5.17` (pulled automatically by `next >= 16.4.6`) | **Low** (build-time CSS parser only; no runtime code path) | Resolved automatically with the `next >= 16.4.6` upgrade; no standalone `overrides` hack needed before Phase 9. |
+
+---
+
+## Documentation Synchronization Backlog (Docs-Sync)
+
+Tracked discrepancies between specification/architecture documents and verified codebase implementation (to be reconciled in Phase 9 / Documentation Sync):
+
+| Topic | Documentation Claim (Doc Path) | Verified Code Evidence | Status / Sync Action |
+|---|---|---|---|
+| **JWT Access Lifetime, Refresh & Logout** | `docs/03-system-architecture.md:380` ("short-lived JWT access tokens (15-minute expiration) and rotating refresh tokens (7-day expiration)"); `docs/11-api-specification.md:122` ("fresh 15-minute access token"); `docs/11-api-specification.md:126` (`POST /api/v1/auth/logout` Redis blocklist). | `packages/common/config.py:47-48` (`access_token_expire_minutes: int = 60`, `refresh_token_expire_days: int = 7`); `apps/api/routers/auth.py:74-141` (`POST /login` & `POST /refresh` issue 60-minute access tokens, `expires_in=3600`; no `/logout` route or Redis blocklist exists). | **Out of Sync** — Either shorten `access_token_expire_minutes` to 15 and add `/logout` Redis revocation, or update architecture/API docs to document 60-minute lifetime and stateless logout. |
+| **Circuit-Breaker Thresholds** | **Internal doc conflict:** `docs/09-tool-integrations.md:343` & `docs/13-security-requirements.md:91` specify **15% 5xx/timeouts over 30s** vs `docs/02-srs.md:275` (`SRS-NFR-SAFE-003`) & `docs/03-system-architecture.md:400` specify **20% 5xx/dropouts over 60s**. | `git grep` across `packages/`, `apps/`, `services/`, `integrations/`: **0 circuit-breaker implementations exist** (`Not Implemented`; also noted under `P2-REL-01`). | **Out of Sync (Internal Spec Conflict + Not Implemented)** — Standardize one threshold across SRS/Architecture/Tool/Security docs and implement the circuit breaker in Phase 9. |
+| **LangGraph vs Custom Sequential DAG** | `docs/01-prd.md:118,280,344`, `docs/02-srs.md:97,209`, `docs/03-system-architecture.md:23,63,413,426`, `docs/04-agent-architecture.md:5,77,334`, `docs/18-deployment-architecture.md:87,214` specify LangGraph cyclic stateful graph with `PostgresSaver` checkpointing. | `services/orchestrator/supervisor.py:45-80` implements custom Python `WorkflowSupervisor` sequential DAG over 7 concrete agents (`NI-01`, `NI-02`); `langgraph` is absent from `requirements.txt`. | **Out of Sync** — Record ADR superseding `ADR-002` (custom DAG + explicit checkpointing) or migrate to LangGraph; remove hardcoded `"governed by LangGraph"` from `ptes_standard.html` (`DEFECT-REP-02`). |
+| **bcrypt Cost Factor** | `docs/02-srs.md:278` (`SRS-NFR-SEC-001`), `docs/03-system-architecture.md:381`, `docs/10-database-design.md:106`, `docs/13-security-requirements.md:150` all specify `bcrypt` work factor **12**. | `packages/common/security.py:29` (`salt = bcrypt.gensalt(rounds=12)`). | **In Sync (Verified)** — Code matches all 4 specification documents at work factor 12 (no divergence). |
+| **Tool List vs Implemented Wrappers (& PDF Engine)** | `docs/01-prd.md:95-100,112,223,343-344`, `docs/02-srs.md:99,147,180-186,201,251`, `docs/03-system-architecture.md:61,417`, `docs/09-tool-integrations.md:17-21,152-299`, `docs/15-reporting-specification.md` list 5 CLI binaries (`nuclei`, `katana`, `subfinder`, `httpx`, `ffuf`) + WeasyPrint PDF + Celery worker. | `integrations/` contains only 2 CLI wrappers (`integrations/nuclei/runner.py`, `integrations/ffuf/runner.py`); `katana`/`subfinder`/`httpx` CLI runners are absent (`NI-04`, replaced by Python `httpx`+`BeautifulSoup4` in `services/discovery_engine/`); PDF uses ReportLab (`services/reporting_engine/renderer.py:9-22`), not WeasyPrint; worker is custom async polling loop (`services/execution_engine/worker.py`, `NI-06`), not Celery. | **Out of Sync** — Align PRD/SRS/Architecture/Tool/Reporting docs (and `ptes_standard.html` per `DEFECT-REP-02`) with implemented wrappers and engines, or implement missing wrappers in Phase 9. |
+
 
 
 

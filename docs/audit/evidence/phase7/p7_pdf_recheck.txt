@@ -1,0 +1,50 @@
+﻿========================================================================================
+PHASE 7 GATE (PART 0c) — PDF FIDELITY SECOND-EXTRACTOR VERIFICATION
+Timestamp (UTC):           2026-11-23T07:11:55.196597+00:00
+Git Commit:                efb1c383ddf5a38e7e69507233e998f1f26d6510 (DIRTY)
+Exact Command:             .venv\Scripts\python.exe p0c_pdf_recheck.py
+Runner P7 SHA-256:         4736fb5df2517b25dcc383b69754f075d8108dc85c9612348127830b7c60385f
+Ground Truth P7 SHA-256:   acd209a69a3b0c8a83d936f498945797e8842fcb815b8295cc31129957c0cac4
+Scorer P7 SHA-256:         2741d23c5df6183517cd25cab0a390fb8318e52d5f58084a0b9963bd5bd66ddd
+Execution Mode:            IN-PROCESS ReportRenderer.render_pdf() on exact Phase 7 inputs
+========================================================================================
+
+[CASE 1] Findings Project PDF (Phase3-Bench-pentesa-bench-seeded-Run1, 3 identical runs in P7-TC-REP-01)
+  PDF bytes: 6526
+  Method 1 (test_runner_p7) extracted chars: 0
+  Method 2 (ASCII85/Flate BT-ET) extracted chars: 2393
+  Finding 585303cd-39a7-4fe3-91b4-798a162d420a (CWE-79):
+    Title: Reflected Cross-Site Scripting (XSS) in 'name' Parameter (/ssti/render)
+    Method 1: title_ok=False, cwe_ok=False
+    Method 2: title_ok=True, cwe_ok=True -> CLASSIFICATION: EXTRACTION ARTIFACT (present in PDF)
+  Finding c03b79af-b606-4868-8e76-3b54bcd1b67c (CWE-89):
+    Title: SQL Injection in 'q' Parameter (/sqli/search)
+    Method 1: title_ok=False, cwe_ok=False
+    Method 2: title_ok=True, cwe_ok=True -> CLASSIFICATION: EXTRACTION ARTIFACT (present in PDF)
+
+[CASE 2] Empty Project PDF (P7-TC-REP-02 safety check)
+  Method 1 extracted chars: 0 | 'strong security posture' found: False
+  Method 2 extracted chars: 1360 | 'strong security posture' found: True -> REAL DEFECT (DEFECT-REP-01 also affects PDF)
+
+[CASE 3] Mixed Status PDF (Confirmed vs Detected separation)
+  Method 2 extracted chars: 2146 | 'Detected' label present in PDF: False -> REAL DEFECT (renderer.py omits Status column)
+
+[CASE 4] Planted Canary PDF (P7-TC-REDACT-02)
+  Method 1 extracted chars: 0 | custom canary leaked: False
+  Method 2 extracted chars: 1807 | exact=True | unwrap=True | snippet='ken in description: PENTESA_P7_CANARY_SECRET_9f8e7d6c Business Impact: Operation'
+  -> REAL DEFECT (DEFECT-REDACT-01 also leaks into PDF, 4/6 surfaces)
+
+========================================================================================
+SUMMARY OF 6/24 PDF MISSES IN P7-TC-REP-01:
+  1. findings_project PDF Run 1 titles_ok : EXTRACTION ARTIFACT -> PASS (both titles present)
+  2. findings_project PDF Run 1 cwes_ok   : EXTRACTION ARTIFACT -> PASS (CWE-89 & CWE-79 present)
+  3. findings_project PDF Run 2 titles_ok : EXTRACTION ARTIFACT -> PASS (both titles present)
+  4. findings_project PDF Run 2 cwes_ok   : EXTRACTION ARTIFACT -> PASS (CWE-89 & CWE-79 present)
+  5. findings_project PDF Run 3 titles_ok : EXTRACTION ARTIFACT -> PASS (both titles present)
+  6. findings_project PDF Run 3 cwes_ok   : EXTRACTION ARTIFACT -> PASS (CWE-89 & CWE-79 present)
+RECOMPUTED P7-TC-REP-01 FACTUAL FIDELITY: 24/24 PDF + 24/24 HTML = 48/48 (100.0%)
+ADJUSTED STATUS: P7-TC-REP-01 -> Verified (factual fidelity 100.0%, 3x consistency 100.0%)
+NOTE: FR-RP-01 remains Partially Verified (ReportLab diverges from specified WeasyPrint 17-section layout).
+NOTE: P7-TC-REP-02 remains Failed (STRONG SECURITY POSTURE in both HTML & PDF; Status omitted in PDF).
+NOTE: P7-TC-REDACT-02 remains Partially Verified (5/6 secrets redacted; custom canary leaks in 4 surfaces incl. PDF).
+========================================================================================

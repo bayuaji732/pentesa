@@ -1,4 +1,15 @@
 {
+  "_forensic_header": {
+    "timestamp_utc": "2026-11-23T05:26:36.149574+00:00",
+    "header_added_utc": "2026-11-23T07:11:56.076337+00:00",
+    "git_commit": "782e894253addad3d45794d05aef4ab6cea6d29f (DIRTY during run; committed at efb1c38)",
+    "exact_command": ".venv\\Scripts\\python.exe -u benchmark/p7/test_runner_p7.py",
+    "runner_p7_sha256": "4736fb5df2517b25dcc383b69754f075d8108dc85c9612348127830b7c60385f",
+    "ground_truth_p7_sha256": "acd209a69a3b0c8a83d936f498945797e8842fcb815b8295cc31129957c0cac4",
+    "scorer_p7_sha256": "2741d23c5df6183517cd25cab0a390fb8318e52d5f58084a0b9963bd5bd66ddd",
+    "database_engine": "PostgreSQL 16 Alpine (pentesa-db)",
+    "target_stack": "http://127.0.0.1:8000 (pentesa-prod, running stack, post hotfix-api-02)"
+  },
   "unique_commands_tested": 8,
   "total_replays_3x": 24,
   "successful_vuln_replays": 24,

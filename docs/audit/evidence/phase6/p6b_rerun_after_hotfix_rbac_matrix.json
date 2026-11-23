@@ -1,0 +1,3067 @@
+{
+  "metadata": {
+    "total_cells": 380,
+    "operations_count": 76,
+    "roles": [
+      "unauthenticated",
+      "viewer",
+      "tester",
+      "lead",
+      "other_tenant"
+    ],
+    "status_counts": {
+      "2xx": 97,
+      "401": 71,
+      "403": 79,
+      "404": 48,
+      "422": 71,
+      "5xx": 0
+    },
+    "expected_allow_count": 215,
+    "expected_deny_count": 165,
+    "server_errors_count": 0
+  },
+  "server_error_cells": [],
+  "cells": [
+    {
+      "method": "GET",
+      "operation": "/healthz",
+      "target_url": "http://127.0.0.1:8000/healthz",
+      "role": "unauthenticated",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/healthz",
+      "target_url": "http://127.0.0.1:8000/healthz",
+      "role": "viewer",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/healthz",
+      "target_url": "http://127.0.0.1:8000/healthz",
+      "role": "tester",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/healthz",
+      "target_url": "http://127.0.0.1:8000/healthz",
+      "role": "lead",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/healthz",
+      "target_url": "http://127.0.0.1:8000/healthz",
+      "role": "other_tenant",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/readyz",
+      "target_url": "http://127.0.0.1:8000/readyz",
+      "role": "unauthenticated",
+      "status_code": 200,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/readyz",
+      "target_url": "http://127.0.0.1:8000/readyz",
+      "role": "viewer",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/readyz",
+      "target_url": "http://127.0.0.1:8000/readyz",
+      "role": "tester",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/readyz",
+      "target_url": "http://127.0.0.1:8000/readyz",
+      "role": "lead",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/readyz",
+      "target_url": "http://127.0.0.1:8000/readyz",
+      "role": "other_tenant",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/auth/login",
+      "target_url": "http://127.0.0.1:8000/api/v1/auth/login",
+      "role": "unauthenticated",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/auth/login",
+      "target_url": "http://127.0.0.1:8000/api/v1/auth/login",
+      "role": "viewer",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/auth/login",
+      "target_url": "http://127.0.0.1:8000/api/v1/auth/login",
+      "role": "tester",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/auth/login",
+      "target_url": "http://127.0.0.1:8000/api/v1/auth/login",
+      "role": "lead",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/auth/login",
+      "target_url": "http://127.0.0.1:8000/api/v1/auth/login",
+      "role": "other_tenant",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/auth/refresh",
+      "target_url": "http://127.0.0.1:8000/api/v1/auth/refresh",
+      "role": "unauthenticated",
+      "status_code": 422,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/auth/refresh",
+      "target_url": "http://127.0.0.1:8000/api/v1/auth/refresh",
+      "role": "viewer",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/auth/refresh",
+      "target_url": "http://127.0.0.1:8000/api/v1/auth/refresh",
+      "role": "tester",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/auth/refresh",
+      "target_url": "http://127.0.0.1:8000/api/v1/auth/refresh",
+      "role": "lead",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/auth/refresh",
+      "target_url": "http://127.0.0.1:8000/api/v1/auth/refresh",
+      "role": "other_tenant",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/auth/me",
+      "target_url": "http://127.0.0.1:8000/api/v1/auth/me",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/auth/me",
+      "target_url": "http://127.0.0.1:8000/api/v1/auth/me",
+      "role": "viewer",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/auth/me",
+      "target_url": "http://127.0.0.1:8000/api/v1/auth/me",
+      "role": "tester",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/auth/me",
+      "target_url": "http://127.0.0.1:8000/api/v1/auth/me",
+      "role": "lead",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/auth/me",
+      "target_url": "http://127.0.0.1:8000/api/v1/auth/me",
+      "role": "other_tenant",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/users",
+      "target_url": "http://127.0.0.1:8000/api/v1/users",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/users",
+      "target_url": "http://127.0.0.1:8000/api/v1/users",
+      "role": "viewer",
+      "status_code": 403,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/users",
+      "target_url": "http://127.0.0.1:8000/api/v1/users",
+      "role": "tester",
+      "status_code": 403,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/users",
+      "target_url": "http://127.0.0.1:8000/api/v1/users",
+      "role": "lead",
+      "status_code": 403,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/users",
+      "target_url": "http://127.0.0.1:8000/api/v1/users",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/users",
+      "target_url": "http://127.0.0.1:8000/api/v1/users",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/users",
+      "target_url": "http://127.0.0.1:8000/api/v1/users",
+      "role": "viewer",
+      "status_code": 403,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/users",
+      "target_url": "http://127.0.0.1:8000/api/v1/users",
+      "role": "tester",
+      "status_code": 403,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/users",
+      "target_url": "http://127.0.0.1:8000/api/v1/users",
+      "role": "lead",
+      "status_code": 403,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/users",
+      "target_url": "http://127.0.0.1:8000/api/v1/users",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/users/{user_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/users/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/users/{user_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/users/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "viewer",
+      "status_code": 403,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/users/{user_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/users/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "tester",
+      "status_code": 403,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/users/{user_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/users/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "lead",
+      "status_code": 403,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/users/{user_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/users/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "PUT",
+      "operation": "/api/v1/users/{user_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/users/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "PUT",
+      "operation": "/api/v1/users/{user_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/users/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "viewer",
+      "status_code": 403,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "PUT",
+      "operation": "/api/v1/users/{user_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/users/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "tester",
+      "status_code": 403,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "PUT",
+      "operation": "/api/v1/users/{user_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/users/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "lead",
+      "status_code": 403,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "PUT",
+      "operation": "/api/v1/users/{user_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/users/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects",
+      "role": "viewer",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects",
+      "role": "tester",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects",
+      "role": "lead",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects",
+      "role": "other_tenant",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects",
+      "role": "viewer",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects",
+      "role": "tester",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects",
+      "role": "lead",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects",
+      "role": "other_tenant",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94",
+      "role": "viewer",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94",
+      "role": "tester",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94",
+      "role": "lead",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "PUT",
+      "operation": "/api/v1/projects/{project_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "PUT",
+      "operation": "/api/v1/projects/{project_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94",
+      "role": "viewer",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "PUT",
+      "operation": "/api/v1/projects/{project_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94",
+      "role": "tester",
+      "status_code": 403,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "PUT",
+      "operation": "/api/v1/projects/{project_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94",
+      "role": "lead",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "PUT",
+      "operation": "/api/v1/projects/{project_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "DELETE",
+      "operation": "/api/v1/projects/{project_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "DELETE",
+      "operation": "/api/v1/projects/{project_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "viewer",
+      "status_code": 404,
+      "expected": "DENY"
+    },
+    {
+      "method": "DELETE",
+      "operation": "/api/v1/projects/{project_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "tester",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "DELETE",
+      "operation": "/api/v1/projects/{project_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "lead",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "DELETE",
+      "operation": "/api/v1/projects/{project_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "other_tenant",
+      "status_code": 404,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/members",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/members",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/members",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/members",
+      "role": "viewer",
+      "status_code": 422,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/members",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/members",
+      "role": "tester",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/members",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/members",
+      "role": "lead",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/members",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/members",
+      "role": "other_tenant",
+      "status_code": 422,
+      "expected": "DENY"
+    },
+    {
+      "method": "DELETE",
+      "operation": "/api/v1/projects/{project_id}/members/{user_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/members/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "DELETE",
+      "operation": "/api/v1/projects/{project_id}/members/{user_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/members/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "viewer",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "DELETE",
+      "operation": "/api/v1/projects/{project_id}/members/{user_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/members/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "tester",
+      "status_code": 403,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "DELETE",
+      "operation": "/api/v1/projects/{project_id}/members/{user_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/members/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "lead",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "DELETE",
+      "operation": "/api/v1/projects/{project_id}/members/{user_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/members/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/auth-profiles",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/auth-profiles",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/auth-profiles",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/auth-profiles",
+      "role": "viewer",
+      "status_code": 403,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/auth-profiles",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/auth-profiles",
+      "role": "tester",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/auth-profiles",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/auth-profiles",
+      "role": "lead",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/auth-profiles",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/auth-profiles",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/auth-profiles",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/auth-profiles",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/auth-profiles",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/auth-profiles",
+      "role": "viewer",
+      "status_code": 422,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/auth-profiles",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/auth-profiles",
+      "role": "tester",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/auth-profiles",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/auth-profiles",
+      "role": "lead",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/auth-profiles",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/auth-profiles",
+      "role": "other_tenant",
+      "status_code": 422,
+      "expected": "DENY"
+    },
+    {
+      "method": "DELETE",
+      "operation": "/api/v1/projects/{project_id}/auth-profiles/{profile_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/auth-profiles/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "DELETE",
+      "operation": "/api/v1/projects/{project_id}/auth-profiles/{profile_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/auth-profiles/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "viewer",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "DELETE",
+      "operation": "/api/v1/projects/{project_id}/auth-profiles/{profile_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/auth-profiles/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "tester",
+      "status_code": 403,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "DELETE",
+      "operation": "/api/v1/projects/{project_id}/auth-profiles/{profile_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/auth-profiles/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "lead",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "DELETE",
+      "operation": "/api/v1/projects/{project_id}/auth-profiles/{profile_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/auth-profiles/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/scope",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/scope",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/scope",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/scope",
+      "role": "viewer",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/scope",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/scope",
+      "role": "tester",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/scope",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/scope",
+      "role": "lead",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/scope",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/scope",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/scope",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/scope",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/scope",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/scope",
+      "role": "viewer",
+      "status_code": 422,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/scope",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/scope",
+      "role": "tester",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/scope",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/scope",
+      "role": "lead",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/scope",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/scope",
+      "role": "other_tenant",
+      "status_code": 422,
+      "expected": "DENY"
+    },
+    {
+      "method": "DELETE",
+      "operation": "/api/v1/projects/{project_id}/scope/{rule_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/scope/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "DELETE",
+      "operation": "/api/v1/projects/{project_id}/scope/{rule_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/scope/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "viewer",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "DELETE",
+      "operation": "/api/v1/projects/{project_id}/scope/{rule_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/scope/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "tester",
+      "status_code": 403,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "DELETE",
+      "operation": "/api/v1/projects/{project_id}/scope/{rule_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/scope/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "lead",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "DELETE",
+      "operation": "/api/v1/projects/{project_id}/scope/{rule_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/scope/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/scope/check",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/scope/check",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/scope/check",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/scope/check",
+      "role": "viewer",
+      "status_code": 400,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/scope/check",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/scope/check",
+      "role": "tester",
+      "status_code": 400,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/scope/check",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/scope/check",
+      "role": "lead",
+      "status_code": 400,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/scope/check",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/scope/check",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/domains",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/domains",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/domains",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/domains",
+      "role": "viewer",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/domains",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/domains",
+      "role": "tester",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/domains",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/domains",
+      "role": "lead",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/domains",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/domains",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/domains",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/domains",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/domains",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/domains",
+      "role": "viewer",
+      "status_code": 422,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/domains",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/domains",
+      "role": "tester",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/domains",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/domains",
+      "role": "lead",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/domains",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/domains",
+      "role": "other_tenant",
+      "status_code": 422,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/endpoints",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/endpoints",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/endpoints",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/endpoints",
+      "role": "viewer",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/endpoints",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/endpoints",
+      "role": "tester",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/endpoints",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/endpoints",
+      "role": "lead",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/endpoints",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/endpoints",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/endpoints",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/endpoints",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/endpoints",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/endpoints",
+      "role": "viewer",
+      "status_code": 422,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/endpoints",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/endpoints",
+      "role": "tester",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/endpoints",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/endpoints",
+      "role": "lead",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/endpoints",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/endpoints",
+      "role": "other_tenant",
+      "status_code": 422,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/endpoints/{endpoint_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/endpoints/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/endpoints/{endpoint_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/endpoints/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "viewer",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/endpoints/{endpoint_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/endpoints/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "tester",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/endpoints/{endpoint_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/endpoints/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "lead",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/endpoints/{endpoint_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/endpoints/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "PUT",
+      "operation": "/api/v1/projects/{project_id}/endpoints/{endpoint_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/endpoints/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "PUT",
+      "operation": "/api/v1/projects/{project_id}/endpoints/{endpoint_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/endpoints/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "viewer",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "PUT",
+      "operation": "/api/v1/projects/{project_id}/endpoints/{endpoint_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/endpoints/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "tester",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "PUT",
+      "operation": "/api/v1/projects/{project_id}/endpoints/{endpoint_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/endpoints/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "lead",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "PUT",
+      "operation": "/api/v1/projects/{project_id}/endpoints/{endpoint_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/endpoints/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "DELETE",
+      "operation": "/api/v1/projects/{project_id}/endpoints/{endpoint_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/endpoints/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "DELETE",
+      "operation": "/api/v1/projects/{project_id}/endpoints/{endpoint_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/endpoints/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "viewer",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "DELETE",
+      "operation": "/api/v1/projects/{project_id}/endpoints/{endpoint_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/endpoints/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "tester",
+      "status_code": 403,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "DELETE",
+      "operation": "/api/v1/projects/{project_id}/endpoints/{endpoint_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/endpoints/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "lead",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "DELETE",
+      "operation": "/api/v1/projects/{project_id}/endpoints/{endpoint_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/endpoints/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/technologies",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/technologies",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/technologies",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/technologies",
+      "role": "viewer",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/technologies",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/technologies",
+      "role": "tester",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/technologies",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/technologies",
+      "role": "lead",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/technologies",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/technologies",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/attack-surface/graph",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/attack-surface/graph",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/attack-surface/graph",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/attack-surface/graph",
+      "role": "viewer",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/attack-surface/graph",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/attack-surface/graph",
+      "role": "tester",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/attack-surface/graph",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/attack-surface/graph",
+      "role": "lead",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/attack-surface/graph",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/attack-surface/graph",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/discovery/crawl",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/discovery/crawl",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/discovery/crawl",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/discovery/crawl",
+      "role": "viewer",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/discovery/crawl",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/discovery/crawl",
+      "role": "tester",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/discovery/crawl",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/discovery/crawl",
+      "role": "lead",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/discovery/crawl",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/discovery/crawl",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/wstg/catalog",
+      "target_url": "http://127.0.0.1:8000/api/v1/wstg/catalog",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/wstg/catalog",
+      "target_url": "http://127.0.0.1:8000/api/v1/wstg/catalog",
+      "role": "viewer",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/wstg/catalog",
+      "target_url": "http://127.0.0.1:8000/api/v1/wstg/catalog",
+      "role": "tester",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/wstg/catalog",
+      "target_url": "http://127.0.0.1:8000/api/v1/wstg/catalog",
+      "role": "lead",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/wstg/catalog",
+      "target_url": "http://127.0.0.1:8000/api/v1/wstg/catalog",
+      "role": "other_tenant",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/wstg/plan",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/plan",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/wstg/plan",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/plan",
+      "role": "viewer",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/wstg/plan",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/plan",
+      "role": "tester",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/wstg/plan",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/plan",
+      "role": "lead",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/wstg/plan",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/plan",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "PATCH",
+      "operation": "/api/v1/projects/{project_id}/wstg/tests/{test_instance_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/tests/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "PATCH",
+      "operation": "/api/v1/projects/{project_id}/wstg/tests/{test_instance_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/tests/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "viewer",
+      "status_code": 404,
+      "expected": "DENY"
+    },
+    {
+      "method": "PATCH",
+      "operation": "/api/v1/projects/{project_id}/wstg/tests/{test_instance_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/tests/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "tester",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "PATCH",
+      "operation": "/api/v1/projects/{project_id}/wstg/tests/{test_instance_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/tests/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "lead",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "PATCH",
+      "operation": "/api/v1/projects/{project_id}/wstg/tests/{test_instance_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/tests/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/wstg/coverage",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/coverage",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/wstg/coverage",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/coverage",
+      "role": "viewer",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/wstg/coverage",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/coverage",
+      "role": "tester",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/wstg/coverage",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/coverage",
+      "role": "lead",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/wstg/coverage",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/coverage",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/wstg/recalculate",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/recalculate",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/wstg/recalculate",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/recalculate",
+      "role": "viewer",
+      "status_code": 200,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/wstg/recalculate",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/recalculate",
+      "role": "tester",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/wstg/recalculate",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/recalculate",
+      "role": "lead",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/wstg/recalculate",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/recalculate",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/wstg/execute/{wstg_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/execute/WSTG-INPV-01",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/wstg/execute/{wstg_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/execute/WSTG-INPV-01",
+      "role": "viewer",
+      "status_code": 201,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/wstg/execute/{wstg_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/execute/WSTG-INPV-01",
+      "role": "tester",
+      "status_code": 201,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/wstg/execute/{wstg_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/execute/WSTG-INPV-01",
+      "role": "lead",
+      "status_code": 201,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/wstg/execute/{wstg_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/execute/WSTG-INPV-01",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/wstg/executions/{execution_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/executions/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/wstg/executions/{execution_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/executions/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "viewer",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/wstg/executions/{execution_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/executions/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "tester",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/wstg/executions/{execution_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/executions/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "lead",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/wstg/executions/{execution_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/executions/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/wstg/executions/{execution_id}/logs",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/executions/c39d6e25-5a7b-4891-9a08-6fc150c932e3/logs",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/wstg/executions/{execution_id}/logs",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/executions/c39d6e25-5a7b-4891-9a08-6fc150c932e3/logs",
+      "role": "viewer",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/wstg/executions/{execution_id}/logs",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/executions/c39d6e25-5a7b-4891-9a08-6fc150c932e3/logs",
+      "role": "tester",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/wstg/executions/{execution_id}/logs",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/executions/c39d6e25-5a7b-4891-9a08-6fc150c932e3/logs",
+      "role": "lead",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/wstg/executions/{execution_id}/logs",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/wstg/executions/c39d6e25-5a7b-4891-9a08-6fc150c932e3/logs",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/tools",
+      "target_url": "http://127.0.0.1:8000/api/v1/tools",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/tools",
+      "target_url": "http://127.0.0.1:8000/api/v1/tools",
+      "role": "viewer",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/tools",
+      "target_url": "http://127.0.0.1:8000/api/v1/tools",
+      "role": "tester",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/tools",
+      "target_url": "http://127.0.0.1:8000/api/v1/tools",
+      "role": "lead",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/tools",
+      "target_url": "http://127.0.0.1:8000/api/v1/tools",
+      "role": "other_tenant",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/tools/execute",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/tools/execute",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/tools/execute",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/tools/execute",
+      "role": "viewer",
+      "status_code": 422,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/tools/execute",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/tools/execute",
+      "role": "tester",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/tools/execute",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/tools/execute",
+      "role": "lead",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/tools/execute",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/tools/execute",
+      "role": "other_tenant",
+      "status_code": 422,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/tools/executions",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/tools/executions",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/tools/executions",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/tools/executions",
+      "role": "viewer",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/tools/executions",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/tools/executions",
+      "role": "tester",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/tools/executions",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/tools/executions",
+      "role": "lead",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/tools/executions",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/tools/executions",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/tools/executions/{execution_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/tools/executions/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/tools/executions/{execution_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/tools/executions/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "viewer",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/tools/executions/{execution_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/tools/executions/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "tester",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/tools/executions/{execution_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/tools/executions/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "lead",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/tools/executions/{execution_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/tools/executions/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/tools/executions/{execution_id}/cancel",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/tools/executions/c39d6e25-5a7b-4891-9a08-6fc150c932e3/cancel",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/tools/executions/{execution_id}/cancel",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/tools/executions/c39d6e25-5a7b-4891-9a08-6fc150c932e3/cancel",
+      "role": "viewer",
+      "status_code": 404,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/tools/executions/{execution_id}/cancel",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/tools/executions/c39d6e25-5a7b-4891-9a08-6fc150c932e3/cancel",
+      "role": "tester",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/tools/executions/{execution_id}/cancel",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/tools/executions/c39d6e25-5a7b-4891-9a08-6fc150c932e3/cancel",
+      "role": "lead",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/tools/executions/{execution_id}/cancel",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/tools/executions/c39d6e25-5a7b-4891-9a08-6fc150c932e3/cancel",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "PUT",
+      "operation": "/api/v1/projects/{project_id}/tools/config",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/tools/config",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "PUT",
+      "operation": "/api/v1/projects/{project_id}/tools/config",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/tools/config",
+      "role": "viewer",
+      "status_code": 422,
+      "expected": "DENY"
+    },
+    {
+      "method": "PUT",
+      "operation": "/api/v1/projects/{project_id}/tools/config",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/tools/config",
+      "role": "tester",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "PUT",
+      "operation": "/api/v1/projects/{project_id}/tools/config",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/tools/config",
+      "role": "lead",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "PUT",
+      "operation": "/api/v1/projects/{project_id}/tools/config",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/tools/config",
+      "role": "other_tenant",
+      "status_code": 422,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/tools/http-test",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/tools/http-test",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/tools/http-test",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/tools/http-test",
+      "role": "viewer",
+      "status_code": 422,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/tools/http-test",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/tools/http-test",
+      "role": "tester",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/tools/http-test",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/tools/http-test",
+      "role": "lead",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/tools/http-test",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/tools/http-test",
+      "role": "other_tenant",
+      "status_code": 422,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/findings",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/findings",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings",
+      "role": "viewer",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/findings",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings",
+      "role": "tester",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/findings",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings",
+      "role": "lead",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/findings",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/findings",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/findings",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings",
+      "role": "viewer",
+      "status_code": 422,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/findings",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings",
+      "role": "tester",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/findings",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings",
+      "role": "lead",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/findings",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings",
+      "role": "other_tenant",
+      "status_code": 422,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/findings/deduplicate",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/deduplicate",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/findings/deduplicate",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/deduplicate",
+      "role": "viewer",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/findings/deduplicate",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/deduplicate",
+      "role": "tester",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/findings/deduplicate",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/deduplicate",
+      "role": "lead",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/findings/deduplicate",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/deduplicate",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/findings/batch-update",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/batch-update",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/findings/batch-update",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/batch-update",
+      "role": "viewer",
+      "status_code": 422,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/findings/batch-update",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/batch-update",
+      "role": "tester",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/findings/batch-update",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/batch-update",
+      "role": "lead",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/findings/batch-update",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/batch-update",
+      "role": "other_tenant",
+      "status_code": 422,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/findings/{finding_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/findings/{finding_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "viewer",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/findings/{finding_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "tester",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/findings/{finding_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "lead",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/findings/{finding_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "PATCH",
+      "operation": "/api/v1/projects/{project_id}/findings/{finding_id}/status",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/c39d6e25-5a7b-4891-9a08-6fc150c932e3/status",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "PATCH",
+      "operation": "/api/v1/projects/{project_id}/findings/{finding_id}/status",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/c39d6e25-5a7b-4891-9a08-6fc150c932e3/status",
+      "role": "viewer",
+      "status_code": 422,
+      "expected": "DENY"
+    },
+    {
+      "method": "PATCH",
+      "operation": "/api/v1/projects/{project_id}/findings/{finding_id}/status",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/c39d6e25-5a7b-4891-9a08-6fc150c932e3/status",
+      "role": "tester",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "PATCH",
+      "operation": "/api/v1/projects/{project_id}/findings/{finding_id}/status",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/c39d6e25-5a7b-4891-9a08-6fc150c932e3/status",
+      "role": "lead",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "PATCH",
+      "operation": "/api/v1/projects/{project_id}/findings/{finding_id}/status",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/c39d6e25-5a7b-4891-9a08-6fc150c932e3/status",
+      "role": "other_tenant",
+      "status_code": 422,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/findings/{finding_id}/false-positive",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/c39d6e25-5a7b-4891-9a08-6fc150c932e3/false-positive",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/findings/{finding_id}/false-positive",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/c39d6e25-5a7b-4891-9a08-6fc150c932e3/false-positive",
+      "role": "viewer",
+      "status_code": 422,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/findings/{finding_id}/false-positive",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/c39d6e25-5a7b-4891-9a08-6fc150c932e3/false-positive",
+      "role": "tester",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/findings/{finding_id}/false-positive",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/c39d6e25-5a7b-4891-9a08-6fc150c932e3/false-positive",
+      "role": "lead",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/findings/{finding_id}/false-positive",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/c39d6e25-5a7b-4891-9a08-6fc150c932e3/false-positive",
+      "role": "other_tenant",
+      "status_code": 422,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/findings/{finding_id}/reproduce",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/c39d6e25-5a7b-4891-9a08-6fc150c932e3/reproduce",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/findings/{finding_id}/reproduce",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/c39d6e25-5a7b-4891-9a08-6fc150c932e3/reproduce",
+      "role": "viewer",
+      "status_code": 404,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/findings/{finding_id}/reproduce",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/c39d6e25-5a7b-4891-9a08-6fc150c932e3/reproduce",
+      "role": "tester",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/findings/{finding_id}/reproduce",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/c39d6e25-5a7b-4891-9a08-6fc150c932e3/reproduce",
+      "role": "lead",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/findings/{finding_id}/reproduce",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/c39d6e25-5a7b-4891-9a08-6fc150c932e3/reproduce",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/findings/{finding_id}/evidence",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/c39d6e25-5a7b-4891-9a08-6fc150c932e3/evidence",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/findings/{finding_id}/evidence",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/c39d6e25-5a7b-4891-9a08-6fc150c932e3/evidence",
+      "role": "viewer",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/findings/{finding_id}/evidence",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/c39d6e25-5a7b-4891-9a08-6fc150c932e3/evidence",
+      "role": "tester",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/findings/{finding_id}/evidence",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/c39d6e25-5a7b-4891-9a08-6fc150c932e3/evidence",
+      "role": "lead",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/findings/{finding_id}/evidence",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/c39d6e25-5a7b-4891-9a08-6fc150c932e3/evidence",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/findings/{finding_id}/retest",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/c39d6e25-5a7b-4891-9a08-6fc150c932e3/retest",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/findings/{finding_id}/retest",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/c39d6e25-5a7b-4891-9a08-6fc150c932e3/retest",
+      "role": "viewer",
+      "status_code": 404,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/findings/{finding_id}/retest",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/c39d6e25-5a7b-4891-9a08-6fc150c932e3/retest",
+      "role": "tester",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/findings/{finding_id}/retest",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/c39d6e25-5a7b-4891-9a08-6fc150c932e3/retest",
+      "role": "lead",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/findings/{finding_id}/retest",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/findings/c39d6e25-5a7b-4891-9a08-6fc150c932e3/retest",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/agents/status",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/status",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/agents/status",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/status",
+      "role": "viewer",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/agents/status",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/status",
+      "role": "tester",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/agents/status",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/status",
+      "role": "lead",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/agents/status",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/status",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/agents/workflow/start",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/workflow/start",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/agents/workflow/start",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/workflow/start",
+      "role": "viewer",
+      "status_code": 201,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/agents/workflow/start",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/workflow/start",
+      "role": "tester",
+      "status_code": 400,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/agents/workflow/start",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/workflow/start",
+      "role": "lead",
+      "status_code": 400,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/agents/workflow/start",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/workflow/start",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/agents/workflow/reset",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/workflow/reset",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/agents/workflow/reset",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/workflow/reset",
+      "role": "viewer",
+      "status_code": 200,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/agents/workflow/reset",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/workflow/reset",
+      "role": "tester",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/agents/workflow/reset",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/workflow/reset",
+      "role": "lead",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/agents/workflow/reset",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/workflow/reset",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/agents/workflow/pause",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/workflow/pause",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/agents/workflow/pause",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/workflow/pause",
+      "role": "viewer",
+      "status_code": 400,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/agents/workflow/pause",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/workflow/pause",
+      "role": "tester",
+      "status_code": 400,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/agents/workflow/pause",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/workflow/pause",
+      "role": "lead",
+      "status_code": 400,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/agents/workflow/pause",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/workflow/pause",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/agents/workflow/resume",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/workflow/resume",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/agents/workflow/resume",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/workflow/resume",
+      "role": "viewer",
+      "status_code": 400,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/agents/workflow/resume",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/workflow/resume",
+      "role": "tester",
+      "status_code": 400,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/agents/workflow/resume",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/workflow/resume",
+      "role": "lead",
+      "status_code": 400,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/agents/workflow/resume",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/workflow/resume",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/agents/workflow/stop",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/workflow/stop",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/agents/workflow/stop",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/workflow/stop",
+      "role": "viewer",
+      "status_code": 400,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/agents/workflow/stop",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/workflow/stop",
+      "role": "tester",
+      "status_code": 400,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/agents/workflow/stop",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/workflow/stop",
+      "role": "lead",
+      "status_code": 400,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/agents/workflow/stop",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/workflow/stop",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/agents/decisions",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/decisions",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/agents/decisions",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/decisions",
+      "role": "viewer",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/agents/decisions",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/decisions",
+      "role": "tester",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/agents/decisions",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/decisions",
+      "role": "lead",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/agents/decisions",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/decisions",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/agents/tool-calls",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/tool-calls",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/agents/tool-calls",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/tool-calls",
+      "role": "viewer",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/agents/tool-calls",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/tool-calls",
+      "role": "tester",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/agents/tool-calls",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/tool-calls",
+      "role": "lead",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/agents/tool-calls",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/tool-calls",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/agents/approvals",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/approvals",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/agents/approvals",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/approvals",
+      "role": "viewer",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/agents/approvals",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/approvals",
+      "role": "tester",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/agents/approvals",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/approvals",
+      "role": "lead",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/agents/approvals",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/approvals",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/agents/approvals/{approval_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/approvals/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/agents/approvals/{approval_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/approvals/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "viewer",
+      "status_code": 422,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/agents/approvals/{approval_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/approvals/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "tester",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/agents/approvals/{approval_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/approvals/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "lead",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/agents/approvals/{approval_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/agents/approvals/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "other_tenant",
+      "status_code": 422,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/reports/generate",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/reports/generate",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/reports/generate",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/reports/generate",
+      "role": "viewer",
+      "status_code": 201,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/reports/generate",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/reports/generate",
+      "role": "tester",
+      "status_code": 201,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/reports/generate",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/reports/generate",
+      "role": "lead",
+      "status_code": 201,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/projects/{project_id}/reports/generate",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/reports/generate",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/reports",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/reports",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/reports",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/reports",
+      "role": "viewer",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/reports",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/reports",
+      "role": "tester",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/reports",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/reports",
+      "role": "lead",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/projects/{project_id}/reports",
+      "target_url": "http://127.0.0.1:8000/api/v1/projects/33c45360-afed-4ef8-b148-41b41146df94/reports",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/reports/{report_id}/download",
+      "target_url": "http://127.0.0.1:8000/api/v1/reports/c39d6e25-5a7b-4891-9a08-6fc150c932e3/download",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/reports/{report_id}/download",
+      "target_url": "http://127.0.0.1:8000/api/v1/reports/c39d6e25-5a7b-4891-9a08-6fc150c932e3/download",
+      "role": "viewer",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/reports/{report_id}/download",
+      "target_url": "http://127.0.0.1:8000/api/v1/reports/c39d6e25-5a7b-4891-9a08-6fc150c932e3/download",
+      "role": "tester",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/reports/{report_id}/download",
+      "target_url": "http://127.0.0.1:8000/api/v1/reports/c39d6e25-5a7b-4891-9a08-6fc150c932e3/download",
+      "role": "lead",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/reports/{report_id}/download",
+      "target_url": "http://127.0.0.1:8000/api/v1/reports/c39d6e25-5a7b-4891-9a08-6fc150c932e3/download",
+      "role": "other_tenant",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/reports/templates",
+      "target_url": "http://127.0.0.1:8000/api/v1/reports/templates",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/reports/templates",
+      "target_url": "http://127.0.0.1:8000/api/v1/reports/templates",
+      "role": "viewer",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/reports/templates",
+      "target_url": "http://127.0.0.1:8000/api/v1/reports/templates",
+      "role": "tester",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/reports/templates",
+      "target_url": "http://127.0.0.1:8000/api/v1/reports/templates",
+      "role": "lead",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/reports/templates",
+      "target_url": "http://127.0.0.1:8000/api/v1/reports/templates",
+      "role": "other_tenant",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "DELETE",
+      "operation": "/api/v1/reports/{report_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/reports/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "DELETE",
+      "operation": "/api/v1/reports/{report_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/reports/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "viewer",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "DELETE",
+      "operation": "/api/v1/reports/{report_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/reports/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "tester",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "DELETE",
+      "operation": "/api/v1/reports/{report_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/reports/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "lead",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "DELETE",
+      "operation": "/api/v1/reports/{report_id}",
+      "target_url": "http://127.0.0.1:8000/api/v1/reports/c39d6e25-5a7b-4891-9a08-6fc150c932e3",
+      "role": "other_tenant",
+      "status_code": 404,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/reports/verify",
+      "target_url": "http://127.0.0.1:8000/api/v1/reports/verify",
+      "role": "unauthenticated",
+      "status_code": 422,
+      "expected": "DENY"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/reports/verify",
+      "target_url": "http://127.0.0.1:8000/api/v1/reports/verify",
+      "role": "viewer",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/reports/verify",
+      "target_url": "http://127.0.0.1:8000/api/v1/reports/verify",
+      "role": "tester",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/reports/verify",
+      "target_url": "http://127.0.0.1:8000/api/v1/reports/verify",
+      "role": "lead",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "POST",
+      "operation": "/api/v1/reports/verify",
+      "target_url": "http://127.0.0.1:8000/api/v1/reports/verify",
+      "role": "other_tenant",
+      "status_code": 422,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/audit-logs",
+      "target_url": "http://127.0.0.1:8000/api/v1/audit-logs",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/audit-logs",
+      "target_url": "http://127.0.0.1:8000/api/v1/audit-logs",
+      "role": "viewer",
+      "status_code": 403,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/audit-logs",
+      "target_url": "http://127.0.0.1:8000/api/v1/audit-logs",
+      "role": "tester",
+      "status_code": 403,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/audit-logs",
+      "target_url": "http://127.0.0.1:8000/api/v1/audit-logs",
+      "role": "lead",
+      "status_code": 200,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/audit-logs",
+      "target_url": "http://127.0.0.1:8000/api/v1/audit-logs",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/audit-logs/verify",
+      "target_url": "http://127.0.0.1:8000/api/v1/audit-logs/verify",
+      "role": "unauthenticated",
+      "status_code": 401,
+      "expected": "DENY"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/audit-logs/verify",
+      "target_url": "http://127.0.0.1:8000/api/v1/audit-logs/verify",
+      "role": "viewer",
+      "status_code": 403,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/audit-logs/verify",
+      "target_url": "http://127.0.0.1:8000/api/v1/audit-logs/verify",
+      "role": "tester",
+      "status_code": 403,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/audit-logs/verify",
+      "target_url": "http://127.0.0.1:8000/api/v1/audit-logs/verify",
+      "role": "lead",
+      "status_code": 403,
+      "expected": "ALLOW"
+    },
+    {
+      "method": "GET",
+      "operation": "/api/v1/audit-logs/verify",
+      "target_url": "http://127.0.0.1:8000/api/v1/audit-logs/verify",
+      "role": "other_tenant",
+      "status_code": 403,
+      "expected": "ALLOW"
+    }
+  ]
+}

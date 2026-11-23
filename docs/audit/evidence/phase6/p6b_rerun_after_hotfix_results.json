@@ -1,0 +1,52 @@
+{
+  "metadata": {
+    "purpose": "Post-hotfix re-verification for DEFECT-API-02 (tag hotfix-api-02)",
+    "timestamp_utc": "2026-11-23T04:52:27.552519+00:00",
+    "git_commit": "a6e772b928fc121210a9812e6cce66c0c132fa4e",
+    "git_status": "DIRTY",
+    "runner_sha256": "153d75e4909e26acb707c7f374e4f7c7308e53f2e03b4c5dc65de96822dc2507",
+    "target_environment": "pentesa-prod (docker-compose.yml)"
+  },
+  "project_detail_role_checks": {
+    "real_admin": {
+      "status_code": 200,
+      "latency_ms": 33.04,
+      "members_count": 3,
+      "members_with_user": 3
+    },
+    "lead": {
+      "status_code": 200,
+      "latency_ms": 27.86,
+      "members_count": 3,
+      "members_with_user": 3
+    },
+    "tester": {
+      "status_code": 200,
+      "latency_ms": 23.77,
+      "members_count": 3,
+      "members_with_user": 3
+    },
+    "viewer": {
+      "status_code": 200,
+      "latency_ms": 27.08,
+      "members_count": 3,
+      "members_with_user": 3
+    }
+  },
+  "rbac_matrix_result": {
+    "test_id": "P6B-TC-RBAC-01",
+    "dimension": "rbac_matrix",
+    "execution_class": "WIRE",
+    "verdict": "PASS",
+    "details": "RBAC Matrix PASSED: 380 cells tested. Statuses: 2xx=97, 401=71, 403=79, 404=48, 422=71, 5xx=0. Consistent role segregation verified.",
+    "duration_seconds": 12.702
+  },
+  "idor_matrix_result": {
+    "test_id": "P6B-TC-IDOR-01",
+    "dimension": "idor_isolation",
+    "execution_class": "WIRE",
+    "verdict": "PASS",
+    "details": "100% IDOR boundary enforcement verified. Owner Controls: 10/10 returned 200/201. Cross-Tenant Probes: 20/20 blocked with HTTP 403/404. Zero 5xx errors.",
+    "duration_seconds": 0.827
+  }
+}

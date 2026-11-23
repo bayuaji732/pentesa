@@ -21,3 +21,11 @@ f50244e32e1ff1103430de65e0c19240afce86e6a3de0ac336096232f199fa2e  ../../../../be
 e4c283c9f50b6785e03dacda7432d8dc373f164ad4642605f2d8308821f39a26  ../../../../benchmark/p6b/test_runner_p6b.py
 0e16e163d8a3fc5c7538a878be49617b053abeb983ed716fef8ea3dd4489b7ce  ../../../../benchmark/p6b/demo_smoke_test.py
 9b77f3ffcdb69b048a423c44f9f837f66f6f273dd3d129e7b72b26345ba61050  p6_part0_reconciliation_addendum.txt
+7f6f2ee2cdf58c0801790be276a4af74c2f08f5ed7ccebe0572c53f25fc51b99  p6b_rerun_after_hotfix_live_output.txt
+d12c5bafe49f46181bea9be61604d61990c733485b69139115216017d2dd843e  p6b_rerun_after_hotfix_results.json
+bfabfca7c79c8ba183b21f223c6118a501b819275415e17487bdeff085ee9a54  p6b_rerun_after_hotfix_rbac_matrix.json
+ae31470fa77cfa145734c240df49b81b5ae3dde14951438be8d77469551d3575  p6b_rerun_after_hotfix_idor_matrix.json
+907c9ebe2ec8b114df3bd9f0b95069567be544feac7e77c257168d1f4a8fef83  p6b_rerun_after_hotfix_regression_test.txt
+1424883d7b36c3958a1e42470a9a4441c15b5c568e498896ddc34fa6cdae208b  p6b_rerun_after_hotfix_cleanup_and_demo_prep.txt
+153d75e4909e26acb707c7f374e4f7c7308e53f2e03b4c5dc65de96822dc2507  ../../../../benchmark/p6b/rerun_after_hotfix.py
+277f38515707607bbfd2ec20109d1e0c66afa58df2c2c725630f2cd693da301e  ../../../../benchmark/p6b/hotfix_cleanup_and_demo_prep.py

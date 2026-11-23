@@ -330,6 +330,72 @@ This document catalogs identified improvements, technical debt, and recommended 
 
 ---
 
+### DEFECT-REL-01 / P1: Durable PostgreSQL State Checkpointing & 15s Worker Resumption
+- **Category**: Reliability & Resilience (Phase 8 Evaluation)
+- **Severity**: P1 (High)
+- **Status**: Identified in Phase 8 (`docs/audit/03-defect-register.md` §3.35); Scheduled for Phase 9 implementation.
+- **Problem Statement**:
+  Workflow state is maintained purely in-memory within `pentesa-api` tasks. Killing or restarting the worker/API permanently terminates active scans. No PostgreSQL checkpointing or automatic resumption mechanism exists (`NFR-REL-01`).
+- **Proposed Solution**:
+  Implement state checkpoints in PostgreSQL on every agent state transition and connect task execution to a Celery or Redis worker queue with `acks_late=True` to support resumption within 15 seconds.
+
+---
+
+### DEFECT-SAFE-01 / P2: Sliding-Window Error Rate Circuit Breaker
+- **Category**: Safety & Operational Protection (Phase 8 Evaluation)
+- **Severity**: P2 (Medium)
+- **Status**: Identified in Phase 8 (`docs/audit/03-defect-register.md` §3.36); Scheduled for Phase 9 implementation.
+- **Problem Statement**:
+  The platform lacks automatic backoff or pause mechanisms when encountering high error rates from target hosts (`NFR-SAFE-01`). In addition, specifications conflict: PRD §4.2 specifies 15% error rate over 30s, while System Architecture §6 specifies 20% over 60s.
+- **Proposed Solution**:
+  Align specification to 15% error rate over 30s. Implement Redis-backed sliding-window 5xx error counter across outgoing requests to automatically pause scans and emit audit logs on breach.
+
+---
+
+### DEFECT-SCAL-01 / P2: Keyset Cursor Pagination on Endpoints and Findings
+- **Category**: Scalability & API Performance (Phase 8 Evaluation)
+- **Severity**: P2 (Medium)
+- **Status**: Identified in Phase 8 (`docs/audit/03-defect-register.md` §3.37); Scheduled for Phase 9 implementation.
+- **Problem Statement**:
+  PRD `NFR-SCAL-01` specifies cursor pagination capable of serving 10,000 items per project. Currently, `/endpoints` uses SQL offset/limit pagination ($O(N)$ scanning), and `/findings` returns all findings unpaginated.
+- **Proposed Solution**:
+  Implement keyset cursor pagination (`WHERE id > :cursor ORDER BY id ASC LIMIT :limit`) on `/endpoints` and `/findings`, returning `cursor` and `has_more` indicators in responses.
+
+---
+
+### DEFECT-INFRA-01 / P3: Container Resource Boundaries and PID Limits
+- **Category**: Infrastructure Hardening (Phase 8 Evaluation)
+- **Severity**: P3 (Low)
+- **Status**: Identified in Phase 8 (`docs/audit/03-defect-register.md` §3.38); Scheduled for Phase 9 implementation.
+- **Problem Statement**:
+  All 5 production containers run with unbounded host memory (`HostConfig.Memory = 0`) and no PID limits, creating host resource exhaustion risk under high concurrency or tool crashes (`NFR-LIM-01`).
+- **Proposed Solution**:
+  Configure memory limits (API: 2GB, Worker: 2GB, DB: 1GB, Redis: 512MB, Web: 1GB) and PID limits (API/Worker: 200) under `deploy.resources.limits` in `docker-compose.yml`.
+
+---
+
+### DEFECT-RES-01 / P2: Subprocess Cancellation & `asyncio.CancelledError` Handling
+- **Category**: Resilience & Process Hygiene (Phase 8 Evaluation)
+- **Severity**: P2 (Medium)
+- **Status**: Identified in Phase 8 (`docs/audit/03-defect-register.md` §3.39); Scheduled for Phase 9 implementation.
+- **Problem Statement**:
+  `BaseToolWrapper.execute()` catches `asyncio.TimeoutError` and `Exception`, but `asyncio.CancelledError` inherits from `BaseException`. Task cancellation bypasses cleanup, risking orphaned background subprocesses (`NFR-RES-01`).
+- **Proposed Solution**:
+  Trap `BaseException` or add explicit `finally:` cleanup logic ensuring `proc.kill()` is invoked whenever a subprocess coroutine is aborted or cancelled.
+
+---
+
+### DEFECT-HOST-01 / P2: Cumulative Stream/Chunk Read Timeouts for Hostile Responses
+- **Category**: Hostile Response Resilience (Phase 8 Evaluation)
+- **Severity**: P2 (Medium)
+- **Status**: Identified in Phase 8 (`docs/audit/03-defect-register.md` §3.40); Scheduled for Phase 9 implementation.
+- **Problem Statement**:
+  Slow-drip HTTP responses (e.g. 1 byte/second) defeat standard socket idle read timeouts, causing worker threads to hang for the duration of the stream (`NFR-HOST-01`).
+- **Proposed Solution**:
+  Enforce cumulative response streaming timeouts via `asyncio.timeout()` in `packages/common/http_client.py` capping maximum total response read time to 10 seconds.
+
+---
+
 ## npm Advisory Triage Plan (Phase 7 Gate — Do Not Apply Until Phase 9)
 
 Triaged from `apps/web` `npm audit --json` (`docs/audit/07-security-assessment.md` §4.5, `apps/web/package.json`):

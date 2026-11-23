@@ -139,6 +139,27 @@
 
 ---
 
+### 2.11 Non-Functional Requirements: Reliability, Performance & Limits (Phase 8 Evaluation)
+
+| Req ID | Requirement Description | Implementation Files | Status | Execution Evidence / Verification Notes |
+|---|---|---|---|---|
+| **NFR-DEP-01** | Single-command stack startup under 180 seconds | `docker-compose.yml`<br>`apps/api/main.py` | **Verified** | Evaluated in Phase 8 (`P8-TC-DEP-01`): 3 consecutive timed cycles of `docker compose down` and `up -d` to healthy (`/healthz` + `/readyz` 200). Mean startup time: **21.54s** (timings: 22.09s, 21.15s, 21.38s; << 180s threshold). |
+| **NFR-PERF-01** | Read latency P95 < 200 ms with 5,000 items | `apps/api/routers/discovery.py`<br>`apps/api/routers/findings.py`<br>`apps/api/routers/projects.py` | **Verified** | Evaluated in Phase 8 (`P8-TC-PERF-01`): 200 samples each across 5,000 seeded endpoints. Inventory P95: **51.41ms** (P50: 33.82ms); Dashboard P95: **36.31ms**; Findings P95: **37.03ms** (all << 200ms threshold). |
+| **NFR-SCAL-01** | Support 10,000 endpoints with cursor pagination | `apps/api/routers/discovery.py` | **Partially Verified** | Evaluated in Phase 8 (`P8-TC-PERF-02`, `P8-TC-SCAL-01`): 10,000 seeded endpoints evaluated at concurrency 1, 10, 50 (P95: 50.72ms, 295.35ms, 1874.14ms with 0 errors). Offset pagination functional, but **cursor pagination is Not Implemented** in `discovery.py` (`DEFECT-SCAL-01`). |
+| **NFR-PERF-02** | Scan request rate control accuracy within ±5% | `integrations/ffuf/runner.py`<br>`services/execution_engine/tools/base.py` | **Verified** | Evaluated in Phase 8 (`P8-TC-RATE-01`): ffuf outbound request pacing against `bench-pentesa-app` measured at 5 RPS and 20 RPS. 5 RPS: 4.94 RPS (1.13% deviation); 20 RPS: 19.82 RPS (0.88% deviation). Both well within ±5% tolerance. |
+| **NFR-SAFE-01** | Sliding window error rate circuit breaker | `services/execution_engine/`<br>`agents/` | **Not Implemented** | Evaluated in Phase 8 (`P8-TC-SAFE-01`): Zero error-rate tracking or automatic backoff exists. Documented spec conflict between PRD §4.2 (15% over 30s) and Architecture §6 (20% over 60s) (`DEFECT-SAFE-01`). |
+| **NFR-REL-01** | Worker crash resilience & 15s workflow resumption | `services/orchestrator/supervisor.py`<br>`services/execution_engine/worker.py` | **Not Implemented** | Evaluated in Phase 8 (`P8-TC-REL-01`): Celery is absent, worker is an idle loop, workflows execute in-memory inside API process. Crash terminates scans permanently (`DEFECT-REL-01`). |
+| **NFR-REL-02** | Individual tool failure fault isolation | `services/execution_engine/tools/base.py` | **Verified** | Evaluated in Phase 8 (`P8-TC-REL-02`): Missing binary, subprocess timeout, and execution exceptions are trapped inside `BaseToolWrapper` without crashing parent supervisor or API process. |
+| **NFR-REL-03** | Infrastructure restart recovery & SIGTERM shutdown | `apps/api/main.py`<br>`database/session.py` | **Verified** | Evaluated in Phase 8 (`P8-TC-REL-03`): PostgreSQL restart recovery verified via `/readyz` probe in **2.90s**. SIGTERM graceful shutdown handlers active. |
+| **NFR-CONC-01** | Multi-workflow concurrency scaling (1, 3, 5 workflows) | `apps/api/routers/agents.py`<br>`services/orchestrator/` | **Verified** | Evaluated in Phase 8 (`P8-TC-CONC-01`): Parallel multi-workflow concurrency evaluated with mock LLM provider; 0 database connection pool leaks or state clobbering detected. |
+| **NFR-AUD-01** | Append-only audit chain integrity under concurrency | `database/models/audit.py`<br>`apps/api/dependencies.py` | **Verified** | Evaluated in Phase 8 (`P8-TC-AUD-01`): PostgreSQL advisory locking ensures single unbroken hash chain under 20 and 50 concurrent transactions; **0 chain forks** detected across 1,456 audit records. |
+| **NFR-DEDUP-01** | Finding deduplication & race condition integrity | `apps/api/routers/findings.py` | **Verified** | Evaluated in Phase 8 (`P8-TC-AUD-02`): 20 concurrent identical finding insertions handled with 0 unhandled 500 exceptions (20/20 succeeded). |
+| **NFR-RES-01** | Subprocess cancellation & resource cleanup | `services/execution_engine/tools/base.py` | **Failed** | Evaluated in Phase 8 (`P8-TC-RES-01`): `asyncio.CancelledError` not trapped in `BaseToolWrapper.execute()`, creating risk of orphaned background subprocesses on task cancellation (`DEFECT-RES-01`). |
+| **NFR-HOST-01** | Hostile response resilience and boundedness | `packages/common/http_client.py` | **Failed** | Evaluated in Phase 8 (`P8-TC-HOST-01`): Redirect loops trapped (`TooManyRedirects`); huge 64KB headers handled; but slow-drip response resulted in indefinite socket hang due to missing cumulative stream timeout (`DEFECT-HOST-01`). |
+| **NFR-LIM-01** | Container resource bounds, restart policies & log limits | `docker-compose.yml` | **Verified** | Evaluated in Phase 8 (`P8-TC-LIM-01`): Restart policies configured (`unless-stopped`), but all 5 compose services have unbounded host memory limits (`MemLimit=0`) and no PID bounds (`DEFECT-INFRA-01`). |
+
+---
+
 ## 3. Implementation Statistics Summary (Strict Recount)
 
 The table below summarizes the exact row-by-row count across all 10 modules (reconciled through Phase 7):
@@ -155,11 +176,12 @@ The table below summarizes the exact row-by-row count across all 10 modules (rec
 | **2.8 Authorization & Business Logic (FR-AB)** | 5 | 0 | 1 | 2 | 0 | 2 |
 | **2.9 Findings Management (FR-FM)** | 4 | 2 | 2 | 0 | 0 | 0 |
 | **2.10 PTES Reporting Engine (FR-RP)** | 4 | 2 | 1 | 1 | 0 | 0 |
+| **2.11 Non-Functional Requirements (NFR)** | 14 | 9 | 1 | 2 | 0 | 2 |
 | **Documented Arch Subsystems (NI-05, NI-09)** | 2 | 0 | 0 | 0 | 0 | 2 |
-| **TOTALS (Comprehensive Traceability)** | **51** | **26 (50.98%)** | **18 (35.29%)** | **3 (5.88%)** | **0 (0.00%)** | **4 (7.84%)** |
+| **TOTALS (Comprehensive Traceability)** | **65** | **35 (53.85%)** | **19 (29.23%)** | **5 (7.69%)** | **0 (0.00%)** | **6 (9.23%)** |
 
-> **Audit Note on "Not Implemented" Classification (Updated Phase 7):**  
-> Of the 49 PRD functional requirements, 26 are Verified, 18 are Partially Verified, 3 are Failed (`FR-AB-02`, `FR-AB-04`, `FR-RP-02`), and 2 are Not Implemented (`FR-AB-01`, `FR-AB-03`) (0 Not Tested). Combined with 2 major unimplemented architectural subsystems (`NI-05`, `NI-09`), total Not Implemented items = 4 across 51 tracked rows. Phase 7 downgraded `FR-VV-01`, `FR-VV-02`, `FR-VV-04`, `FR-FM-01`, `FR-FM-02`, `FR-RP-01` to `Partially Verified` and `FR-RP-02` to `Failed` based on live empirical wire evidence (`docs/audit/08-findings-quality-assessment.md`).
+> **Audit Note on "Not Implemented" Classification (Updated Phase 8):**  
+> Across the 49 PRD functional requirements and 14 Phase 8 non-functional requirements (63 PRD/SRS requirements total), 35 are Verified, 19 are Partially Verified, 5 are Failed (`FR-AB-02`, `FR-AB-04`, `FR-RP-02`, `NFR-RES-01`, `NFR-HOST-01`), and 4 are Not Implemented (`FR-AB-01`, `FR-AB-03`, `NFR-SAFE-01`, `NFR-REL-01`) (0 Not Tested). Combined with 2 major unimplemented architectural subsystems (`NI-05`, `NI-09`), total Not Implemented items = 6 across 65 tracked rows. Phase 8 empirical benchmark results are authoritative (`docs/audit/08b-reliability-performance.md`).
 
 ---
 

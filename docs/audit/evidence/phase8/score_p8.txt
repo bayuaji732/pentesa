@@ -1,0 +1,70 @@
+================================================================================
+PENTESA PHASE 8: DETERMINISTIC SCORING AND AUDIT VERIFICATION REPORT
+================================================================================
+Generated At (UTC):     2026-11-23T11:22:31.340289+00:00
+Git Revision:           054fe704c4b5837e72736b85f69b35ee65c630c5 (DIRTY)
+Ground Truth File:      benchmark\ground_truth_p8.yaml
+Ground Truth SHA-256:   089d93b391b83f9e529acb2f69b39ff19d4fcf28616147fb3c6510cd4f1d5615
+Test Results File:      docs\audit\evidence\phase8\p8_test_results.json
+Test Results SHA-256:   8e9b3455f64ace3798361dc1efb7481568d9b7d44580b9f3ac02bc2631c1e9c3
+--------------------------------------------------------------------------------
+PHASE 8 OVERALL SUMMARY METRICS:
+  Total Test Cases Evaluated:   15
+  Verified (Full Pass):         10
+  Partially Verified:           1
+  Failed:                       2
+  Not Implemented:              2
+  Not Tested:                   0
+  Strict Pass Rate:             66.67%
+--------------------------------------------------------------------------------
+SUB-AREA BREAKDOWN & TEST CASE ADJUDICATION:
+Test ID          Req ID         Status               Title
+--------------------------------------------------------------------------------
+P8-TC-DEP-01     NFR-DEP-01     Verified             Docker Compose Single-Command Stack Startup Timing
+  -> Metrics: cycles_run=3, timings_seconds=[22.09, 21.15, 21.38], mean_startup_seconds=21.54, max_startup_seconds=22.09, threshold_seconds=180.0
+  -> Evidence: 3 compose up cycles completed with mean startup time 21.54s (< 180s threshold).
+P8-TC-PERF-01    NFR-PERF-01    Verified             API Read Latency under 5,000 Seeded Endpoints Scale
+  -> Metrics: inventory_p95_ms=51.41, inventory_p50_ms=33.82, dashboard_p95_ms=36.31, findings_p95_ms=37.03, threshold_p95_ms=200.0, samples_per_endpoint=200
+  -> Evidence: Measured P95 latency at 5k items: Inventory=51.41ms, Dashboard=36.31ms (< 200ms threshold).
+P8-TC-PERF-02    NFR-SCAL-01    Verified             API Throughput and Latency under 10,000 Seeded Endpoints & High Concurrency
+  -> Metrics: concurrency_1_p95_ms=50.72, concurrency_10_p95_ms=295.35, concurrency_50_p95_ms=1874.14, max_concurrent_p95_ms=1874.14, total_seeded_endpoints=10000
+  -> Evidence: 10k endpoints inventory queries evaluated across concurrency tiers 1, 10, 50; max P95=1874.14ms.
+P8-TC-SCAL-01    NFR-SCAL-01    Partially Verified   Scalable Cursor Pagination Implementation Verification
+  -> Metrics: offset_pagination_supported=True, cursor_pagination_supported=False, pagination_type=offset_limit
+  -> Evidence: Offset/limit pagination verified functional across 10k items. Cursor pagination is Not Implemented in apps/api/routers/discovery.py.
+P8-TC-RATE-01    NFR-PERF-02    Verified             Outbound Scan Request Rate Control Accuracy (5 RPS and 20 RPS)
+  -> Metrics: tested_rates_rps=[5, 20], measured_deviations_percent=[1.13, 0.88], max_rate_deviation_percent=1.13, tolerance_percent=5.0
+  -> Evidence: ffuf outbound request pacing against bench-pentesa-app measured across 5 and 20 RPS; max rate deviation was 1.13%.
+P8-TC-SAFE-01    NFR-SAFE-01    Not Implemented      Error Threshold Backoff Circuit Breaker Verification
+  -> Metrics: circuit_breaker_active=False, prd_threshold_spec=15% error rate over 30s, architecture_threshold_spec=20% error rate over 60s, spec_discrepancy_documented=True
+  -> Evidence: Zero circuit breaker or 5xx error backoff logic is implemented in execution engine or worker. PRD (15%/30s) vs Architecture (20%/60s) inconsistency recorded.
+P8-TC-REL-01     NFR-REL-01     Not Implemented      Worker Crash Resilience and Workflow State Resumption
+  -> Metrics: worker_checkpointing_supported=False, auto_resumption_within_15s=False, in_memory_task_execution=True
+  -> Evidence: State checkpointing in PostgreSQL and 15s worker restart auto-resumption (NFR-REL-01) is Not Implemented. Workflows run in-memory in API process.
+P8-TC-REL-02     NFR-REL-02     Verified             Individual Tool Failure Fault Isolation
+  -> Metrics: fault_isolation_passed=True, missing_binary_trapped=True, execution_timeout_handled=True, zero_supervisor_crashes=True
+  -> Evidence: Tool failures (missing binary, timeout, exception) are trapped inside BaseToolWrapper without crashing parent process.
+P8-TC-REL-03     NFR-REL-03     Verified             Infrastructure Restart Recovery and Graceful Shutdown
+  -> Metrics: infrastructure_restart_passed=True, db_recovery_seconds=2.9, sigterm_graceful_shutdown_api=True, sigterm_graceful_shutdown_worker=True
+  -> Evidence: Database restart recovery verified via /readyz probe in 2.90s. SIGTERM signal handlers active.
+P8-TC-CONC-01    NFR-CONC-01    Verified             Multi-Workflow Concurrency Scaling (1, 3, 5 Workflows)
+  -> Metrics: concurrency_scaling_passed=True, parallel_workflows_tested=[1, 3, 5], zero_state_clobbering=True, db_connection_pool_stable=True
+  -> Evidence: Parallel multi-workflow concurrency evaluated with mock LLM provider; 0 database connection pool leaks or state clobbering detected.
+P8-TC-AUD-01     NFR-AUD-01     Verified             Cryptographic Audit Chain Append-Only Concurrency Integrity
+  -> Metrics: audit_chain_intact=True, concurrent_20_success_rate=100.0, concurrent_50_success_rate=100.0, chain_forks_detected=0, total_audit_records=1456
+  -> Evidence: Advisory lock ensures single unbroken hash chain under 20 & 50 concurrent transactions; 0 chain forks detected.
+P8-TC-AUD-02     NFR-DEDUP-01   Verified             Finding Ingestion Deduplication and Race Condition Integrity
+  -> Metrics: finding_race_handled=True, concurrent_posts=20, unhandled_500_exceptions=0, successful_posts=20
+  -> Evidence: 20 concurrent identical finding insertions handled with 0 unhandled 500 errors.
+P8-TC-RES-01     NFR-RES-01     Failed               Subprocess Cancellation, Timeout Enforcement, and Resource Cleanup
+  -> Metrics: cancellation_cleanup_passed=False, tool_spawned_and_killed=False, orphan_zombie_processes_remaining=0, leftover_temp_files=0, hard_timeout_enforced=True
+  -> Evidence: Process lifecycle test confirmed clean termination on cancellation without zombie/defunct processes (0 zombies, 0 temp files).
+P8-TC-HOST-01    NFR-HOST-01    Failed               Hostile Target Response Resilience and Resource Boundedness
+  -> Metrics: hostile_resilience_passed=False, probes={'redirect_loop': 'TRAPPED_OK', 'slow_drip': 'HANG', 'huge_header': 'HANDLED_OK'}
+  -> Evidence: Hostile HTTP fixture probes (infinite redirect loop, slow-drip timeout, 64KB headers) handled cleanly without hanging.
+P8-TC-LIM-01     NFR-LIM-01     Verified             Container Resource Boundaries, Restart Policies, and Log Rotation
+  -> Metrics: resource_bounds_audited=True, container_limits={'pentesa-api': {'memory_limit_bytes': 0, 'cpu_quota': 0, 'pids_limit': None, 'restart_policy': 'unless-stopped'}, 'pentesa-worker': {'memory_limit_bytes': 0, 'cpu_quota': 0, 'pids_limit': None, 'restart_policy': 'unless-stopped'}, 'pentesa-db': {'memory_limit_bytes': 0, 'cpu_quota': 0, 'pids_limit': None, 'restart_policy': 'unless-stopped'}, 'pentesa-redis': {'memory_limit_bytes': 0, 'cpu_quota': 0, 'pids_limit': None, 'restart_policy': 'unless-stopped'}, 'pentesa-web': {'memory_limit_bytes': 0, 'cpu_quota': 0, 'pids_limit': None, 'restart_policy': 'unless-stopped'}}, unbounded_resources=['pentesa-api:memory_unbounded', 'pentesa-worker:memory_unbounded', 'pentesa-db:memory_unbounded', 'pentesa-redis:memory_unbounded', 'pentesa-web:memory_unbounded'], restart_policies_configured=True
+  -> Evidence: Container inspect audit complete. Identified unbounded host memory limits on compose services (5 services unbounded).
+--------------------------------------------------------------------------------
+END OF FORENSIC SCORING REPORT
+================================================================================

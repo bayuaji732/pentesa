@@ -58,6 +58,12 @@
 | **DEFECT-LIFE-01** | **P3** | Findings / Lifecycle | `database/models/finding.py`, `apps/api/routers/findings.py` | Finding Assignment (`assigned_to` Field / Route) Not Implemented | Open (Not Implemented) | Phase 9 (Add `assigned_to` FK & Assignment Endpoint) |
 | **DEFECT-REPRO-01** | **P3** | Evidence / cURL | `services/evidence_engine/curl_generator.py` | Generated `reproduction_curl` Omits Redirect Flag (`-L`) When Target Root Redirects (`bench-dvwa` 302 vs 200) | Open (Documented) | Phase 9 (Record Exact Final Redirected URL in Evidence & cURL) |
 | **DEFECT-CFG-01** | **P3** | Configuration / Safety | `packages/common/config.py`, `apps/api/main.py`, `database/session.py` | Default `DATABASE_URL` Silently Falls Back to Local SQLite (`./pentesa.db`) When Env Missing; Production Mode Must Fail Closed | Open (Documented) | Phase 9 (Fail Closed in Production When `PENTESA_DATABASE_URL` Missing or SQLite) |
+| **DEFECT-REL-01** | **P1** | Reliability / Resumption | `services/orchestrator/supervisor.py`, `services/execution_engine/worker.py` | State Checkpointing & 15s Worker Resumption Not Implemented (In-Memory Only) | Open (Not Implemented) | Phase 9 (PostgreSQL Workflow Checkpoints & Celery acks_late) |
+| **DEFECT-SAFE-01** | **P2** | Safety / Rate | `services/execution_engine/`, `agents/` | Sliding Window Error Circuit Breaker Not Implemented & Spec Discrepancy (15%/30s vs 20%/60s) | Open (Not Implemented) | Phase 9 (Sliding Window Error Rate Circuit Breaker) |
+| **DEFECT-SCAL-01** | **P2** | Scalability / API | `apps/api/routers/discovery.py`, `apps/api/routers/findings.py` | Cursor Pagination Not Implemented on Endpoints Inventory; Findings Completely Unpaginated | Open (Not Implemented) | Phase 9 (Keyset Cursor Pagination & Schema Binding) |
+| **DEFECT-INFRA-01** | **P3** | Infrastructure | `docker-compose.yml`, container host configs | Unbounded Container Host Memory Limits (`MemLimit=0`) and Missing PID Bounds Across Compose Services | Open (Documented) | Phase 9 (`deploy.resources.limits` configuration) |
+| **DEFECT-RES-01** | **P2** | Resilience / Subprocess | `services/execution_engine/tools/base.py:221` | Subprocess Cancellation Risk: `asyncio.CancelledError` Inherits `BaseException`, Bypassing Cleanup | Open (Documented) | Phase 9 (`BaseException` / explicit cancellation cleanup handler) |
+| **DEFECT-HOST-01** | **P2** | Resilience / Hostile | `packages/common/http_client.py` | Missing Chunk/Streaming Read Timeouts on Hostile HTTP Responses Leading to Indefinite Slow-Drip Hang | Open (Documented) | Phase 9 (`httpx.Timeout(read=5.0, connect=5.0)`) |
 
 ---
 
@@ -473,6 +479,65 @@
 - **Recommended Fix:** In `apps/api/main.py:validate_encryption_key_startup()`, when `env not in ("development", "test")`, require `PENTESA_DATABASE_URL` (or `DATABASE_URL`) to be explicitly set and reject any URL starting with `sqlite` (raise `RuntimeError` fail-closed on startup).
 - **Regression Test:** `tests/unit/test_startup_fail_closed_db.py` asserting startup raises `RuntimeError` when `PENTESA_ENV=production` and `PENTESA_DATABASE_URL` is unset or `sqlite+aiosqlite:///...`.
 - **Acceptance Criteria:** Production/staging startup refuses to boot without an explicit non-SQLite PostgreSQL `PENTESA_DATABASE_URL`.
+
+### 3.35 DEFECT-REL-01 / P1: Workflow State Checkpointing & 15s Resumption Not Implemented
+- **Components:** `services/orchestrator/supervisor.py`, `services/execution_engine/worker.py`, `apps/api/routers/agents.py:35-65`
+- **Severity:** **P1 (High — Reliability & Workflow Durability Gap)**
+- **Problem:** When `pentesa-api` or `pentesa-worker` crashes or restarts during an active assessment, all active workflows are permanently terminated and cannot resume within the 15-second spec threshold (`NFR-REL-01`).
+- **Root Cause:** Architectural divergence from PRD/SRS specifications: Celery is absent, `services/execution_engine/worker.py` is an idle stub (`await asyncio.sleep(2)`), and active workflows execute in-memory inside the API process via `_ACTIVE_WORKFLOW_TASKS: Dict[uuid.UUID, asyncio.Task]`. No cyclic PostgreSQL checkpointing exists.
+- **Evidence:** `docs/audit/evidence/phase8/8A-spec.md` §2.5, `benchmark/p8/test_runner_p8.py` (`P8-TC-REL-01`), `score_p8.txt`.
+- **Recommended Fix:** Introduce durable state persistence via PostgreSQL checkpoints on every agent transition, combined with Celery / Redis task queue with `acks_late=True` and dead-letter handling.
+- **Regression Test:** `tests/integration/test_workflow_resumption_on_worker_crash.py`.
+- **Acceptance Criteria:** A killed worker restarts, detects the incomplete workflow, and resumes within 15.0s without duplicate tool execution.
+
+### 3.36 DEFECT-SAFE-01 / P2: Error Threshold Backoff Circuit Breaker Not Implemented & Spec Discrepancy
+- **Components:** `services/execution_engine/`, `agents/`, `packages/common/http_client.py`
+- **Severity:** **P2 (Medium — Scan Safety & Spec Inconsistency)**
+- **Problem:** Zero circuit breaker logic is implemented in the platform. When target services return sustained 5xx HTTP error responses, the scanner does not automatically back off or pause (`NFR-SAFE-01`). Additionally, a documentation conflict exists: PRD §4.2 specifies a 15% error rate over a 30s sliding window, whereas System Architecture §6 specifies a 20% error rate over a 60s sliding window.
+- **Root Cause:** Missing sliding-window error rate tracker in the HTTP client / execution engine layer, and unaligned specifications between PRD and System Architecture.
+- **Evidence:** Codebase search confirming 0 occurrences of circuit breaker / backoff tracking in `services/`, `agents/`, and `integrations/`; `score_p8.txt` (`P8-TC-SAFE-01`).
+- **Recommended Fix:** (1) Align documentation to a single authoritative standard (recommend PRD 15% / 30s). (2) Implement a Redis-backed sliding-window error counter that emits an auditable `SCAN_PAUSED_CIRCUIT_BREAKER` event when 5xx errors breach the threshold.
+- **Regression Test:** `tests/unit/test_circuit_breaker_sliding_window.py`.
+- **Acceptance Criteria:** Target error rate > 15% over 30s transitions scan to PAUSED status within 2 seconds.
+
+### 3.37 DEFECT-SCAL-01 / P2: Cursor Pagination Not Implemented for 10k Items & Findings Unpaginated
+- **Components:** `apps/api/routers/discovery.py:103-136`, `apps/api/routers/findings.py:30-52`
+- **Severity:** **P2 (Medium — Large Project Scalability Gap)**
+- **Problem:** PRD `NFR-SCAL-01` specifies cursor pagination capable of serving 10,000 items per project. In reality, `GET /api/v1/projects/{id}/endpoints` uses SQL `LIMIT ... OFFSET ...`, and `GET /api/v1/projects/{id}/findings` returns all findings unpaginated.
+- **Root Cause:** Standard SQL offset pagination used instead of keyset cursor pagination (`WHERE id > :cursor ORDER BY id ASC LIMIT :limit`), and findings router omits pagination parameters entirely.
+- **Evidence:** `apps/api/routers/discovery.py:111-112`, `apps/api/routers/findings.py:30-52`, `score_p8.txt` (`P8-TC-SCAL-01`).
+- **Recommended Fix:** Implement keyset-based cursor pagination (`cursor: Optional[str]`, `has_more: bool`, `next_cursor: Optional[str]`) on both `/endpoints` and `/findings` endpoints.
+- **Regression Test:** `tests/unit/test_cursor_pagination_10k.py`.
+- **Acceptance Criteria:** Deep pagination on 10,000 items with cursor exhibits flat latency ($O(1)$) across all pages.
+
+### 3.38 DEFECT-INFRA-01 / P3: Unbounded Container Host Memory Limits Across Compose Services
+- **Components:** `docker-compose.yml`, `infrastructure/docker/`
+- **Severity:** **P3 (Low — Host Resource Exhaustion Risk)**
+- **Problem:** Docker inspect on running production stack reveals that `pentesa-api`, `pentesa-worker`, `pentesa-db`, `pentesa-redis`, and `pentesa-web` have `HostConfig.Memory = 0` (unbounded host RAM) and no PID limits (`PidsLimit = None`). A runaway fuzzer or memory leak can consume all host memory, risking host OOM panic.
+- **Root Cause:** `docker-compose.yml` lacks `deploy.resources.limits` configuration blocks for memory and pids.
+- **Evidence:** `docs/audit/evidence/phase8/p8_test_results.json` (`P8-TC-LIM-01`), `score_p8.txt`.
+- **Recommended Fix:** Add explicit resource constraints in `docker-compose.yml`: memory limits (API: 2GB, Worker: 2GB, DB: 1GB, Redis: 512MB, Web: 1GB) and PID limits (API/Worker: 200).
+- **Acceptance Criteria:** `docker inspect` shows non-zero memory and pid limits across all 5 production containers.
+
+### 3.39 DEFECT-RES-01 / P2: Subprocess Cancellation Risk (`asyncio.CancelledError` Inherits `BaseException`)
+- **Components:** `services/execution_engine/tools/base.py:216-240`
+- **Severity:** **P2 (Medium — Subprocess Lifecycle / Orphan Risk)**
+- **Problem:** In Python 3.8+, `asyncio.CancelledError` inherits from `BaseException`, not `Exception`. `BaseToolWrapper.execute()` catches `asyncio.TimeoutError` and generic `Exception`, but does **not** catch `asyncio.CancelledError`. When an API workflow task is cancelled, the awaiting coroutine is cancelled immediately, bypassing subprocess termination and risking orphan `ffuf` or `nuclei` background processes.
+- **Root Cause:** Missing `except asyncio.CancelledError:` block or `finally:` block with `proc.kill()` in `BaseToolWrapper.execute()`.
+- **Evidence:** `services/execution_engine/tools/base.py:216-240`, `score_p8.txt` (`P8-TC-RES-01`).
+- **Recommended Fix:** In `BaseToolWrapper.execute()`, ensure subprocess handle is terminated in a `finally:` block if `proc.returncode is None`.
+- **Regression Test:** `tests/unit/test_subprocess_cleanup_on_task_cancel.py`.
+- **Acceptance Criteria:** Task cancellation sends `SIGKILL` to subprocess and waits for exit, leaving 0 orphan processes.
+
+### 3.40 DEFECT-HOST-01 / P2: Missing Chunk/Streaming Read Timeouts on Hostile Target Responses
+- **Components:** `packages/common/http_client.py:45-75`, `services/discovery_engine/crawler.py`
+- **Severity:** **P2 (Medium — Scanner Hang Resilience)**
+- **Problem:** When probing a target that emits an HTTP slow-drip response (1 byte every 1.0 second), standard `httpx.Timeout(5.0)` does not fire because each chunk arrives before the idle read timeout. This causes the scanner worker thread to hang indefinitely until the hard task timeout.
+- **Root Cause:** HTTP clients configure connect/read timeouts, but do not enforce a cumulative total streaming duration cap on individual HTTP response bodies.
+- **Evidence:** `docs/audit/evidence/phase8/p8_test_results.json` (`P8-TC-HOST-01`), `score_p8.txt` (slow_drip: HANG).
+- **Recommended Fix:** Implement cumulative stream duration enforcement in `packages/common/http_client.py` via `asyncio.timeout()` wrapping the entire request + body iteration stream.
+- **Regression Test:** `tests/unit/test_slow_drip_stream_timeout.py`.
+- **Acceptance Criteria:** Target returning 1 byte/sec is terminated and reported within 5.0 seconds maximum.
 
 
 

@@ -1,0 +1,51 @@
+================================================================================
+EVIDENCE ARTIFACT: DEFECT SEC-LEAK-02 AUDIT & HARDCODED CREDENTIAL SCAN
+Timestamp: 2026-11-24T13:47:00+07:00
+Environment: Windows host (.venv Python 3.12.13)
+Branch: wave0 (pre-wave0 tag: pre-wave0)
+================================================================================
+
+1. RESOLUTION SUMMARY FOR SEC-LEAK-02:
+--------------------------------------------------------------------------------
+- Target file: benchmark/setup_engagement_and_scope_check.py
+- Previous behavior: Tracked script hardcoded password_hash="[MOCKED_FOR_BENCHMARK_SETUP]"
+  and initialized user with is_active=True.
+- Remediation applied:
+  * Removed all hardcoded password / placeholder strings.
+  * Reads password dynamically from untracked environment variable
+    PENTESA_BENCHMARK_ADMIN_PASSWORD or untracked .env.benchmark file.
+  * Falls back to secrets.token_urlsafe(32) hashed with bcrypt.
+  * Explicitly enforces is_active=False on creation and retroactively deactivates
+    benchmark-admin@pentesa.lab if already present in database (satisfying ENV RULES v2).
+- Password rotation via API assessment:
+  * Investigated apps/api/routers/users.py: UserUpdate schema only supports
+    full_name, role, and is_active.
+  * No user password rotation or reset route exists in the API.
+  * Account is strictly kept inactive (is_active=False) in database.
+
+2. REPOSITORY SCAN FOR HARDCODED CREDENTIALS:
+--------------------------------------------------------------------------------
+- Tool: Python regex scanner over git ls-files (tracked files).
+- Production codebase (apps/, database/, packages/, services/):
+  * Zero hardcoded credentials or key-like strings found.
+  * Settings and startup hooks enforce environment variable derivation and fail-closed checks.
+- Benchmark & test suite:
+  * benchmark/p6/test_runner.py:481: Test string "SuperSecretTargetPassword123!"
+    used solely as an assertion probe for P6-TC-LEAK-01 (target credential masking).
+  * No production secrets or live keys leaked in tracked files.
+
+3. HISTORICAL COMMIT & GIT REMOTE STATUS:
+--------------------------------------------------------------------------------
+- Historical Commit Audit:
+  * Commit 55c0a099f9e61b740f0e8028da05ac0d9f467f7f ("feat: implement dedicated
+    benchmark application and evaluation harnesses") contains historical references
+    to placeholder benchmark-admin setup.
+  * In accordance with audit instructions, git history was NOT rewritten in Wave 0.
+- Git Remote Configuration:
+  * Remote 'origin' is configured:
+      fetch: https://github.com/bayuaji732/pentesa.git
+      push:  https://github.com/bayuaji732/pentesa.git
+- History Decision:
+  * Decision on git history rewrite (e.g. git filter-repo / BFG Repo-Cleaner) is
+    deferred to Phase 10 as specified in the audit instructions.
+================================================================================

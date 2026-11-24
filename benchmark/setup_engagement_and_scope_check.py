@@ -4,6 +4,7 @@
 import asyncio
 import datetime
 import os
+import secrets
 import sys
 import uuid
 from typing import Dict, List, Tuple
@@ -15,6 +16,7 @@ from database.session import AsyncSessionLocal
 from database.models.project import Project
 from database.models.scope import ScopeRule
 from database.models.user import User
+from packages.common.security import hash_password
 from packages.schemas.scope import ScopeRuleCreate
 from services.scope_engine.validator import ScopeValidator
 from sqlalchemy import select
@@ -49,16 +51,29 @@ async def setup_engagement_and_verify_scope(evidence_path: str = "docs/audit/evi
         user = user_res.scalars().first()
         if not user:
             print("[-] No user found in database. Seeding system user...")
+            bench_env_file = os.path.join(os.path.abspath("."), ".env.benchmark")
+            bench_pwd = os.getenv("PENTESA_BENCHMARK_ADMIN_PASSWORD")
+            if not bench_pwd and os.path.exists(bench_env_file):
+                from dotenv import dotenv_values
+                cfg = dotenv_values(bench_env_file)
+                bench_pwd = cfg.get("PENTESA_BENCHMARK_ADMIN_PASSWORD")
+
+            pwd_to_hash = bench_pwd or secrets.token_urlsafe(32)
             user = User(
                 id=uuid.uuid4(),
                 email="benchmark-admin@pentesa.lab",
                 full_name="Benchmark Lead",
-                password_hash="[MOCKED_FOR_BENCHMARK_SETUP]",
+                password_hash=hash_password(pwd_to_hash),
                 role="ADMIN",
-                is_active=True
+                is_active=False
             )
             session.add(user)
             await session.commit()
+        else:
+            # Enforce ENV RULES v2: benchmark-admin must remain inactive
+            if user.email == "benchmark-admin@pentesa.lab" and user.is_active:
+                user.is_active = False
+                await session.commit()
 
         # 2. Look for existing engagement
         proj_res = await session.execute(select(Project).where(Project.name == "Phase3-Bench"))

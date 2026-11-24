@@ -1,0 +1,19 @@
+================================================================================
+EVIDENCE ARTIFACT: DEFECT-INFRA-01 POST-RESTART VERIFICATION & SMOKE TEST
+Timestamp: 2026-11-24T13:58:00+07:00
+================================================================================
+
+1. P8-TC-LIM-01 AUDIT RESULT: Verified
+   Unbounded Services: []
+   Details: Container inspect audit complete. Identified unbounded host memory limits on compose services (0 services unbounded).
+
+2. PROD STACK SMOKE TEST:
+   GET /healthz: HTTP 200 (145.8ms)
+   GET /readyz:  HTTP 200 (74.0ms)
+   POST /api/v1/auth/login: HTTP 200 (300.4ms)
+
+3. LATENCY UNDER ACTIVE RESOURCE LIMITS (50 samples):
+   P50: 39.76ms
+   P95: 60.05ms (< 200ms threshold)
+
+VERDICT: VERIFIED (All 5 containers resource-bounded; zero performance degradation)

@@ -1,0 +1,13 @@
+================================================================================
+EVIDENCE ARTIFACT: DEFECT-INFRA-01 CONTAINER RESOURCE LIMITS INSPECTION PROOF
+Timestamp: 2026-11-24T13:57:00+07:00
+Platform: Docker Compose (pentesa-prod)
+================================================================================
+
+Container: pentesa-api      | MemLimit: 1024.0 MB (1073741824 B) | CPUs: 1.5 | PidsLimit: 200  | Restart: unless-stopped
+Container: pentesa-worker   | MemLimit: 1024.0 MB (1073741824 B) | CPUs: 1.5 | PidsLimit: 200  | Restart: unless-stopped
+Container: pentesa-db       | MemLimit: 1024.0 MB (1073741824 B) | CPUs: 1.0 | PidsLimit: 150  | Restart: unless-stopped
+Container: pentesa-redis    | MemLimit:  512.0 MB (536870912 B) | CPUs: 0.5 | PidsLimit: 100  | Restart: unless-stopped
+Container: pentesa-web      | MemLimit: 1024.0 MB (1073741824 B) | CPUs: 1.0 | PidsLimit: 150  | Restart: unless-stopped
+
+INSPECTION VERDICT: ALL 5 CONTAINERS STRICTLY BOUNDED (0 UNBOUNDED)

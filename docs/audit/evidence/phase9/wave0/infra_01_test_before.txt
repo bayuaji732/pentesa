@@ -1,0 +1,23 @@
+================================================================================
+EVIDENCE ARTIFACT: DEFECT-INFRA-01 REGRESSION TEST BEFORE FIX
+Timestamp: 2026-11-24T13:53:10+07:00
+Environment: Windows host (.venv Python 3.12.13)
+Command: .venv\Scripts\python.exe -m pytest tests/unit/test_infra_01_compose_limits.py -vv
+Branch: wave0 (pre-wave0 tag: pre-wave0)
+================================================================================
+
+============================= test session starts =============================
+platform win32 -- Python 3.12.13, pytest-9.2.0, pluggy-1.7.0 -- C:\Users\User2\Documents\work\pentesa\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\User2\Documents\work\pentesa
+configfile: pyproject.toml
+plugins: anyio-4.16.0, asyncio-1.4.1.post1, cov-7.1.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collecting ... collected 1 item
+
+tests/unit/test_infra_01_compose_limits.py::test_prod_compose_enforces_resource_limits FAILED [100%]
+
+================================== FAILURES ===================================
+_________________ test_prod_compose_enforces_resource_limits __________________
+AssertionError: Services missing resource limits: [{'service': 'api', 'has_memory': False, 'has_cpus': False, 'has_pids': False}, {'service': 'worker', 'has_memory': False, 'has_cpus': False, 'has_pids': False}, {'service': 'web', 'has_memory': False, 'has_cpus': False, 'has_pids': False}, {'service': 'db', 'has_memory': False, 'has_cpus': False, 'has_pids': False}, {'service': 'redis', 'has_memory': False, 'has_cpus': False, 'has_pids': False}]
+============================== 1 failed in 0.22s ==============================

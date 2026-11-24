@@ -48,43 +48,71 @@ async def seed_initial_data(session: AsyncSession) -> None:
     # 1. Populate/refresh official WSTG Catalog
     await seed_wstg_catalog(session)
 
+    # Collect configured bootstrap admin credential pairs (primary + numbered secondary accounts)
+    bootstrap_admins = []
+    b_email = os.getenv("PENTESA_BOOTSTRAP_ADMIN_EMAIL")
+    b_pwd = os.getenv("PENTESA_BOOTSTRAP_ADMIN_PASSWORD")
+    if b_email or b_pwd:
+        bootstrap_admins.append(("PENTESA_BOOTSTRAP_ADMIN", b_email, b_pwd))
+
+    # Numbered additional bootstrap admins (e.g., PENTESA_BOOTSTRAP_ADMIN2_EMAIL, etc.)
+    numbered_indices = set()
+    for key in os.environ:
+        m = re.match(r"^PENTESA_BOOTSTRAP_ADMIN(\d+)_EMAIL$", key, re.IGNORECASE)
+        if m:
+            numbered_indices.add(int(m.group(1)))
+    for idx in sorted(numbered_indices):
+        n_email = os.getenv(f"PENTESA_BOOTSTRAP_ADMIN{idx}_EMAIL")
+        n_pwd = os.getenv(f"PENTESA_BOOTSTRAP_ADMIN{idx}_PASSWORD")
+        if n_email or n_pwd:
+            bootstrap_admins.append((f"PENTESA_BOOTSTRAP_ADMIN{idx}", n_email, n_pwd))
+
     bootstrap_flag = os.getenv("PENTESA_BOOTSTRAP_ADMIN", "").lower() in ("1", "true", "yes")
-    bootstrap_email = os.getenv("PENTESA_BOOTSTRAP_ADMIN_EMAIL")
-    bootstrap_pwd = os.getenv("PENTESA_BOOTSTRAP_ADMIN_PASSWORD")
 
     # 2. Handle explicit bootstrap admin creation if requested
-    if bootstrap_flag or bootstrap_email:
-        if not bootstrap_email or not bootstrap_pwd:
+    if bootstrap_flag or bootstrap_admins:
+        if not bootstrap_admins:
             raise ValueError(
                 "SEC-PWD-01: PENTESA_BOOTSTRAP_ADMIN is enabled but PENTESA_BOOTSTRAP_ADMIN_EMAIL "
                 "or PENTESA_BOOTSTRAP_ADMIN_PASSWORD is missing. Both must be provided."
             )
 
-        # Idempotency check: verify if this bootstrap admin already exists
-        target_email = bootstrap_email.strip().lower()
-        user_stmt = select(User).where(User.email == target_email)
-        existing_bootstrap_user = (await session.execute(user_stmt)).scalar_one_or_none()
-        if existing_bootstrap_user:
-            logger.info(f"Bootstrap admin account already exists: {target_email}. Skipping creation (idempotent).")
-            return
+        created_any = False
+        for prefix, email_val, pwd_val in bootstrap_admins:
+            if not email_val or not pwd_val:
+                raise ValueError(
+                    f"SEC-PWD-01: {prefix} is enabled but {prefix}_EMAIL "
+                    f"or {prefix}_PASSWORD is missing. Both must be provided."
+                )
 
-        is_strong, reason = is_strong_password(bootstrap_pwd)
-        if not is_strong:
-            raise ValueError(
-                f"SEC-PWD-01: PENTESA_BOOTSTRAP_ADMIN_PASSWORD rejected: {reason}"
+            target_email = email_val.strip().lower()
+            # Idempotency check: verify if this bootstrap admin already exists
+            user_stmt = select(User).where(User.email == target_email)
+            existing_bootstrap_user = (await session.execute(user_stmt)).scalar_one_or_none()
+            if existing_bootstrap_user:
+                logger.info(f"Bootstrap admin account already exists: {target_email}. Skipping creation (idempotent).")
+                continue
+
+            is_strong, reason = is_strong_password(pwd_val)
+            if not is_strong:
+                raise ValueError(
+                    f"SEC-PWD-01: {prefix}_PASSWORD rejected: {reason}"
+                )
+
+            admin_user = User(
+                id=uuid.uuid4(),
+                email=target_email,
+                password_hash=hash_password(pwd_val),
+                full_name=os.getenv(f"{prefix}_NAME") or "System Administrator",
+                role="ADMIN",
+                is_active=True,
             )
+            session.add(admin_user)
+            created_any = True
+            logger.info(f"Successfully bootstrapped admin account: {target_email}")
 
-        admin_user = User(
-            id=uuid.uuid4(),
-            email=target_email,
-            password_hash=hash_password(bootstrap_pwd),
-            full_name="System Administrator",
-            role="ADMIN",
-            is_active=True,
-        )
-        session.add(admin_user)
-        await session.commit()
-        logger.info(f"Successfully bootstrapped initial admin account: {target_email}")
+        if created_any:
+            await session.commit()
         return
 
     # 3. Check if any admin account already exists

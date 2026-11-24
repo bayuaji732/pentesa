@@ -217,7 +217,7 @@ This document catalogs identified improvements, technical debt, and recommended 
 ### SEC-LEAK-02: Remove Hardcoded Harness Credentials & Rotate `benchmark-admin` on Reactivation
 - **Category**: Credential Hygiene & Secrets Management
 - **Severity**: P1 (High — while `benchmark-admin@pentesa.lab` can be reactivated; currently `is_active=false`)
-- **Status**: Open (Deactivated in prod DB); Scheduled for remediation before any reactivation.
+- **Status**: Resolved in Wave 0 (Commit `14ce83d`, untracked env fallback + inactive account enforced; regression test `tests/unit/test_sec_leak_02_credential_scrub.py`).
 - **Problem Statement**:
   `benchmark/setup_engagement_and_scope_check.py` (commit `55c0a09`, in git history) referenced the `benchmark-admin` harness credential rather than reading exclusively from environment variables or an untracked local file.
 - **Proposed Solution**:
@@ -322,7 +322,7 @@ This document catalogs identified improvements, technical debt, and recommended 
 ### DEFECT-CFG-01: Fail-Closed `DATABASE_URL` Enforcement in Production Mode
 - **Category**: Configuration Safety & Fail-Closed Startup (Phase 7 Gate)
 - **Severity**: P3 (Low)
-- **Status**: Documented in Phase 7 Gate (`docs/audit/03-defect-register.md` §3.34); Scheduled for Phase 9.
+- **Status**: Resolved in Wave 0 (Commit `364e0ea`, fail-closed validation in production/staging when DATABASE_URL missing or SQLite; regression test `tests/unit/test_cfg01_database_fail_closed.py`).
 - **Problem Statement**:
   `packages/common/config.py:51-55` defaults `database_url = "sqlite+aiosqlite:///./pentesa.db"` when `PENTESA_DATABASE_URL` is unset, and `apps/api/main.py:71-79` does not reject SQLite URLs when `PENTESA_ENV=production` or `staging`.
 - **Proposed Solution**:
@@ -366,7 +366,7 @@ This document catalogs identified improvements, technical debt, and recommended 
 ### DEFECT-INFRA-01 / P3: Container Resource Boundaries and PID Limits
 - **Category**: Infrastructure Hardening (Phase 8 Evaluation)
 - **Severity**: P3 (Low)
-- **Status**: Identified in Phase 8 (`docs/audit/03-defect-register.md` §3.38); Scheduled for Phase 9 implementation.
+- **Status**: Resolved in Wave 0 (Commit `ded03fa`, memory, cpu, and pid limits configured in docker-compose.yml; regression test `tests/unit/test_infra_01_compose_limits.py`).
 - **Problem Statement**:
   All 5 production containers run with unbounded host memory (`HostConfig.Memory = 0`) and no PID limits, creating host resource exhaustion risk under high concurrency or tool crashes (`NFR-LIM-01`).
 - **Proposed Solution**:

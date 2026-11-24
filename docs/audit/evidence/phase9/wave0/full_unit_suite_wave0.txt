@@ -1,0 +1,56 @@
+================================================================================
+EVIDENCE ARTIFACT: PHASE 9 WAVE 0 FULL UNIT SUITE EXECUTION PROOF
+Timestamp: 2026-11-24T13:39:00+07:00
+Environment: Windows host (.venv Python 3.12.13)
+Command: .venv\Scripts\python.exe -m pytest tests/unit/
+Branch: wave0 (pre-wave0 tag: pre-wave0)
+================================================================================
+
+============================= test session starts =============================
+platform win32 -- Python 3.12.13, pytest-9.2.0, pluggy-1.7.0
+rootdir: C:\Users\User2\Documents\work\pentesa
+configfile: pyproject.toml
+plugins: anyio-4.16.0, asyncio-1.4.1.post1, cov-7.1.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collected 213 items
+
+tests\unit\test_agent_allowlist_enforcement.py .                         [  0%]
+tests\unit\test_attack_surface_graph.py .                                [  0%]
+tests\unit\test_audit_chain.py ....                                      [  2%]
+tests\unit\test_base_agent.py .....                                      [  5%]
+tests\unit\test_baseline_adapter.py .....                                [  7%]
+tests\unit\test_bench_reset_guard.py ...                                 [  8%]
+tests\unit\test_benchmark_scorer.py ...................                  [ 17%]
+tests\unit\test_cfg01_database_fail_closed.py ....                       [ 19%]
+tests\unit\test_crawler.py ...                                           [ 21%]
+tests\unit\test_credential_encryption_and_redaction.py .........         [ 25%]
+tests\unit\test_default_credentials_and_seeding.py ..........            [ 30%]
+tests\unit\test_defect_api_02_regression.py .                            [ 30%]
+tests\unit\test_encryption_key_security.py ........                      [ 34%]
+tests\unit\test_evidence_engine.py ..........                            [ 38%]
+tests\unit\test_findings_management.py ......                            [ 41%]
+tests\unit\test_http_testing.py ..                                       [ 42%]
+tests\unit\test_lab_only_tool_guard.py ....                              [ 44%]
+tests\unit\test_llm_budget_enforcement.py ...                            [ 46%]
+tests\unit\test_llm_gateway_outage_handling.py ....                      [ 47%]
+tests\unit\test_llm_provider.py ..........                               [ 52%]
+tests\unit\test_mock_llm_guardrails.py ........                          [ 56%]
+tests\unit\test_parameter_extraction.py .........                        [ 60%]
+tests\unit\test_reporting_engine.py .....                                [ 62%]
+tests\unit\test_safe_redirect_loop.py ....                               [ 64%]
+tests\unit\test_scope_engine.py ...........                              [ 69%]
+tests\unit\test_security_rbac.py ....                                    [ 71%]
+tests\unit\test_specialized_agents.py .........                          [ 76%]
+tests\unit\test_technology_detection.py ....                             [ 77%]
+tests\unit\test_tool_assets_and_timeouts.py .....                        [ 80%]
+tests\unit\test_tool_catchall_and_soft404.py .ss.                        [ 82%]
+tests\unit\test_tool_redirect_hardening.py .....                         [ 84%]
+tests\unit\test_tool_runners.py ..........                               [ 89%]
+tests\unit\test_workflow_restart_recovery.py .                           [ 89%]
+tests\unit\test_workflow_supervisor.py .......                           [ 92%]
+tests\unit\test_wstg_catalog.py ..                                       [ 93%]
+tests\unit\test_wstg_coverage.py ..                                      [ 94%]
+tests\unit\test_wstg_execution_framework.py .....                        [ 97%]
+tests\unit\test_wstg_planner.py ......                                   [100%]
+
+================== 211 passed, 2 skipped in 94.45s (0:01:34) ==================

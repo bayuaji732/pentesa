@@ -4,8 +4,15 @@ import asyncio
 import os
 import uuid
 
-os.environ.setdefault("PENTESA_ENV", "test")
-os.environ.setdefault("PENTESA_LLM_PROVIDER", "mock")
+os.environ["PENTESA_ENV"] = "test"
+os.environ["PENTESA_ALLOW_TEST_SQLITE"] = "1"
+os.environ["PENTESA_LLM_PROVIDER"] = "mock"
+os.environ["PENTESA_LAYER2_EGRESS_ENABLED"] = "true"
+
+from packages.common.config import settings
+settings.env = "test"
+settings.llm_provider = "mock"
+settings.allow_test_sqlite = True
 from datetime import datetime, timedelta, timezone
 from typing import AsyncGenerator
 import pytest

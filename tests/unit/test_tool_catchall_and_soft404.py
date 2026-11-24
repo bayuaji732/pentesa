@@ -11,6 +11,7 @@ Verifies:
 import http.server
 import json
 import os
+import shutil
 import socket
 import threading
 from typing import Generator
@@ -101,6 +102,7 @@ async def test_soft_404_detector_flags_catchall_multi_probe(catchall_server):
     assert baseline.is_match(status=200, length=len(REAL_GIT_CONFIG_BODY)) is False
 
 
+@pytest.mark.skipif(shutil.which("nuclei") is None, reason="nuclei binary not installed on host")
 @pytest.mark.asyncio
 async def test_nuclei_positive_control_and_suppression(db_session: AsyncSession, test_project: Project, catchall_server):
     """Positive Control (F4-1): Nuclei reports EXACTLY the real exposures (/.env, /.git/config) and zero SPA false positives."""
@@ -144,6 +146,7 @@ async def test_nuclei_positive_control_and_suppression(db_session: AsyncSession,
     assert any("Sensitive File" in t or "Exposure" in t for t in titles)
 
 
+@pytest.mark.skipif(shutil.which("ffuf") is None, reason="ffuf binary not installed on host")
 @pytest.mark.asyncio
 async def test_ffuf_positive_control_and_suppression(db_session: AsyncSession, test_project: Project, catchall_server):
     """Positive Control (F4-1): ffuf reports EXACTLY the real exposures (/.env, /.git/config) and zero SPA false positives."""

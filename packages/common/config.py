@@ -1,7 +1,9 @@
 """Pentesa configuration settings powered by Pydantic."""
 
+import os
+import sys
 from typing import List
-from pydantic import AliasChoices, Field
+from pydantic import AliasChoices, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -49,10 +51,65 @@ class Settings(BaseSettings):
 
     # Database
     database_url: str = Field(
-        default="sqlite+aiosqlite:///./pentesa.db",
+        default="",
         validation_alias=AliasChoices("pentesa_database_url", "database_url"),
         description="Async SQLAlchemy database connection string"
     )
+    allow_test_sqlite: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("pentesa_allow_test_sqlite", "allow_test_sqlite"),
+        description="Explicitly permit SQLite fallback for unit test suites only"
+    )
+
+    @model_validator(mode="after")
+    def validate_database_config(self) -> "Settings":
+        env = (self.env or "").strip().lower()
+        url = (self.database_url or "").strip()
+        is_test_runner = (
+            "pytest" in sys.modules
+            or "PYTEST_CURRENT_TEST" in os.environ
+            or any("pytest" in arg.lower() for arg in sys.argv)
+        )
+        allow_sqlite = (
+            self.allow_test_sqlite
+            or os.getenv("PENTESA_ALLOW_TEST_SQLITE", "").strip().lower() in ("1", "true", "yes")
+            or env == "test"
+            or is_test_runner
+        )
+
+        # 1. Production & Staging: Fail closed if DATABASE_URL is missing or not PostgreSQL
+        if env in ("production", "staging"):
+            if not url:
+                raise ValueError(
+                    f"CRITICAL CONFIGURATION ERROR: PENTESA_DATABASE_URL is not set in environment '{env}'. "
+                    "Production mode fails closed and requires an explicit PostgreSQL connection string (postgresql+asyncpg://...)."
+                )
+            if "sqlite" in url.lower():
+                raise ValueError(
+                    f"CRITICAL CONFIGURATION ERROR: SQLite database is strictly prohibited in environment '{env}'. "
+                    "Production mode requires a valid PostgreSQL connection (postgresql+asyncpg://...)."
+                )
+            if not (url.startswith("postgresql+asyncpg://") or url.startswith("postgresql://") or url.startswith("postgres://")):
+                raise ValueError(
+                    f"CRITICAL CONFIGURATION ERROR: Database URL '{url[:20]}...' in environment '{env}' is not PostgreSQL. "
+                    "Production mode requires a valid PostgreSQL connection (postgresql+asyncpg://...)."
+                )
+
+        # 2. SQLite is permitted ONLY under explicit test setting
+        if "sqlite" in url.lower() and not allow_sqlite:
+            raise ValueError(
+                "CRITICAL CONFIGURATION ERROR: SQLite database is prohibited. "
+                "SQLite is only permitted under an explicit test setting (PENTESA_ALLOW_TEST_SQLITE=1 or PENTESA_ENV=test)."
+            )
+
+        # 3. Default to SQLite only in test setting if url was omitted
+        if not url and allow_sqlite:
+            self.database_url = "sqlite+aiosqlite:///./pentesa.db"
+        elif not url and env not in ("production", "staging"):
+            # Local dev fallback to PostgreSQL
+            self.database_url = "postgresql+asyncpg://pentesa:pentesa_dev@localhost:5432/pentesa"
+
+        return self
 
     # Redis
     redis_url: str = Field(

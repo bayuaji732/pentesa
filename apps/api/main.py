@@ -67,9 +67,24 @@ def validate_encryption_key_startup():
             "or insecure placeholder string. Provide a unique cryptographically generated key in non-test environments."
         )
 
-    # 2. Strict database password and JWT secret enforcement outside test/dev
+    # 2. Strict database password, database URL, and JWT secret enforcement outside test/dev
     if env not in ("development", "test"):
         db_url = os.getenv("PENTESA_DATABASE_URL") or os.getenv("DATABASE_URL") or getattr(settings, "database_url", "")
+        if not db_url:
+            raise RuntimeError(
+                f"CRITICAL CONFIGURATION ERROR: PENTESA_DATABASE_URL is not set in environment '{env}'. "
+                "Production mode fails closed and requires an explicit PostgreSQL connection string."
+            )
+        if "sqlite" in db_url.lower():
+            raise RuntimeError(
+                f"CRITICAL CONFIGURATION ERROR: SQLite database is strictly prohibited in environment '{env}'. "
+                "Production mode requires a valid PostgreSQL connection (postgresql+asyncpg://...)."
+            )
+        if not (db_url.startswith("postgresql+asyncpg://") or db_url.startswith("postgresql://") or db_url.startswith("postgres://")):
+            raise RuntimeError(
+                f"CRITICAL CONFIGURATION ERROR: Database URL in environment '{env}' is not PostgreSQL. "
+                "Production mode requires a valid PostgreSQL connection (postgresql+asyncpg://...)."
+            )
         insecure_passwords = ["pentesa_password", "postgres", "password", "admin", "root", "123456"]
         for bad_pwd in insecure_passwords:
             if f":{bad_pwd}@" in db_url:

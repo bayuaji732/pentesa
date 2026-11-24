@@ -74,9 +74,7 @@ npm install --prefix apps/web
 npm run dev --prefix apps/web
 ```
 - Web Operations Console: `http://localhost:3000`
-- Default Admin Credentials:
-  - **Email:** `admin@example.com`
-  - **Password:** `Admin123!Secure`
+- **Authentication**: Log in using the administrator credentials configured in your environment file (see [Production Deployment](#production-deployment--one-command-bring-up-docker-compose) below). In local development mode (`PENTESA_ENV=development` with `PENTESA_SEED_DEMO_DATA=1`), demo administrative accounts are automatically initialized.
 
 ---
 
@@ -100,39 +98,82 @@ The frontend console is built with Next.js 14 App Router, React 18, Tailwind CSS
 
 ## Production Deployment & One-Command Bring-Up (Docker Compose)
 
-Pentesa is designed for reproducible one-command deployment using Docker Compose:
+Pentesa is designed for reproducible one-command deployment using Docker Compose. All 5 core services run in bounded Linux containers with isolated internal networking, resource limits, and cryptographic database state.
+
+### 1. Configure Production Environment
+
+Copy the environment template to create your untracked `.env.production` file:
 
 ```bash
-# 1. Bring up all services (api, web, worker, db, redis) in the background
-docker compose up -d --build
+cp .env.example .env.production
+```
 
-# 2. Run the end-to-end platform smoke test
+Ensure the following critical variables are configured in `.env.production`:
+- **Cryptographic Keys**: Generate unique 32-byte hexadecimal keys (`openssl rand -hex 32`):
+  - `PENTESA_SECRET_KEY=<32-byte-hex-jwt-signing-key>`
+  - `PENTESA_ENCRYPTION_KEY=<32-byte-hex-aes-gcm-master-key>`
+- **Database Password**: Set a strong password for PostgreSQL:
+  - `POSTGRES_PASSWORD=<strong-postgres-password>`
+- **Bootstrap Administrator Credentials** (bootstraps admin account on initial startup):
+  - `PENTESA_BOOTSTRAP_ADMIN=true`
+  - `PENTESA_BOOTSTRAP_ADMIN_EMAIL=security-lead@yourcompany.com`
+  - `PENTESA_BOOTSTRAP_ADMIN_PASSWORD=<StrongPassword12+Chars!>`
+  - *(Optional)* Additional team administrators:
+    - `PENTESA_BOOTSTRAP_ADMIN2_EMAIL=team-member@yourcompany.com`
+    - `PENTESA_BOOTSTRAP_ADMIN2_PASSWORD=<StrongPassword12+Chars!>`
+
+### 2. Start the Production Stack
+
+```bash
+# Bring up all 5 services in the background using .env.production
+docker compose -p pentesa-prod --env-file .env.production up -d --build
+```
+
+### 3. Verify Stack Health & Run Platform Smoke Test
+
+```bash
+# Check service status and health probes
+docker compose -p pentesa-prod ps
+
+# Verify API liveness & database readiness
+curl http://127.0.0.1:8000/healthz
+curl http://127.0.0.1:8000/readyz
+
+# Run the end-to-end platform smoke test
 python scripts/smoke_test.py
 ```
 
-### Stack Components & Health Probes
+### 4. Stack Services, Resource Bounds & Endpoints
 
-| Service | Container | Internal Port | Host Port | Health Check |
-|---|---|---|---|---|
-| **API** | `pentesa-api` | 8000 | `8000` | `curl -f http://localhost:8000/healthz` |
-| **Web** | `pentesa-web` | 3000 | `3000` | Node fetch `/login` (HTTP 200) |
-| **Worker** | `pentesa-worker` | - | - | Dependent on `api`, `db`, `redis` healthy |
-| **Database** | `pentesa-db` | 5432 | Internal | `pg_isready` (PostgreSQL 16) |
-| **Cache/Queue** | `pentesa-redis` | 6379 | Internal | `redis-cli ping` (Redis 7) |
+All containers enforce strict memory limits, CPU quotas, and process limits (`NFR-LIM-01`):
 
-### Smoke Test Script (`scripts/smoke_test.py`)
+| Service | Container Name | Host Port | Internal Port | Resource Bounds | Health Check |
+|---|---|---|---|---|---|
+| **Web Console** | `pentesa-web` | `3000` | 3000 | 1024MB RAM, 1.0 CPU, 150 PIDs | HTTP GET `/login` |
+| **REST API** | `pentesa-api` | `8000` | 8000 | 1024MB RAM, 1.5 CPU, 200 PIDs | HTTP GET `/healthz` |
+| **Task Worker** | `pentesa-worker` | None | None | 1024MB RAM, 1.5 CPU, 200 PIDs | Dependent on API & DB |
+| **Database** | `pentesa-db` | None (Internal) | 5432 | 1024MB RAM, 1.0 CPU, 150 PIDs | `pg_isready` (PostgreSQL 16) |
+| **Cache/Broker** | `pentesa-redis` | None (Internal) | 6379 | 512MB RAM, 0.5 CPU, 100 PIDs | `redis-cli ping` (Redis 7) |
 
-The automated smoke test verifies:
-1. Core API server liveness (`/healthz`)
-2. Database connectivity & readiness (`/readyz`)
-3. External security tool inventory (`/api/v1/tools` verifying nuclei & ffuf)
-4. Next.js Web Console accessibility (`/login`)
-5. User authentication flow (`/api/v1/auth/login`)
-6. Authenticated project & user profile retrieval (`/api/v1/projects`, `/api/v1/users/me`)
+- **Web Operations Console**: `http://localhost:3000`
+- **Interactive OpenAPI Documentation (Swagger)**: `http://127.0.0.1:8000/docs`
 
-Run with custom URLs if needed:
+### 5. Managing the Running Stack
+
 ```bash
-PENTESA_API_URL=http://localhost:8000 PENTESA_WEB_URL=http://localhost:3000 python scripts/smoke_test.py
+# View live logs for all services or a specific service
+docker compose -p pentesa-prod --env-file .env.production logs -f
+docker compose -p pentesa-prod --env-file .env.production logs -f api
+
+# Stop services without deleting containers
+docker compose -p pentesa-prod --env-file .env.production stop
+
+# Restart services
+docker compose -p pentesa-prod --env-file .env.production restart
+
+# Gracefully teardown the stack while PRESERVING database volumes
+docker compose -p pentesa-prod --env-file .env.production down
+# NOTE: Never pass '-v' or '--volumes' to avoid data loss on PostgreSQL volumes.
 ```
 
 ---

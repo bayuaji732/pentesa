@@ -7,7 +7,6 @@ import uuid
 os.environ["PENTESA_ENV"] = "test"
 os.environ["PENTESA_ALLOW_TEST_SQLITE"] = "1"
 os.environ["PENTESA_LLM_PROVIDER"] = "mock"
-os.environ["PENTESA_LAYER2_EGRESS_ENABLED"] = "true"
 
 from packages.common.config import settings
 settings.env = "test"
@@ -34,9 +33,7 @@ from packages.common.security import create_access_token, hash_password
 TEST_DB_FILE = "./test_pentesa.db"
 TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL", f"sqlite+aiosqlite:///{TEST_DB_FILE}")
 
-engine_kwargs = {"echo": False}
-if "postgresql" in TEST_DATABASE_URL:
-    engine_kwargs["poolclass"] = NullPool
+engine_kwargs = {"echo": False, "poolclass": NullPool}
 
 test_engine = create_async_engine(TEST_DATABASE_URL, **engine_kwargs)
 TestSessionLocal = async_sessionmaker(bind=test_engine, class_=AsyncSession, expire_on_commit=False)

@@ -18,8 +18,8 @@ Before starting any walkthrough, note how Pentesa behaves in live production mod
 - **Real LiteLLM Engine Only:** Both `.env` (local dev) and `.env.production` (Docker prod) must set `PENTESA_LLM_PROVIDER=litellm` along with your `PENTESA_LITELLM_BASE_URL`, `PENTESA_LITELLM_API_KEY`, and `PENTESA_LITELLM_MODEL` (e.g., `azure/gpt-5.6-terra-dev-gtw`). Note that `MockLLMProvider` is strictly blocked whenever `PENTESA_ENV=production`.
 - **Blank Console Inputs:** All forms in the Operations Console (`/login`, `/projects`, `/scope`, `/discovery`, `/reports`) intentionally start blank (`""`) with placeholder hints only—you enter real values for every engagement.
 - **Seeded Login Account Only:** Bootstrapping provisions one administrator user with zero sample engagements (`PENTESA_SEED_DEMO_PROJECT` disabled by default):
-  - **Operator Email:** `admin@example.com`
-  - **Master Secret Password:** `Admin123!Secure`
+  - **Operator Email:** Configured bootstrap admin email (e.g. from `PENTESA_BOOTSTRAP_ADMIN_EMAIL`)
+  - **Master Secret Password:** Configured bootstrap admin password (from `PENTESA_BOOTSTRAP_ADMIN_PASSWORD`)
 
 ### Autonomous Scan Profiles (`/agents`)
 
@@ -86,8 +86,8 @@ npm run dev --prefix apps/web
 
 1. Navigate to **`http://localhost:3000/login`**.
 2. Enter:
-   - **Operator Email:** `admin@example.com`
-   - **Master Secret Password:** `Admin123!Secure`
+   - **Operator Email:** Your configured bootstrap administrator email
+   - **Master Secret Password:** Your configured bootstrap administrator password
 3. Click **`Sign In to Operations Console`**.
 
 ### Step 1.4: Authorize Engagement (`/projects`)
@@ -271,7 +271,7 @@ Because [`infrastructure/docker-compose.prod.yml`](../infrastructure/docker-comp
    Confirm **`HTTP 200`**. *(FastAPI returns `405` on `HEAD`/`curl -I`, so use `GET` via `curl -fsS`.)*
 
 3. **Run the full walkthrough in Pentesa (`http://localhost:3000`):**
-   - **Login (`/login`):** `admin@example.com` / `Admin123!Secure`.
+   - **Login (`/login`):** Sign in using your configured administrator credentials.
    - **Create Project (`/projects`):**
      - **Engagement Name \*:** `Docker Hybrid Option A Assessment`
      - **Target In-Scope Domains \*:** `host.docker.internal`
@@ -343,7 +343,7 @@ Option B tests the containerized Pentesa stack against **Altoro Mutual (`http://
 ### Step 2.1: Sign In to Production Console (`/login`)
 
 1. Open **`http://localhost:3000/login`**.
-2. Sign in with `admin@example.com` / `Admin123!Secure` -> **`Sign In to Operations Console`**.
+2. Sign in with your configured administrator credentials -> **`Sign In to Operations Console`**.
 
 ### Step 2.2: Authorize Public Engagement (`/projects`)
 

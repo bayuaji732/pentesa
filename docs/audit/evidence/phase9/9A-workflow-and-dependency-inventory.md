@@ -65,9 +65,9 @@
 | `greenlet` | `>=3.0.0` | **Yes** | SQLAlchemy async relationship support | Keep |
 | `alembic` | `>=1.13.1` | **Yes** | Database schema migrations | Keep |
 | `asyncpg` | `>=0.29.0` | **Yes** | Native PostgreSQL async driver | Keep |
-| `aiosqlite` | `>=0.20.0` | **No** (Only fallback) | Local SQLite fallback driver (`DEFECT-CFG-01`) | **Purge in Wave 0** (fail closed on missing Postgres URL) |
+| `aiosqlite` | `>=0.20.0` | **No** (Only fallback) | Local SQLite fallback driver (`DEFECT-CFG-01`) | **Purged in Wave 0**: Removed from `requirements.txt`; isolated in `requirements-dev.txt` for unit test suites only |
 | `pyjwt` | `>=2.8.0` | **Yes** | JWT token minting and signature verification | Keep |
-| `passlib[bcrypt]` | `>=1.7.4` | **Yes** | Legacy password hashing wrapper | **Deprecate**: Migrate directly to `bcrypt` in Wave 0 |
+| `passlib[bcrypt]` | `>=1.7.4` | **No** (Unused) | Legacy password hashing wrapper | **Purged in Wave 0**: Removed from `requirements.txt`; direct `bcrypt` rounds=12 verified |
 | `bcrypt` | `>=4.1.2` | **Yes** | Direct secure password hashing | Keep |
 | `cryptography` | `>=42.0.5` | **Yes** | AES-256-GCM vault encryption (Fernet) | Keep |
 | `httpx` | `>=0.27.0` | **Yes** | Async HTTP prober (`safe_request`) | Keep |

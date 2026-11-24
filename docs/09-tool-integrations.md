@@ -29,6 +29,14 @@
 
 ## 1. Tool Integration Architecture & Design Principles
 
+> [!NOTE] Implementation Status (ADR-002 & ADR-006 Reconciliation)
+> - **Active Functional Tools (5 verified):** `nuclei` (CVE/template engine), `ffuf` (web fuzzer), `python_engine` (standalone security checks), `ssl_tls` (SSL/TLS configuration prober), and `security_headers` (HTTP security header analyzer).
+> - **Phased 4-Tier Roadmap (ADR-002):**
+>   - *Tier 1 (Wave 0–2):* Stabilize and harden the 5 core tools with strict timeout cancellation, soft-404 detection, and process lifecycle cleanup.
+>   - *Tier 2 (Post-Phase 10):* Integrate `httpx` (Go CLI) and `katana` (crawler).
+>   - *Tier 3 (Post-Phase 10):* Integrate `subfinder`, `naabu`, and `amass`.
+>   - *Tier 4 (Future Architecture):* Integrate `sqlmap`, `zap`, `schemathesis`, `playwright`, `interactsh`.
+
 Pentesa integrates industry-standard offensive security tools to perform active reconnaissance and vulnerability detection. To guarantee stability, security, and reproducibility, the tool integration layer adheres to strict architectural principles:
 
 1. **Zero Shell Command Interpolation:** All binaries are invoked via Python's `asyncio.create_subprocess_exec` passing strongly-typed argument arrays (`argv: List[str]`). Shell strings (`sh -c`, `bash`, `cmd.exe`) and `shell=True` are strictly prohibited.

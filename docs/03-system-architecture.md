@@ -198,6 +198,12 @@ graph LR
 - **Lifecycle Management:** Enforces timeouts, memory thresholds, execution cancellation, rate limits, and output stream parsers.
 
 ### 3.6 AI Multi-Agent Orchestrator (LangGraph)
+
+> [!NOTE] Implementation Status (ADR-001, ADR-003 & ADR-006 Reconciliation)
+> - **Workflow Engine:** LangGraph + PostgresSaver is a PLANNED target design (Option B post-Phase 10). The current verified production runtime utilizes a deterministic Custom Async DAG Orchestrator implemented in `services/orchestrator/supervisor.py`.
+> - **Task Worker:** Celery distributed broker is PLANNED. The current runtime uses an in-memory queue (`_ACTIVE_WORKFLOW_TASKS`) transitioning to Redis stream worker (`worker.py`).
+> - **Circuit Breaker:** Standardized on 15% 5xx error rate over 30s sliding window per ADR-003 (reconciling PRD 15%/30s vs Architecture 20%/60s). Scheduled for implementation in Wave 1.
+
 - **Framework:** LangGraph (stateful graph workflow) backed by LangChain.
 - **Structure:** Hierarchical state machine with a Planning Supervisor coordinating specialized worker agents.
 - **State Persistence:** Execution checkpoints are saved to PostgreSQL after every agent transition, enabling scan pause, resume, and step-by-step human review.

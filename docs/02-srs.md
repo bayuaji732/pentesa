@@ -273,9 +273,14 @@ No direct custom hardware interfaces required. Interacts with standard network i
 - **SRS-NFR-SAFE-001 (Scope Breach Prevention):** 100% of outbound HTTP/TCP requests initiated by any subsystem shall be verified by the scope engine prior to transmission. A single unapproved outbound request constitutes a critical defect.
 - **SRS-NFR-SAFE-002 (Rate Limit Compliance):** Outbound request throughput shall never exceed the operator-configured requests-per-second threshold by more than 5% over any 5-second moving average window.
 - **SRS-NFR-SAFE-003 (Circuit Breaker):** If target HTTP responses yield $\ge 20\%$ `500 Internal Server Error` or connection dropouts over 60 seconds, the engine shall automatically pause scan execution and notify the operator.
+  > [!NOTE] Implementation Status (ADR-003 & ADR-006 Reconciliation)
+  > Per ADR-003, the circuit breaker specification is formally standardized to **15% 5xx error rate over a 30-second sliding window** with 60s cooldown, aligning PRD and architecture standards. Scheduled for implementation in Wave 1.
 
 ### 5.3 Security Requirements (SRS-NFR-SEC)
 - **SRS-NFR-SEC-001 (Authentication):** Local platform access shall require authentication using JSON Web Tokens (JWT) with password hashing backed by `bcrypt` (work factor 12).
+  > [!NOTE] Implementation Status (ADR-006 Reconciliation)
+  > - **JWT Token Lifetime:** The current production deployment issues single-token JWT access tokens configured for a 60-minute lifetime (`PENTESA_ACCESS_TOKEN_EXPIRE_MINUTES=60`) without active refresh token rotation. A 15-minute access token combined with refresh token rotation is scheduled for implementation in Wave 2.
+  > - **Bcrypt Work Factor:** Password hashing is verified at bcrypt work factor 12 (`rounds=12` in `packages/common/security.py`), conforming to OWASP Password Storage standards.
 - **SRS-NFR-SEC-002 (Role-Based Access Control):** The system shall enforce role-based access control with four distinct roles: `Admin`, `Lead Tester`, `Tester`, `Viewer`.
 - **SRS-NFR-SEC-003 (Secret Protection):** Target application credentials and API keys stored in the database shall be encrypted using AES-256-GCM. Decryption keys shall never be logged or exposed via API.
 - **SRS-NFR-SEC-004 (Input Sanitization):** All user-provided strings and external tool outputs shall be strictly validated using Pydantic schemas before persistence and sanitized prior to HTML/PDF report rendering to prevent secondary Cross-Site Scripting (XSS) or template injection.

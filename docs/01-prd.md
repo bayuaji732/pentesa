@@ -115,6 +115,13 @@ Pentesa is fully self-hosted, keeping target data, sensitive vulnerability discl
 - **FR-ST-05:** Global and per-target rate limiting (configurable requests per second, concurrency limit, error threshold backoff).
 
 ### 4.6 AI Agent System
+
+> [!NOTE] Implementation Status (ADR-001 & ADR-006 Reconciliation)
+> - **Workflow Engine:** LangGraph + PostgresSaver is a PLANNED target design (Option B post-Phase 10). The current verified production runtime utilizes a deterministic Custom Async DAG Orchestrator implemented in `services/orchestrator/supervisor.py`.
+> - **Specialized Agents:** 7 specialized agents are active and implemented in runtime (`ProjectPlanningAgent`, `ReconnaissanceAgent`, `WSTGAssessmentAgent`, `VulnerabilityAgent`, `AuthorizationAgent`, `ValidationAgent`, `ReportingAgent`). The remaining 8 agent roles are consolidated across the phased roadmap.
+> - **Task Worker:** Celery distributed queue is PLANNED. The current runtime utilizes an in-memory queue (`_ACTIVE_WORKFLOW_TASKS`) transitioning to Redis stream worker (`worker.py`).
+> - **Crawling Tools:** Katana headless crawler is PLANNED (Tier 2 per ADR-002). Current active crawling is provided by the internal async Python crawler (`services/crawler/`).
+
 - **FR-AG-01:** Multi-agent architecture built on stateful graph workflows (LangGraph).
 - **FR-AG-02:** 15 dedicated agents with distinct responsibilities:
   1. Project Planning Agent

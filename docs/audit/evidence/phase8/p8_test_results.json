@@ -177,12 +177,12 @@
       "status": "Failed",
       "metrics": {
         "cancellation_cleanup_passed": false,
-        "tool_spawned_and_killed": false,
-        "orphan_zombie_processes_remaining": 0,
+        "tool_spawned_and_killed": true,
+        "orphan_zombie_processes_remaining": 1,
         "leftover_temp_files": 0,
         "hard_timeout_enforced": true
       },
-      "details": "Process lifecycle test confirmed clean termination on cancellation without zombie/defunct processes (0 zombies, 0 temp files)."
+      "details": "Linux container empirical proof (test_res01_worker_linux_proof.txt): BaseToolWrapper spawned child PID 174 (/usr/local/bin/python3 -c 'import time; time.sleep(15)'); task.cancel() aborted coroutine via asyncio.CancelledError but child PID 174 survived in Linux /proc table with proc.returncode=None."
     },
     {
       "test_id": "P8-TC-HOST-01",

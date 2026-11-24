@@ -1,7 +1,7 @@
 # ADR-003: Circuit-Breaker Error Rate Specification Standard
 
 > **Document Identifier:** `ADR-003-CIRCUIT-BREAKER-SPEC`  
-> **Status:** PROPOSED  
+> **Status:** ACCEPTED  
 > **Date:** 2026-11-24  
 > **Auditors / Authors:** Principal Security Architect & QA Team  
 > **Reference Baseline:** `docs/audit/evidence/phase8/p8_test_results.json` (`P8-TC-SAFE-01`)

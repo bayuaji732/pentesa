@@ -1,7 +1,7 @@
 # ADR-006: Documentation Synchronization & Architecture Drift Policy
 
 > **Document Identifier:** `ADR-006-DOCS-SYNC-POLICY`  
-> **Status:** PROPOSED  
+> **Status:** ACCEPTED  
 > **Date:** 2026-11-24  
 > **Auditors / Authors:** Principal Systems Architect & Documentation Standards Team  
 > **Reference Baseline:** `docs/audit/10-improvement-roadmap.md`

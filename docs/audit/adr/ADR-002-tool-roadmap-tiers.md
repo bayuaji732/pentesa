@@ -1,7 +1,7 @@
 # ADR-002: Offensive Security Tooling Phased Roadmap & Tiers
 
 > **Document Identifier:** `ADR-002-TOOL-ROADMAP-TIERS`  
-> **Status:** PROPOSED  
+> **Status:** ACCEPTED  
 > **Date:** 2026-11-24  
 > **Auditors / Authors:** Independent AppSec & Tool Integration Team  
 > **Reference Baseline:** `docs/audit/evidence/phase9/9A-tool-inventory.md`

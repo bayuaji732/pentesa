@@ -1,7 +1,7 @@
 # ADR-004: API Schema Completeness & Keyset Cursor Pagination
 
 > **Document Identifier:** `ADR-004-API-CONTRACT-PAGINATION`  
-> **Status:** PROPOSED  
+> **Status:** ACCEPTED  
 > **Date:** 2026-11-24  
 > **Auditors / Authors:** API & Data Architecture Evaluation Team  
 > **Reference Baseline:** `P1-FIND-02`, `DEFECT-SCAL-01`, `P8-TC-SCAL-01`

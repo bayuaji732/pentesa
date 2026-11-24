@@ -1,7 +1,7 @@
 # ADR-001: Workflow Engine Architecture & Worker Task Decoupling
 
 > **Document Identifier:** `ADR-001-WORKFLOW-ENGINE`  
-> **Status:** PROPOSED  
+> **Status:** ACCEPTED (Option B Target Design; Scheduled Post-Phase 10 Implementation)  
 > **Date:** 2026-11-24  
 > **Auditors / Authors:** Independent Principal Architect, AppSec & Systems Evaluation Team  
 > **Supersedes:** `docs/decisions/ADR-002-langgraph-agent-orchestration.md`

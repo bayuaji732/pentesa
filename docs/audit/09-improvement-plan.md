@@ -2,8 +2,13 @@
 
 > **Document Identifier:** `PENTESA-AUDIT-09-PLAN-V1.0`  
 > **Evaluation Date:** `2026-11-24`  
-> **Scope:** Consolidated open defects, architectural decisions (ADR-001 through ADR-006), and phased implementation waves (Wave 0 through Wave 4).  
+> **Scope:** Consolidated open defects, architectural decisions (ADR-001 through ADR-006), and phased implementation waves. Phase 9 execution encompasses Waves 0 through 2; Wave 3 and Wave 4 are scheduled as post-audit roadmap work (detailed in `docs/audit/10-improvement-roadmap.md`).  
 > **Master Operating Rule:** **Fix P0 safety & egress before active scanning; zero rewrites of working modules without empirical evidence of failure.**
+
+---
+
+### NI-03 Operational Safety Justification
+Active scanning stays strictly confined to the isolated benchmark network (`pentesa-bench`) until the NI-03 Layer-2 egress proxy is implemented in Wave 2. Empirical proof of containment: Docker compose network definitions isolate benchmark targets on private bridge networks without public gateways, and continuous canary sensor monitoring (`bench-canary-sensor` at `10.99.0.100:9099`) registered exactly 0 canary packets/hits across all runs in Phases 2 through 8. No scans against uncontained public targets are permitted until NI-03 is deployed.
 
 ---
 
@@ -114,7 +119,7 @@ flowchart TD
 
 ---
 
-### Wave 3: Durability, Scalability & Background Worker
+### Wave 3: Durability, Scalability & Background Worker (Post-Audit Roadmap per ADR-001)
 - **Defects Targeted:** `DEFECT-REL-01`, `DEFECT-SAFE-01`, `DEFECT-SCAL-01`, `P3-API-01`, `DEFECT-LIFE-01`.
 - **Key Changes:**
   1. Implement ADR-001 Option B: Refactor `services/execution_engine/worker.py` to consume `pentesa:queue:workflows` from Redis. Decouple scan execution from API server.
@@ -133,7 +138,7 @@ flowchart TD
 
 ---
 
-### Wave 4: Detection Depth & Advanced Coverage
+### Wave 4: Detection Depth & Advanced Coverage (Post-Audit Roadmap per ADR-002)
 - **Defects Targeted:** `RECON-01`, `P2-RECON-01`, `DISCO-SPA-01`, `DEFECT-AUTH-02`, `DEFECT-BUSL-01`, `DEFECT-CHAIN-01`.
 - **Key Changes:**
   1. Install and integrate `Katana` (v1.1.0) under Tier-2 roadmap rules (behind `NI-03` proxy) for JS crawling.

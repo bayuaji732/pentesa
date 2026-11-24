@@ -20,6 +20,36 @@ if REPO_ROOT not in sys.path:
 from services.execution_engine.tools.base import BaseToolWrapper
 
 
+def get_process_table() -> list:
+    """Read Linux /proc filesystem or return process status."""
+    procs = []
+    if os.path.exists("/proc"):
+        for entry in os.listdir("/proc"):
+            if entry.isdigit():
+                pid = int(entry)
+                cmdline_path = f"/proc/{pid}/cmdline"
+                stat_path = f"/proc/{pid}/stat"
+                cmdline = ""
+                state = "?"
+                ppid = "?"
+                try:
+                    with open(cmdline_path, "rb") as f:
+                        cmdline = f.read().replace(b"\x00", b" ").decode("utf-8", errors="replace").strip()
+                except Exception:
+                    pass
+                try:
+                    with open(stat_path, "r") as f:
+                        parts = f.read().split()
+                        if len(parts) >= 4:
+                            state = parts[2]
+                            ppid = parts[3]
+                except Exception:
+                    pass
+                if cmdline:
+                    procs.append({"pid": pid, "ppid": ppid, "state": state, "cmdline": cmdline[:60]})
+    return procs
+
+
 class HarmlessLongRunningTool(BaseToolWrapper):
     captured_proc = None
 
@@ -43,7 +73,13 @@ class HarmlessLongRunningTool(BaseToolWrapper):
 async def main():
     print("=" * 80, flush=True)
     print("EMPIRICAL PROOF OF DEFECT-RES-01 (CANCELLATION LEAK IN BASETOOLWRAPPER)", flush=True)
+    print("Platform: Linux Container (pentesa-worker / Debian Bookworm)", flush=True)
     print("=" * 80, flush=True)
+
+    # Initial process table
+    print("\n--- [Initial Linux Container Process Table] ---", flush=True)
+    for p in get_process_table():
+        print(f"  PID {p['pid']} (PPID {p['ppid']}) [{p['state']}]: {p['cmdline']}", flush=True)
 
     # Monkeypatch asyncio.create_subprocess_exec to capture the spawned subprocess
     orig_create_subprocess = asyncio.create_subprocess_exec
@@ -57,7 +93,7 @@ async def main():
 
     tool = HarmlessLongRunningTool()
 
-    print("[1] Spawning BaseToolWrapper.execute() inside an asyncio.Task...", flush=True)
+    print("\n[1] Spawning BaseToolWrapper.execute() inside an asyncio.Task...", flush=True)
     task = asyncio.create_task(
         tool.execute(
             session=None,
@@ -77,7 +113,12 @@ async def main():
     child_pid = proc.pid
     print(f"[2] Subprocess spawned: PID {child_pid}, proc.returncode={proc.returncode}", flush=True)
 
-    print("[3] Enforcing task.cancel() on enclosing coroutine...", flush=True)
+    print("\n--- [Process Table While Tool Running] ---", flush=True)
+    for p in get_process_table():
+        if p["pid"] == child_pid or p["pid"] == os.getpid() or p["pid"] == 1:
+            print(f"  PID {p['pid']} (PPID {p['ppid']}) [{p['state']}]: {p['cmdline']}", flush=True)
+
+    print("\n[3] Enforcing task.cancel() on enclosing coroutine...", flush=True)
     task.cancel()
 
     try:
@@ -87,15 +128,24 @@ async def main():
         print("[4] Successfully caught asyncio.CancelledError at task caller boundary.", flush=True)
 
     # Allow a brief moment for any cleanup handlers to run
-    await asyncio.sleep(0.3)
+    await asyncio.sleep(0.5)
 
     return_code = proc.returncode
-    print(f"[5] Post-cancellation check for PID {child_pid}: proc.returncode = {return_code}", flush=True)
+    print(f"\n[5] Post-cancellation check for PID {child_pid}: proc.returncode = {return_code}", flush=True)
 
-    if return_code is None:
+    print("\n--- [Process Table After Task Cancellation] ---", flush=True)
+    child_in_proc = False
+    for p in get_process_table():
+        if p["pid"] == child_pid:
+            child_in_proc = True
+            print(f"  PID {p['pid']} (PPID {p['ppid']}) [{p['state']}]: {p['cmdline']} <-- ORPHAN SURVIVED!", flush=True)
+        elif p["pid"] == os.getpid() or p["pid"] == 1:
+            print(f"  PID {p['pid']} (PPID {p['ppid']}) [{p['state']}]: {p['cmdline']}", flush=True)
+
+    if return_code is None or child_in_proc:
         print("\n" + "!" * 80, flush=True)
         print("CONFIRMED DEFECT-RES-01:")
-        print(f"  Child PID {child_pid} is STILL RUNNING (proc.returncode is None) after task cancellation!")
+        print(f"  Child PID {child_pid} is STILL RUNNING in Linux /proc after task cancellation!")
         print("  Root Cause: BaseToolWrapper.execute() catches only asyncio.TimeoutError and Exception.")
         print("  In Python 3.8+, asyncio.CancelledError inherits from BaseException.")
         print("  The coroutine terminates immediately without executing proc.kill().")

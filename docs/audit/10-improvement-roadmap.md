@@ -419,6 +419,32 @@ Tracked discrepancies between specification/architecture documents and verified 
 | **bcrypt Cost Factor** | `docs/02-srs.md:278` (`SRS-NFR-SEC-001`), `docs/03-system-architecture.md:381`, `docs/10-database-design.md:106`, `docs/13-security-requirements.md:150` all specify `bcrypt` work factor **12**. | `packages/common/security.py:29` (`salt = bcrypt.gensalt(rounds=12)`). | **In Sync (Verified)** — Code matches all 4 specification documents at work factor 12 (no divergence). |
 | **Tool List vs Implemented Wrappers (& PDF Engine)** | `docs/01-prd.md:95-100,112,223,343-344`, `docs/02-srs.md:99,147,180-186,201,251`, `docs/03-system-architecture.md:61,417`, `docs/09-tool-integrations.md:17-21,152-299`, `docs/15-reporting-specification.md` list 5 CLI binaries (`nuclei`, `katana`, `subfinder`, `httpx`, `ffuf`) + WeasyPrint PDF + Celery worker. | `integrations/` contains only 2 CLI wrappers (`integrations/nuclei/runner.py`, `integrations/ffuf/runner.py`); `katana`/`subfinder`/`httpx` CLI runners are absent (`NI-04`, replaced by Python `httpx`+`BeautifulSoup4` in `services/discovery_engine/`); PDF uses ReportLab (`services/reporting_engine/renderer.py:9-22`), not WeasyPrint; worker is custom async polling loop (`services/execution_engine/worker.py`, `NI-06`), not Celery. | **Out of Sync** — Align PRD/SRS/Architecture/Tool/Reporting docs (and `ptes_standard.html` per `DEFECT-REP-02`) with implemented wrappers and engines, or implement missing wrappers in Phase 9. |
 
+---
+
+## Post-Audit Roadmap (Waves 3 & 4)
+
+Following completion of Phase 9 Waves 0–2 (immediate safety, hygiene, data trust, and resilience fixes), the following initiatives form the post-audit platform roadmap:
+
+### Wave 3: Durability, Scalability & Background Worker
+- **Scheduled Phase:** Post-Phase 10 Production Hardening
+- **Reference Decisions:** `ADR-001` (Option B: Custom DAG + Redis Task Consumer + PostgreSQL Checkpoints), `ADR-003` (15%/30s Circuit Breaker), `ADR-004` (Keyset Cursor Pagination).
+- **Core Deliverables:**
+  1. Decouple scan execution from `pentesa-api` by replacing in-memory `_ACTIVE_WORKFLOW_TASKS` with Redis queue consumer in `services/execution_engine/worker.py`.
+  2. Implement automated scan resumption within 15 seconds of worker startup (`NFR-REL-01` / `DEFECT-REL-01`).
+  3. Implement Redis-backed sliding window circuit breaker (15% 5xx error rate over 30s) in `services/execution_engine/circuit_breaker.py` (`NFR-SAFE-01` / `DEFECT-SAFE-01`).
+  4. Implement keyset cursor pagination (`created_at_epoch:uuid`) on `/endpoints` and `/findings` (`NFR-SCAL-01` / `DEFECT-SCAL-01`).
+  5. Implement `DELETE /api/v1/users/{id}` (`P3-API-01`) and finding assignment `PUT /findings/{id}/assign` (`DEFECT-LIFE-01`).
+
+### Wave 4: Detection Depth & Advanced Coverage
+- **Scheduled Phase:** Post-Phase 10 Platform Expansion
+- **Reference Decisions:** `ADR-002` (Tiered Offensive Tooling Roadmap), `ADR-005` (Next.js 16.4.6 Major Migration).
+- **Core Deliverables:**
+  1. Full Next.js 16.4.6 + React 19 frontend upgrade, eliminating 100% of CVEs upstream without requiring configuration mitigations.
+  2. Integrate `Katana` (v1.1.0) behind the `NI-03` Layer-2 egress proxy for headless dynamic crawling (`DISCO-SPA-01`, `P2-RECON-01`).
+  3. Integrate `Playwright` for authenticated headless browser crawling, bound to multi-identity credential vault in `AuthzAgent` (`DEFECT-AUTH-02`).
+  4. Implement business logic anomaly heuristic and `FLAGGED_FOR_HUMAN_REVIEW` status (`DEFECT-BUSL-01`).
+  5. Implement finding relationship graphing for multi-stage exploit chaining (`DEFECT-CHAIN-01`).
+
 
 
 

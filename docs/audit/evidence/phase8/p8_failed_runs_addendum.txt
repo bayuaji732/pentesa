@@ -92,4 +92,26 @@ OSError: [WinError 206] The filename or extension is too long
 
 Resolution: Refactored batch insertion to stream SQL via stdin into `docker exec -i pentesa-db psql`.
 Subsequent rerun executed flawlessly without data corruption or schema modification.
+
+--------------------------------------------------------------------------------
+4. SUPERSEDED RES-01 RUN ADDENDUM & AUTHORITATIVE LINUX CONTAINER PROOF
+--------------------------------------------------------------------------------
+Superseded Initial Host Run:
+- Initial verification of `test_res01_cancellation_demo.py` was executed directly against the Windows development host Python runtime.
+- Result: Subprocess cancellation leak demonstrated via Windows process polling, but lacked container process isolation context (`ps` / `/proc`).
+
+Authoritative Linux Container Execution (Evidence: `docs/audit/evidence/phase8/test_res01_worker_linux_proof.txt`):
+- Executed inside production container `pentesa-worker` (Debian Bookworm, Linux 6.6, Python 3.12.8).
+- Harness: Spawns harmless `BaseToolWrapper` child (`/usr/local/bin/python3 -c "import time; time.sleep(15)"`) within an `asyncio.Task`.
+- Process Table Inspection via Linux `/proc`:
+  * Before Cancellation:
+    - PID 1 (PPID 0) [S]: python -m services.execution_engine.worker
+    - PID 168 (PPID 0) [R]: python3 - (test runner)
+    - PID 174 (PPID 168) [S]: /usr/local/bin/python3 -c import time; time.sleep(15)
+  * Action: Task cancellation triggered via `task.cancel()`.
+  * After Cancellation:
+    - PID 174 (PPID 168) [S]: /usr/local/bin/python3 -c import time; time.sleep(15) <-- ORPHAN SURVIVED!
+    - Returncode remained `None`; child process continued execution unimpeded.
+- Forensic Classification: CONFIRMED DEFECT-RES-01 (FAILED).
+- Root Cause: `BaseToolWrapper.execute()` catches `asyncio.TimeoutError` and `Exception`, but lacks `except asyncio.CancelledError:` or `finally:` block. In Python 3.8+, `CancelledError` inherits from `BaseException`.
 ================================================================================

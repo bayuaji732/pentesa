@@ -29,9 +29,9 @@ Empirical container and codebase auditing reveals that:
 | **3** | **Python Check Engine** | §5.6 | `services/execution_engine/`<br>`check_registry.py:25` | `VulnAgent` (`check_runner`),<br>`WstgAgent` (`wstg_runner`) | Native Python 3.12 runtime | `python:3.12-slim-bookworm` | Phase 3, 4, 5, 6, 7 (WSTG-CONF-01–07 checks) | **Implemented-and-Used** |
 | **4** | **SSL/TLS Analyzer** | §5.7 | `services/execution_engine/`<br>`wstg/ssl_checker.py` | `ReconAgent`<br>(`tls_inspector`) | Native Python `ssl` socket | Built into Python 3.12 | Phase 3 baseline (`RUN-PENTESA-BENCH-DEEP-01`) | **Implemented-and-Used** |
 | **5** | **Header Analyzer** | §5.8 | `services/execution_engine/`<br>`runners.py:175` | `WstgAgent`<br>(`headers_analyzer`) | `SecurityHeadersRunner` | Platform code | Phase 3, 7 (39 findings derived from header inspection) | **Implemented-and-Used** |
-| **6** | **httpx (Python Lib)** | §5.4 | `services/execution_engine/`<br>`tools/http_client.py:19` | `WstgAgent` (`http_prober`),<br>`AuthzAgent` (`http_prober`) | Python `httpx==0.27.2` | `pyproject.toml`<br>(`httpx>=0.27.0`) | Phase 2, 3, 4, 5, 6, 7, 8 (all HTTP requests) | **Implemented-and-Used** |
-| **7** | **httpx (CLI Binary)** | §5.4 | Absent (Zero CLI wrapper) | None | `/usr/local/bin/httpx`<br>(BROKEN entrypoint: missing `httpx[cli]`) | Not pinned (Go binary absent) | Never used | **Absent**<br>(Broken Stub) |
-| **8** | **Subfinder** | §5.3 | Absent (Zero wrapper) | `ReconAgent`<br>(`subfinder`) | Absent in both images (`which subfinder` empty) | No | Never used | **Allowlisted-only** |
+| **6** | **httpx (Python Library)** | §5.4 | `services/execution_engine/`<br>`tools/http_client.py:19` | `WstgAgent` (`http_prober`),<br>`AuthzAgent` (`http_prober`) | Python `httpx==0.27.2`<br>(`import httpx`) | `pyproject.toml`<br>(`httpx>=0.27.0`) | Phase 2, 3, 4, 5, 6, 7, 8 (all HTTP requests) | **Implemented-and-Used** |
+| **7** | **httpx (ProjectDiscovery Go CLI)** | §5.4 | Absent (Zero CLI wrapper) | None | Absent<br>(`/usr/local/bin/httpx` is broken Python console script) | Absent from Dockerfile<br>(Go binary never built/copied) | Never used | **Absent**<br>(ProjectDiscovery CLI Absent;<br>Python entrypoint broken) |
+| **8** | **Subfinder** | §5.3 | Absent (Zero wrapper) | `ReconAgent`<br>(`subfinder`) | Absent in both images (`which subfinder` empty) | No | Never used | **Allowlisted-only**<br>(Action: remove from allowlist<br>or implement per ADR-002) |
 | **9** | **Katana** | §5.2 | Absent (`services/crawler/`<br>uses custom BeautifulSoup) | None (`ReconAgent` allowlists `web_crawler`) | Absent in both images (`which katana` empty) | No | Never used (in-house Python crawler used instead) | **Documented-only** |
 | **10** | **Playwright** | PRD §4.2 | Absent | None | Absent in both images | No | Never used (Phase 6b confirmed SPA unparsed) | **Documented-only** |
 | **11** | **Nmap** | PRD §4.2 | Absent | None | Absent in both images | No | Never used | **Documented-only** |
@@ -64,7 +64,7 @@ Empirical container and codebase auditing reveals that:
 
 1. **`httpx` CLI Packaging Discrepancy:**
    - Either add `httpx[cli]` to `requirements.txt` or download ProjectDiscovery's standalone Go `httpx` binary if active probing features (e.g. tech detection, title extraction, status probe) are required by the pipeline.
-2. **Reconnaissance Tooling Disconnection:**
-   - `ReconAgent` allowlists `subfinder`, yet `subfinder` is absent from images. The agent currently fails or simulates. Subfinder should either be installed via Dockerfile or removed from `allowed_tools` until external egress controls (`NI-03`) are in place.
+2. **Reconnaissance Tooling Disconnection (Subfinder):**
+   - `ReconAgent` allowlists `subfinder`, yet `subfinder` is absent from images with zero wrapper code. The agent currently fails or simulates. Action: remove from allowlist or implement (ADR-002) once external egress controls (`NI-03`) are in place.
 3. **Crawl Depth Deficit (`Katana` vs In-House Crawler):**
    - The in-house crawler (`services/crawler/crawler.py`) is a basic static HTML parser that cannot execute JavaScript or handle SPAs. Katana or Playwright is urgently needed to resolve `DISCO-SPA-01` and `RECON-01`.

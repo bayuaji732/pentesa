@@ -41,28 +41,28 @@ The table below records the exact machine output produced by `benchmark/score_p8
 |---|---|---|---|---|---|---|
 | **P8-TC-DEP-01** | `NFR-DEP-01` | a_startup | **Verified** | Docker Compose Stack Startup Timing | Mean Startup: **21.54s** (22.09s, 21.15s, 21.38s) | Max $\le$ 180.0s across 3 cycles |
 | **P8-TC-PERF-01** | `NFR-PERF-01` | b_api_performance | **Verified** | API Read Latency at 5,000 Seeded Endpoints | Inventory P95: **51.41ms** (P50: 33.82ms)<br>Dashboard P95: **36.31ms**<br>Findings P95: **37.03ms** | P95 < 200.0ms over 200 requests |
-| **P8-TC-PERF-02** | `NFR-SCAL-01` | b_api_performance | **Verified** | 10k Endpoints Throughput & Concurrency | C=1 P95: **50.72ms**<br>C=10 P95: **295.35ms**<br>C=50 P95: **1874.14ms** | Error rate < 5.0%, no crashes |
+| **P8-TC-PERF-02** | `NFR-SCAL-01` | b_api_performance | **Partially Verified** | 10k Endpoints Throughput & Concurrency | C=1 P95: **50.72ms**<br>C=10 P95: **295.35ms**<br>C=50 P95: **1874.14ms** | P95 < 200.0ms NFR; Error rate < 5.0% |
 | **P8-TC-SCAL-01** | `NFR-SCAL-01` | b_api_performance | **Partially Verified** | Scalable Cursor Pagination Implementation | Offset pagination: Functional<br>Cursor pagination: **Not Implemented** | Keyset cursor pagination active |
 | **P8-TC-RATE-01** | `NFR-PERF-02` | c_rate_control | **Verified** | Outbound Scan Rate Control (5 & 20 RPS) | 5 RPS Dev: **1.13%** (4.94 RPS)<br>20 RPS Dev: **0.88%** (19.82 RPS) | Rate deviation $\le \pm 5.0\%$ |
 | **P8-TC-SAFE-01** | `NFR-SAFE-01` | d_circuit_breaker | **Not Implemented** | Error Threshold Backoff Circuit Breaker | Circuit Breaker: **Not Implemented**<br>Spec Conflict: PRD (15%/30s) vs Arch (20%/60s) | Sliding window error backoff active |
 | **P8-TC-REL-01** | `NFR-REL-01` | e_resilience | **Not Implemented** | Worker Crash Resilience & 15s Resumption | PostgreSQL Checkpointing: **False**<br>15s Auto-Resumption: **False** | State checkpointed; resume $\le$ 15s |
-| **P8-TC-REL-02** | `NFR-REL-02` | e_resilience | **Verified** | Individual Tool Failure Fault Isolation | Fault isolation: **True** (`ToolNotAvailableError` trapped) | 0 supervisor crashes on tool failure |
+| **P8-TC-REL-02** | `NFR-REL-02` | e_resilience | **Partially Verified** | Individual Tool Failure Fault Isolation | Fault isolation: **Partial** (`ToolNotAvailableError` trapped;<br>timeout & unhandled faults require test wrapper) | 0 supervisor crashes on tool failure |
 | **P8-TC-REL-03** | `NFR-REL-03` | e_resilience | **Verified** | Infrastructure Restart & Graceful Shutdown | DB Recovery Time: **2.90s**<br>SIGTERM Handlers: **Active** | DB recovery $\le$ 30s, clean exit |
 | **P8-TC-CONC-01** | `NFR-CONC-01` | f_concurrency | **Verified** | Multi-Workflow Concurrency Scaling (1, 3, 5) | Parallel Workflows: 1, 3, 5 OK<br>State Clobbering: **0**<br>Pool Leaks: **0** | No state race or DB pool starvation |
 | **P8-TC-AUD-01** | `NFR-AUD-01` | g_integrity | **Verified** | Cryptographic Audit Chain Concurrency | Chain Forks Detected: **0**<br>Success Rate (20 & 50 C): **100.0%** | Single linear chain; 0 duplicate prev_hash |
 | **P8-TC-AUD-02** | `NFR-DEDUP-01` | g_integrity | **Verified** | Concurrent Finding Ingestion Race | 20 Concurrent Posts: 20 Succeeded<br>Unhandled 500s: **0** | No unhandled DB constraint 500s |
-| **P8-TC-RES-01** | `NFR-RES-01` | h_cancellation | **Failed** | Subprocess Cancellation & Cleanup | Tool Spawned/Killed: **False**<br>Zombies Remaining: **0**<br>`CancelledError` Unhandled: **Risk** | Zero zombie processes, deadline enforced |
-| **P8-TC-HOST-01** | `NFR-HOST-01` | i_hostile_responses | **Failed** | Hostile Target Response Resilience | Redirect Loop: **TRAPPED_OK**<br>Huge Header: **HANDLED_OK**<br>Slow Drip: **HANG** | Cumulative stream timeout enforced |
-| **P8-TC-LIM-01** | `NFR-LIM-01` | j_resource_limits | **Verified** | Container Resource Limits Audit | Unbounded Mem Services: **5/5**<br>Restart Policy: `unless-stopped` | Audit complete; identify bounds |
+| **P8-TC-RES-01** | `NFR-RES-01` | h_cancellation | **Failed** | Subprocess Cancellation & Cleanup | Tool Spawned/Killed: **Failed** (empirical proof:<br>orphan process survives `task.cancel()`) | Zero zombie processes, deadline enforced |
+| **P8-TC-HOST-01** | `NFR-HOST-01` | i_hostile_responses | **Failed** | Hostile Target Response Resilience | Redirect Loop: **TRAPPED_OK**<br>Huge Header: **HANDLED_OK**<br>Slow Drip: **HANG** (2.24s > 0.6s timeout) | Cumulative stream timeout enforced |
+| **P8-TC-LIM-01** | `NFR-LIM-01` | j_resource_limits | **Failed** | Container Resource Limits Audit | Unbounded Mem Services: **5/5** (Mem=0, PIDs=None)<br>Restart Policy: `unless-stopped` (Partial) | Host resource boundaries enforced |
 
 ### Summary Statistics
 - **Total Test Cases Evaluated:** 15
-- **Verified (Full Pass):** 10 (66.67%)
-- **Partially Verified:** 1 (6.67%)
-- **Failed:** 2 (13.33%)
+- **Verified (Full Pass):** 7 (46.67%)
+- **Partially Verified:** 3 (20.00%)
+- **Failed:** 3 (20.00%)
 - **Not Implemented:** 2 (13.33%)
 - **Not Tested:** 0 (0.00%)
-- **Strict Benchmark Pass Rate:** **66.67%** (10 / 15)
+- **Strict Benchmark Pass Rate:** **46.67%** (7 / 15)
 
 ---
 
@@ -157,7 +157,9 @@ The table below records the exact machine output produced by `benchmark/score_p8
 - **Requirement:** Subprocess cancellation by API and timeout enforces termination, eliminates zombie/orphan processes, and removes temp wordlists.
 - **Observed Results:**
   - `docker top` audit confirmed **0 zombie/defunct processes** in both `pentesa-api` and `pentesa-worker`.
-  - However, code audit of `services/execution_engine/tools/base.py:216-240` revealed that `execute()` catches only `asyncio.TimeoutError` and `Exception`. In Python 3.8+, `asyncio.CancelledError` inherits from `BaseException`. When an API workflow task is cancelled, the awaiting coroutine is cancelled immediately, bypassing subprocess cleanup and creating orphan subprocess risk.
+  - Tool existence verified: `nuclei` (v3.3.7) and `ffuf` (v2.1.0) exist at `/usr/local/bin/` in both `pentesa-api` and `pentesa-worker` and are pinned in `Dockerfile.api` and `Dockerfile.worker`.
+  - Code audit of `services/execution_engine/tools/base.py:216-240` revealed that `execute()` catches only `asyncio.TimeoutError` and `Exception`. In Python 3.8+, `asyncio.CancelledError` inherits from `BaseException`. When an API workflow task is cancelled, the awaiting coroutine is cancelled immediately, bypassing subprocess cleanup and creating orphan subprocess risk.
+  - **Empirical Demonstration (`benchmark/p8/test_res01_cancellation_demo.py`):** Verified empirically with a child process (`sleep 15`). Subprocess spawned PID 18296. When `task.cancel()` was called, `asyncio.CancelledError` was caught at caller boundary, but PID 18296 remained active in the OS (`proc.returncode = None`), definitively demonstrating the orphan process leak defect.
   - Registered as `DEFECT-RES-01` (P2).
 - **Adjudicated Status:** **Failed**.
 
@@ -166,20 +168,20 @@ The table below records the exact machine output produced by `benchmark/score_p8
 - **Observed Results:**
   - Infinite redirect loops: **TRAPPED_OK** (raised `httpx.TooManyRedirects`).
   - 64KB HTTP response headers: **HANDLED_OK** (processed without parser crash).
-  - Slow-drip response (1 byte per second): **HANG** (failed to timeout within expected window).
-  - Root cause: Standard `httpx.Timeout` enforces connect and socket idle read timeouts, but does not cap cumulative stream duration.
+  - Slow-drip response: **HANG** (failed to timeout within expected window).
+  - **Empirical Demonstration (`benchmark/p8/test_host01_slow_drip_proof.py`):** Verified empirically against platform HTTP client (`RawHttpClient.execute_request -> packages.common.http_client.safe_request -> client.request()`). Against a 1.8s slow-drip target, `safe_request` was configured with `timeout=0.6s`. Execution took **2.24 seconds** without raising a timeout exception, because standard `httpx.Timeout(0.6)` only bounds per-read socket idle timeouts and lacks a cumulative stream deadline.
   - Registered as `DEFECT-HOST-01` (P2).
 - **Adjudicated Status:** **Failed**.
 
 ### 3.10 Sub-Area j: Resource Limits (`NFR-LIM-01` / `P8-TC-LIM-01`)
-- **Requirement:** Audit container memory/cpu/pids limits, restart policies, and log rotation.
+- **Requirement:** Container memory/cpu/pids limits enforced in compose deployment, restart policies configured, and log rotation bounded.
 - **Observed Results:**
-  - `RestartPolicy.Name`: Configured as `unless-stopped` across all 5 production containers.
+  - `RestartPolicy.Name`: Configured as `unless-stopped` across all 5 production containers (partial compliance).
   - `HostConfig.Memory`: **`0` (Unbounded host memory)** for `pentesa-api`, `pentesa-worker`, `pentesa-db`, `pentesa-redis`, and `pentesa-web`.
   - `HostConfig.PidsLimit`: **`None` (Unbounded thread/process creation)** across all services.
-  - While container restart recovery is robust, the lack of host memory bounds creates host crash risks under adversarial fuzzer workloads or memory leaks.
+  - Per status semantics rules, an audit that identifies absent resource bounds is adjudicated as **Failed** rather than Verified.
   - Registered as `DEFECT-INFRA-01` (P3).
-- **Adjudicated Status:** **Verified** (Audit completed; limits identified).
+- **Adjudicated Status:** **Failed**.
 
 ---
 
@@ -202,9 +204,9 @@ In strict compliance with `00-master-prompt.md`, Phase 8 evaluated platform plum
 
 - **Phase 8 Live Gateway Token Spend:** **0 tokens**
 - **Phase 8 Live Gateway Cost:** **$0.00 USD**
-- **Token Cap Status:** **0.0% of 30,000 token cap** ($0.00 of $1.00 budget)
-- **Cumulative Audit Spend (Phases 1–8):** **$0.0283 USD** / 4,816 tokens (**1.41%** of total authorized budget)
-- **Forensic Cost Log:** [`docs/audit/evidence/phase8/cost-log.md`](file:///c:/Users/User2/Documents/work/pentesa/docs/audit/evidence/phase8/cost-log.md)
+- **Phase 8 Budget Cap Status:** **0.0% of 30,000 token cap** ($0.00 of $1.00 budget)
+- **Cumulative Audit Spend (Phases 2–8):** **$2.0821 USD** / 267,993 tokens (**7.18%** of $29.00 / 820,000 cumulative authorized budget; see authoritative [`cost-ledger.md`](file:///c:/Users/User2/Documents/work/pentesa/docs/audit/evidence/cost-ledger.md))
+- **Phase 8 Cost Log:** [`docs/audit/evidence/phase8/cost-log.md`](file:///c:/Users/User2/Documents/work/pentesa/docs/audit/evidence/phase8/cost-log.md)
 
 ---
 

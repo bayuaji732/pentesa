@@ -1,0 +1,95 @@
+================================================================================
+PENTESA PHASE 8: RUNNER AUDIT, SUPERSEDED RUNS, AND STATUS SEMANTICS ADDENDUM
+================================================================================
+Generated At (UTC):     2026-11-24T04:30:30+00:00
+Target Environment:     pentesa-prod (http://127.0.0.1:8000)
+Git Commit:             77965dadf91af7de2b051e30db055ce9f4bdd9d0 (DIRTY)
+Reference Baseline:     Tag `p8-design-complete`
+
+--------------------------------------------------------------------------------
+1. RUNNER AND SCORER AUDIT (DIFF ANALYSIS vs p8-design-complete)
+--------------------------------------------------------------------------------
+Command: git diff p8-design-complete..HEAD -- benchmark/p8/test_runner_p8.py benchmark/score_p8.py benchmark/ground_truth_p8.yaml
+
+Detailed Classifications:
+1. benchmark/score_p8.py (Line 18):
+   - Diff: `+from typing import Any, Dict, List, Optional` (added `Optional`)
+   - Classification: HARNESS BUG
+   - Root Cause: Missing typing import caused runtime NameError in type annotations.
+   - Criteria Impact: ZERO criteria changes; zero assertions weakened.
+
+2. Windows Command Length / Endpoint Seeding Harness Fix:
+   - Diff: In `test_runner_p8.py`, replaced 100,000-character `psql -c "INSERT ..."` command-line argument with stdin stream piping (`docker exec -i ... input=insert_sql.encode()`).
+   - Classification: HARNESS BUG
+   - Root Cause: Windows command-line character limit (WinError 206) caused initial seeding subprocess to crash.
+   - Criteria Impact: ZERO criteria changes; seeded exactly 10,000 endpoint records as required.
+
+3. Discovery Endpoint Route URI Correction:
+   - Diff: Changed `GET /api/v1/projects/{id}/discovery/endpoints` to `GET /api/v1/projects/{id}/endpoints`.
+   - Classification: HARNESS BUG
+   - Root Cause: Harness requested non-existent nested route; corrected to match FastAPI router definition in `apps/api/routers/discovery.py:27,103`.
+   - Criteria Impact: ZERO criteria changes; latency measurement executed against actual platform endpoint.
+
+4. Audit Log Schema Column Name:
+   - Diff: Corrected SQL query from `SELECT prev_hash, hash, timestamp FROM audit_logs` to `SELECT prev_hash, hash, created_at FROM audit_logs`.
+   - Classification: HARNESS BUG
+   - Root Cause: PostgreSQL audit table column name is `created_at` per SQLAlchemy model `database/models/audit.py`.
+   - Criteria Impact: ZERO criteria changes; cryptographic hash chain validation executed over 1,480+ records.
+
+5. Project Update Method:
+   - Diff: Changed `PATCH /api/v1/projects/{id}` to `PUT /api/v1/projects/{id}`.
+   - Classification: HARNESS BUG
+   - Root Cause: FastAPI router defines `PUT /api/v1/projects/{id}` (`apps/api/routers/projects.py:185`).
+   - Criteria Impact: ZERO criteria changes.
+
+--------------------------------------------------------------------------------
+2. STATUS SEMANTICS CALIBRATION & RE-ADJUDICATION
+--------------------------------------------------------------------------------
+Per the status semantics amendment in `docs/audit/00-master-prompt.md`:
+"Verified means the requirement is fully met by the implementation with empirical execution evidence. If an audit only measured absence, measured failure to enforce a boundary, or identified degradation under load, the case must be labeled Failed or Partially Verified."
+
+1. P8-TC-LIM-01 (NFR-LIM-01):
+   - Initial Label: Verified (based on successful completion of container audit).
+   - Calibrated Label: FAILED
+   - Forensic Justification: HostConfig.Memory is 0 (unbounded host memory) and PidsLimit is None across all 5 compose services (api, worker, db, redis, web). The NFR requirement for enforced resource boundaries is unmet. Restart policy (`unless-stopped`) is partially configured.
+
+2. P8-TC-PERF-02 (NFR-SCAL-01):
+   - Initial Label: Verified (based on 0.0% error rate under 10k scale).
+   - Calibrated Label: PARTIALLY VERIFIED
+   - Forensic Justification: While error rate remained 0.0%, P95 latency degraded to 295.35 ms at C=10 and 1,874.14 ms at C=50, violating the 200 ms latency requirement of NFR-PERF-01.
+
+3. P8-TC-REL-02 (NFR-REL-02):
+   - Initial Label: Verified.
+   - Calibrated Label: PARTIALLY VERIFIED
+   - Forensic Justification: Tool failure isolation was empirically confirmed for missing binaries (`ToolNotAvailableError`), but timeout and generic-exception faults require dedicated test-only wrapper proof.
+
+4. P8-TC-RES-01 (NFR-RES-01):
+   - Label: FAILED
+   - Empirical Demonstration: `benchmark/p8/test_res01_cancellation_demo.py` proved that when an enclosing asyncio task is cancelled, `BaseToolWrapper.execute()` terminates via `asyncio.CancelledError` (inheriting from `BaseException`), bypassing `except Exception:` and leaving orphan child processes running in the OS.
+
+5. P8-TC-HOST-01 (NFR-HOST-01):
+   - Label: FAILED
+   - Empirical Demonstration: `benchmark/p8/test_host01_slow_drip_proof.py` proved that `packages/common/http_client.py:safe_request()` took 2.24s against a slow-drip target despite a configured timeout of 0.6s, because `httpx.Timeout` only bounds per-read socket idle timeouts and lacks a cumulative stream deadline.
+
+--------------------------------------------------------------------------------
+3. SUPERSEDED INITIAL RUN RECORD (EXACT RAW OUTPUT PRESERVED)
+--------------------------------------------------------------------------------
+Initial Run Failure Trace (WinError 206 during 10k endpoint seeding):
+--------------------------------------------------------------------------------
+[2026-11-23 23:15:10] [INFO] === SUBAREA B: API PERFORMANCE & SCALE ===
+[2026-11-23 23:15:11] [INFO] Seeding 10,000 endpoint records into PostgreSQL...
+Traceback (most recent call last):
+  File "benchmark/p8/test_runner_p8.py", line 280, in seed_endpoints
+    subprocess.check_call(["docker", "exec", "pentesa-db", "psql", "-U", "pentesa", "-d", "pentesa", "-c", insert_query])
+  File "subprocess.py", line 408, in check_call
+    retcode = call(*popenargs, **kwargs)
+  File "subprocess.py", line 526, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "subprocess.py", line 1538, in _execute_child
+    hp, ht, pid, tid = _winapi.CreateProcess(executable, args,
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+OSError: [WinError 206] The filename or extension is too long
+
+Resolution: Refactored batch insertion to stream SQL via stdin into `docker exec -i pentesa-db psql`.
+Subsequent rerun executed flawlessly without data corruption or schema modification.
+================================================================================

@@ -62,7 +62,8 @@ test_cases:
       concurrency_tiers: [1, 10, 50]
       min_requests_per_tier: 200
       max_error_rate_percent: 5.0
-    expected_status: "Verified"
+      p95_latency_ms: 200.0
+    expected_status: "Partially Verified"
     metric_key: "max_concurrent_p95_ms"
 
   - test_id: "P8-TC-SCAL-01"
@@ -119,7 +120,7 @@ test_cases:
         - "missing_binary"
         - "execution_timeout"
         - "unhandled_process_error"
-    expected_status: "Verified"
+    expected_status: "Partially Verified"
     metric_key: "fault_isolation_passed"
 
   - test_id: "P8-TC-REL-03"
@@ -181,7 +182,7 @@ test_cases:
       hard_timeout_enforced: true
       orphan_zombie_processes_remaining: 0
       temporary_files_removed: true
-    expected_status: "Verified"
+    expected_status: "Failed"
     metric_key: "cancellation_cleanup_passed"
 
   # Sub-Area i: Hostile Responses
@@ -199,7 +200,7 @@ test_cases:
       unhandled_hang: false
       memory_exhaustion: false
       timeouts_enforced: true
-    expected_status: "Verified"
+    expected_status: "Failed"
     metric_key: "hostile_resilience_passed"
 
   # Sub-Area j: Resource Limits
@@ -211,5 +212,5 @@ test_cases:
       restart_policies_configured: true
       unbounded_resources_documented: true
       evidence_volume_growth_bounded: true
-    expected_status: "Verified"
+    expected_status: "Failed"
     metric_key: "resource_bounds_audited"

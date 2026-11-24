@@ -494,3 +494,30 @@
 | `tests/unit/__pycache__/test_wstg_coverage.cpython-312-pytest-9.2.0.pyc` | `GENERATED` | untracked/ignored | `(untracked/ignored)` | none (local cache/db artifact) |
 | `tests/unit/__pycache__/test_wstg_execution_framework.cpython-312-pytest-9.2.0.pyc` | `GENERATED` | untracked/ignored | `(untracked/ignored)` | none (local cache/db artifact) |
 | `tests/unit/__pycache__/test_wstg_planner.cpython-312-pytest-9.2.0.pyc` | `GENERATED` | untracked/ignored | `(untracked/ignored)` | none (local cache/db artifact) |
+
+| enchmark/p8/test_host01_slow_drip_proof.py | KEEP-AUDIT-RECORD | tracked | Phase 8 gate | Empirical proof of DEFECT-HOST-01 (slow-drip hang) |
+| enchmark/p8/test_res01_cancellation_demo.py | KEEP-AUDIT-RECORD | tracked | Phase 8 gate | Empirical proof of DEFECT-RES-01 (cancellation orphan leak) |
+| docs/audit/09-improvement-plan.md | KEEP-AUDIT-RECORD | tracked | Phase 9 planning | Master multi-wave improvement plan (Waves 0-4) |
+| docs/audit/adr/ADR-001-workflow-engine.md | KEEP-AUDIT-RECORD | tracked | Phase 9 planning | Architecture decision: Custom DAG + Redis queue worker |
+| docs/audit/adr/ADR-002-tool-roadmap-tiers.md | KEEP-AUDIT-RECORD | tracked | Phase 9 planning | Architecture decision: Security tool roadmap tiers 1-4 |
+| docs/audit/adr/ADR-003-circuit-breaker-spec.md | KEEP-AUDIT-RECORD | tracked | Phase 9 planning | Architecture decision: 15%/30s error rate standard |
+| docs/audit/adr/ADR-004-api-contract-and-keyset-pagination.md | KEEP-AUDIT-RECORD | tracked | Phase 9 planning | Architecture decision: FindingResponse schema & keyset cursor |
+| docs/audit/adr/ADR-005-nextjs-upgrade-path.md | KEEP-AUDIT-RECORD | tracked | Phase 9 planning | Architecture decision: Next.js 14.2.35 smallest-jump |
+| docs/audit/adr/ADR-006-docs-sync-policy.md | KEEP-AUDIT-RECORD | tracked | Phase 9 planning | Architecture decision: Documentation synchronization policy |
+| docs/audit/evidence/cost-ledger.md | KEEP-AUDIT-RECORD | tracked | Phase 8 gate | Master cumulative token & cost telemetry ledger (Phases 2-8) |
+| docs/audit/evidence/phase8/nextjs_advisories.md | KEEP-AUDIT-RECORD | tracked | Phase 8 gate | Next.js 35-advisory breakdown matrix from npm audit |
+| docs/audit/evidence/phase8/p8_failed_runs_addendum.txt | KEEP-AUDIT-RECORD | tracked | Phase 8 gate | Runner audit diff analysis, superseded run logs & status semantics |
+| docs/audit/evidence/phase9/9A-tool-inventory.md | KEEP-AUDIT-RECORD | tracked | Phase 9 planning | Comprehensive 18-tool inventory and execution matrix |
+| docs/audit/evidence/phase9/9A-workflow-and-dependency-inventory.md | KEEP-AUDIT-RECORD | tracked | Phase 9 planning | Workflow engine, Redis/Celery reality & dependency inventory |
+
+---
+
+## Planned Purge List (Wave 0 Remediation Targets)
+
+The following dead code, fallback stubs, and legacy dependencies were identified during the Phase 9 inventory and are slated for removal during Wave 0:
+1. iosqlite dependency in 
+equirements.txt and SQLite fallback logic in pps/api/config.py and database/session.py (DEFECT-CFG-01 - enforce fail-closed PostgreSQL connection).
+2. Subfinder entry in gents/recon/recon_agent.py:41 llowed_tools list (remove until Tier-2 NI-03 egress proxy is verified).
+3. passlib[bcrypt] in 
+equirements.txt (migrate directly to crypt>=4.1.2).
+4. Stale duplicate infrastructure/docker-compose.prod.yml (COMP-STALE-01 - quarantined).

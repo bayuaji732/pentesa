@@ -5,7 +5,9 @@
     "git_revision": "054fe704c4b5837e72736b85f69b35ee65c630c5 (DIRTY)",
     "spec_document": "docs/audit/evidence/phase8/8A-spec.md",
     "ground_truth_file": "benchmark/ground_truth_p8.yaml",
-    "scorer_file": "benchmark/score_p8.py"
+    "scorer_file": "benchmark/score_p8.py",
+    "runner_file": "benchmark/p8/test_runner_p8.py",
+    "runner_sha256": "bcd8a97c702f77d17b772332e564f31dd2b28be797a56a8fd04711d09b6bdbf4"
   },
   "test_results": [
     {
@@ -42,7 +44,7 @@
     {
       "test_id": "P8-TC-PERF-02",
       "sub_area": "b_api_performance",
-      "status": "Verified",
+      "status": "Partially Verified",
       "metrics": {
         "concurrency_1_p95_ms": 50.72,
         "concurrency_10_p95_ms": 295.35,
@@ -50,7 +52,7 @@
         "max_concurrent_p95_ms": 1874.14,
         "total_seeded_endpoints": 10000
       },
-      "details": "10k endpoints inventory queries evaluated across concurrency tiers 1, 10, 50; max P95=1874.14ms."
+      "details": "API throughput and latency under 10,000 seeded endpoints. Error rate was 0.0%, but P95 latency degraded past the 200ms NFR at high concurrency (C=10: 295.35ms, C=50: 1874.14ms). Partially Verified for stability/error rate only."
     },
     {
       "test_id": "P8-TC-SCAL-01",
@@ -107,14 +109,14 @@
     {
       "test_id": "P8-TC-REL-02",
       "sub_area": "e_resilience",
-      "status": "Verified",
+      "status": "Partially Verified",
       "metrics": {
         "fault_isolation_passed": true,
         "missing_binary_trapped": true,
         "execution_timeout_handled": true,
         "zero_supervisor_crashes": true
       },
-      "details": "Tool failures (missing binary, timeout, exception) are trapped inside BaseToolWrapper without crashing parent process."
+      "details": "Tool failure fault isolation. missing_binary (ToolNotAvailableError) handled gracefully without workflow crash; execution timeout and generic exception faults require dedicated test-only wrapper verification."
     },
     {
       "test_id": "P8-TC-REL-03",
@@ -199,7 +201,7 @@
     {
       "test_id": "P8-TC-LIM-01",
       "sub_area": "j_resource_limits",
-      "status": "Verified",
+      "status": "Failed",
       "metrics": {
         "resource_bounds_audited": true,
         "container_limits": {
@@ -243,7 +245,7 @@
         ],
         "restart_policies_configured": true
       },
-      "details": "Container inspect audit complete. Identified unbounded host memory limits on compose services (5 services unbounded)."
+      "details": "Container resource limits audit. Failed requirement: HostConfig.Memory is unbounded (0) and PidsLimit is absent across all 5 production containers. Restart policy unless-stopped is partially configured."
     }
   ]
 }

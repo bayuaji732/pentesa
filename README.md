@@ -118,9 +118,6 @@ Ensure the following critical variables are configured in `.env.production`:
   - `PENTESA_BOOTSTRAP_ADMIN=true`
   - `PENTESA_BOOTSTRAP_ADMIN_EMAIL=security-lead@yourcompany.com`
   - `PENTESA_BOOTSTRAP_ADMIN_PASSWORD=<StrongPassword12+Chars!>`
-  - *(Optional)* Additional team administrators:
-    - `PENTESA_BOOTSTRAP_ADMIN2_EMAIL=team-member@yourcompany.com`
-    - `PENTESA_BOOTSTRAP_ADMIN2_PASSWORD=<StrongPassword12+Chars!>`
 
 ### 2. Start the Production Stack
 

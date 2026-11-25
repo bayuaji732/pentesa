@@ -7,6 +7,7 @@ import uuid
 os.environ["PENTESA_ENV"] = "test"
 os.environ["PENTESA_ALLOW_TEST_SQLITE"] = "1"
 os.environ["PENTESA_LLM_PROVIDER"] = "mock"
+os.environ["PENTESA_LAYER2_EGRESS_ENABLED"] = "true"
 
 from packages.common.config import settings
 settings.env = "test"

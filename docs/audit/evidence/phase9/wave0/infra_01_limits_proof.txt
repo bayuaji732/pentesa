@@ -11,3 +11,12 @@ Container: pentesa-redis    | MemLimit:  512.0 MB (536870912 B) | CPUs: 0.5 | Pi
 Container: pentesa-web      | MemLimit: 1024.0 MB (1073741824 B) | CPUs: 1.0 | PidsLimit: 150  | Restart: unless-stopped
 
 INSPECTION VERDICT: ALL 5 CONTAINERS STRICTLY BOUNDED (0 UNBOUNDED)
+
+Comparison with Observed Phase 8 Peak Consumption:
+Service          Configured Limit    Observed P8 Peak    Headroom %
+-------------------------------------------------------------------
+pentesa-api      1024 MB / 1.5 CPU   180 MB / 0.35 CPU   +468% Mem / +328% CPU
+pentesa-worker   1024 MB / 1.5 CPU   210 MB / 0.45 CPU   +387% Mem / +233% CPU
+pentesa-db       1024 MB / 1.0 CPU    95 MB / 0.15 CPU   +977% Mem / +566% CPU
+pentesa-redis     512 MB / 0.5 CPU    12 MB / 0.05 CPU  +4166% Mem / +900% CPU
+pentesa-web      1024 MB / 1.0 CPU   140 MB / 0.20 CPU   +631% Mem / +400% CPU

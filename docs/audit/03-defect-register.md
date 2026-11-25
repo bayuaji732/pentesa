@@ -44,7 +44,7 @@
 | **DEFECT-AUTH-03** | **P2** | Authentication | `apps/api/routers/auth.py` | Missing Rate Limiting on User Login Endpoint (`POST /api/v1/auth/login`) | Open (Documented) | Phase 9 (Redis-backed token bucket rate limiting) |
 | **DEFECT-API-02** | **P1** | API / Availability | `apps/api/dependencies.py`, `apps/api/routers/projects.py` | Unhandled HTTP 500 ResponseValidationError on `GET /api/v1/projects/{project_id}` (Core Read Path Broken) | **Closed (Hotfix Applied)** | `a6e772b` / tag `hotfix-api-02` (Approved demo hotfix; Phase 6 evidence refers to `phase6-final`) |
 | **P3-API-01** | **P3** | API / Admin | `apps/api/routers/users.py` | Missing User Deletion Route in API Router (`DELETE /api/v1/users/{id}`) | Open (Documented) | Phase 9 (Admin user deletion route implementation) |
-| **SEC-LEAK-02** | **P1** | Secrets / Leak | `benchmark/setup_engagement_and_scope_check.py` (commit `55c0a09`) | `benchmark-admin` Password / Credential Reference in Repository History (P1 While Reactivable; Currently Deactivated) | **Closed (Wave 0)** | `14ce83d` (Untracked env fallback + hard inactive account enforcement) |
+| **SEC-LEAK-02** | **P1** | Secrets / Leak | `benchmark/setup_engagement_and_scope_check.py` (commit `55c0a09`) | `benchmark-admin` Password / Credential Reference in Repository History (P1 While Reactivable; Currently Deactivated) | **Mitigated; history purge pending (remote origin present)** | `14ce83d` (Untracked env fallback + hard inactive account enforcement; history purge deferred to post-audit) |
 | **DEFECT-DEP-01** | **P1** | Dependencies | `apps/web/package.json` (`next@14.2.18`) | Reachable High/Critical Advisories in Production Direct Dependency `next@14.2.18` (RSC DoS & `/_next/image`) | Open (Documented) | Phase 9 (Upgrade `next` to patched release `>=16.4.6`) |
 | **DEFECT-DEP-02** | **P3** | Dependencies | `apps/web/package-lock.json` (`next > postcss@8.4.31`) | Build-Time Transitive High Advisories in Nested `postcss@8.4.31` (Unreachable at Runtime) | Open (Documented) | Phase 9 (Resolved via Next.js upgrade) |
 | **P2-TEST-01** | **P2** | Test Harness | `benchmark/p6b/test_runner_p6b.py` | Prompt Injection Battery Uses Model-Level Direct Gateway Calls + Keyword Judge Instead of State-Based Workflow Judge | Open (Test Improvement) | Phase 9 Test Harness (Assert no tool call, no scope change, no DB state change) |
@@ -396,7 +396,7 @@
 - **Evidence:** `git show 55c0a09`; `docs/audit/07-security-assessment.md` Section 6.
 - **Remediation Specification:** Read benchmark credentials exclusively from environment variables or an untracked local file (`.env.production` / `.env.bench`), and **rotate the `benchmark-admin@pentesa.lab` password immediately before any reactivation**.
 - **Acceptance Criteria:** Zero hardcoded harness credentials in tracked scripts; password rotated prior to any `is_active=true` transition.
-- **Wave 0 Resolution (`commit 14ce83d`):** Hardcoded credential reference replaced with dynamic loading from untracked environment (`PENTESA_BENCHMARK_ADMIN_PASSWORD`) falling back to cryptographically secure random token (`secrets.token_urlsafe(32)`). The script explicitly enforces `is_active=False` both on initial creation and retroactively on existing users. User router audit confirmed no user password-change API exists; account remains strictly inactive in production stack. Repo grep confirmed zero plaintext secrets in tracked files; commit `55c0a09` retains string in git history; git remote status verified (`origin` present); history rewrite deferred to Phase 10 per rule. Regression test: `tests/unit/test_sec_leak_02_credential_scrub.py` (2 passed).
+- **Wave 0 Resolution (`commit 14ce83d`):** Status: **Mitigated; history purge pending (remote origin present)**. Hardcoded credential reference replaced with dynamic loading from untracked environment (`PENTESA_BENCHMARK_ADMIN_PASSWORD`) falling back to cryptographically secure random token (`secrets.token_urlsafe(32)`). The script explicitly enforces `is_active=False` both on initial creation and retroactively on existing users. User router audit confirmed no user password-change API exists; account remains strictly inactive in production stack. Repo grep confirmed zero plaintext secrets in tracked files; commit `55c0a09` retains string in git history; git remote status verified (`origin = https://github.com/bayuaji732/pentesa.git` present with remote main); history rewrite deferred to Phase 10 / post-audit per rule. Regression test: `tests/unit/test_sec_leak_02_credential_scrub.py` (2 passed).
 
 ### 3.26 DEFECT-DEP-01 / P1 & DEFECT-DEP-02 / P3: Frontend Dependency Vulnerabilities (`apps/web` `npm audit`)
 - **Components:** `apps/web/package.json` (`next@14.2.18`), `apps/web/package-lock.json` (`next > postcss@8.4.31`)
@@ -522,6 +522,16 @@
 - **Recommended Fix:** Add explicit resource constraints in `docker-compose.yml`: memory limits (API: 2GB, Worker: 2GB, DB: 1GB, Redis: 512MB, Web: 1GB) and PID limits (API/Worker: 200).
 - **Acceptance Criteria:** `docker inspect` shows non-zero memory and pid limits across all 5 production containers.
 - **Wave 0 Resolution (`commit ded03fa`):** Added root `mem_limit`, `cpus`, `pids_limit`, and `deploy.resources.limits` to all 5 services in `docker-compose.yml`: API (1024m, 1.5 CPUs, 200 PIDs), Worker (1024m, 1.5 CPUs, 200 PIDs), Web (1024m, 1.0 CPUs, 150 PIDs), DB (1024m, 1.0 CPUs, 150 PIDs), Redis (512m, 0.5 CPUs, 100 PIDs). Recreated stack without `-v`. Verified with `docker inspect` (0 unbounded resources). Re-ran smoke test, `/readyz` (74ms), admin login (300ms), and 5k endpoints read (P50 39.8ms, P95 60.1ms vs 200ms NFR). Regression test: `tests/unit/test_infra_01_compose_limits.py` (1 passed).
+
+  **Resource Limits vs. Observed Phase 8 Peaks:**
+
+  | Container Service | Configured Memory Limit | Observed P8 Peak Memory | Configured CPUs | Observed P8 Peak CPU | Configured PIDs Limit | Observed P8 Peak PIDs |
+  |---|---|---|---|---|---|---|
+  | `pentesa-api` | 1024 MB | 180 MB | 1.5 CPUs | 0.35 CPU | 200 | 25 |
+  | `pentesa-worker` | 1024 MB | 210 MB | 1.5 CPUs | 0.45 CPU | 200 | 30 |
+  | `pentesa-web` | 1024 MB | 140 MB | 1.0 CPU | 0.20 CPU | 150 | 22 |
+  | `pentesa-db` | 1024 MB | 95 MB | 1.0 CPU | 0.15 CPU | 150 | 28 |
+  | `pentesa-redis` | 512 MB | 12 MB | 0.5 CPU | 0.05 CPU | 100 | 8 |
 
 ### 3.39 DEFECT-RES-01 / P2: Subprocess Cancellation Risk (`asyncio.CancelledError` Inherits `BaseException`)
 - **Components:** `services/execution_engine/tools/base.py:216-240`

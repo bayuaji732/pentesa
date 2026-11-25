@@ -217,7 +217,7 @@ This document catalogs identified improvements, technical debt, and recommended 
 ### SEC-LEAK-02: Remove Hardcoded Harness Credentials & Rotate `benchmark-admin` on Reactivation
 - **Category**: Credential Hygiene & Secrets Management
 - **Severity**: P1 (High — while `benchmark-admin@pentesa.lab` can be reactivated; currently `is_active=false`)
-- **Status**: Resolved in Wave 0 (Commit `14ce83d`, untracked env fallback + inactive account enforced; regression test `tests/unit/test_sec_leak_02_credential_scrub.py`).
+- **Status**: Mitigated in Wave 0 (Commit `14ce83d`, untracked env fallback + inactive account enforced; history purge pending remote origin present; regression test `tests/unit/test_sec_leak_02_credential_scrub.py`).
 - **Problem Statement**:
   `benchmark/setup_engagement_and_scope_check.py` (commit `55c0a09`, in git history) referenced the `benchmark-admin` harness credential rather than reading exclusively from environment variables or an untracked local file.
 - **Proposed Solution**:

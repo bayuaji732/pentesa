@@ -180,7 +180,13 @@ All CLI tool subprocesses execute within the worker container under strict sandb
 
 ---
 
-### 5.1 Nuclei (Known CVEs & Misconfiguration Scanner)
+### 5.1 Nuclei (Known CVEs & Misconfiguration Scanner) [ACTIVE]
+> [!NOTE] Implementation Status: **ACTIVE / Implemented-and-Used**
+> - **Wrapper:** `integrations/nuclei/runner.py:19` (`NucleiRunner`)
+> - **Binary:** `/usr/local/bin/nuclei` (v3.3.7 pinned in Dockerfile)
+> - **Agent:** `VulnAgent` (`nuclei_runner`)
+> - **Usage:** Active in Phase 3, 4, 5, 7, 8 benchmarks.
+
 - **Role:** Fast template-based vulnerability scanner for known CVEs, outdated components, exposed admin dashboards, and cloud storage misconfigurations.
 - **Input Parameters:**
   ```python
@@ -210,7 +216,13 @@ All CLI tool subprocesses execute within the worker container under strict sandb
 
 ---
 
-### 5.2 Katana (Next-Generation Web Crawler & Spider)
+### 5.2 Katana (Next-Generation Web Crawler & Spider) [PLANNED — Documented Only]
+> [!NOTE] Implementation Status: **PLANNED / Documented-Only (ADR-002 Tier 2; Post-Phase 10)**
+> - **Wrapper:** Absent (`services/crawler/` currently uses in-house BeautifulSoup parser for static HTML).
+> - **Binary:** Absent in both `api` and `worker` container images.
+> - **Agent:** None (`ReconAgent` allowlists `web_crawler`).
+> - **Usage:** Never executed. Active crawling deferred to post-Phase 10 roadmap.
+
 - **Role:** Scope-constrained web crawler to discover endpoints, query parameters, HTML forms, and API routes.
 - **Input Parameters:**
   ```python
@@ -237,7 +249,13 @@ All CLI tool subprocesses execute within the worker container under strict sandb
 
 ---
 
-### 5.3 Subfinder (Passive Subdomain Enumerator)
+### 5.3 Subfinder (Passive Subdomain Enumerator) [PLANNED — Documented Only]
+> [!NOTE] Implementation Status: **PLANNED / Allowlist-Only (ADR-002 Tier 3; Post-Phase 10)**
+> - **Wrapper:** Absent (Zero wrapper implementation).
+> - **Binary:** Absent in both `api` and `worker` container images.
+> - **Agent:** `ReconAgent` (`subfinder` in allowlist).
+> - **Usage:** Never executed. External egress active reconnaissance deferred until NI-03 controls are completed.
+
 - **Role:** Passive OSINT discovery of subdomains via Certificate Transparency logs and search engines without sending packets to target infrastructure.
 - **Input Parameters:**
   ```python
@@ -258,7 +276,11 @@ All CLI tool subprocesses execute within the worker container under strict sandb
 
 ---
 
-### 5.4 Httpx (Fast Multi-Purpose HTTP Prober)
+### 5.4 Httpx (Fast Multi-Purpose HTTP Prober) [DUAL: Python Library ACTIVE / CLI PLANNED]
+> [!NOTE] Implementation Status: **Dual Classification**
+> - **Python `httpx` Library (v0.27.2):** **ACTIVE / Implemented-and-Used** via `services/execution_engine/tools/http_client.py:19`. Powers `WstgAgent` (`http_prober`), `AuthzAgent` (`http_prober`), and all platform HTTP communications.
+> - **ProjectDiscovery `httpx` Go CLI Binary:** **PLANNED / Absent (ADR-002 Tier 2)**. The standalone Go CLI is absent from container images (`/usr/local/bin/httpx` was an unconfigured Python console entrypoint).
+
 - **Role:** Probes active HTTP/HTTPS services, extracts technology fingerprints, validates status codes, inspects SSL/TLS certificates, and checks response headers.
 - **Input Parameters:**
   ```python
@@ -285,7 +307,13 @@ All CLI tool subprocesses execute within the worker container under strict sandb
 
 ---
 
-### 5.5 Ffuf (Fast Web Fuzzer)
+### 5.5 Ffuf (Fast Web Fuzzer) [ACTIVE]
+> [!NOTE] Implementation Status: **ACTIVE / Implemented-and-Used**
+> - **Wrapper:** `integrations/ffuf/runner.py:42` (`FfufRunner`)
+> - **Binary:** `/usr/local/bin/ffuf` (v2.1.0 pinned in Dockerfile)
+> - **Agent:** `VulnAgent` (`ffuf_runner`)
+> - **Usage:** Active in Phase 3, Phase 8 (`P8-TC-RATE-01`).
+
 - **Role:** Performs controlled path discovery and parameter fuzzing using rate-limited, curated wordlists.
 - **Input Parameters:**
   ```python
@@ -312,18 +340,30 @@ All CLI tool subprocesses execute within the worker container under strict sandb
 
 ---
 
-### 5.6 Custom Python Security Check Engine
+### 5.6 Custom Python Security Check Engine [ACTIVE]
+> [!NOTE] Implementation Status: **ACTIVE / Implemented-and-Used**
+> - **Wrapper:** `services/execution_engine/runners.py:164` (`BaseTestRunner`, `GenericProbeRunner`, `HttpMethodsRunner`, `MetafilesRunner`)
+> - **Runtime:** Native Python 3.12 (`python:3.12-slim-bookworm`)
+> - **Agent:** `VulnAgent` (`check_runner`), `WstgAgent` (`wstg_runner`)
+> - **Usage:** Active in Phase 3, 4, 5, 6, 7 (WSTG-CONF-01–07 checks).
+
 - **Role:** Runs extensible, native Python security checks for complex assessment logic not cleanly covered by external CLI tools.
 - **Included Check Modules:**
   1. `Check_CORS_Misconfiguration`: Tests arbitrary `Origin` reflection with credentials.
   2. `Check_JWT_Algorithm_Confusion`: Tests changing `RS256` to `HS256` using the server's public key.
   3. `Check_Cookie_Security_Attributes`: Verifies `HttpOnly`, `Secure`, and `SameSite` flags.
   4. `Check_Open_Redirect`: Tests URL parameters against out-of-scope redirection bypasses.
-- **Architecture:** Check modules inherit from `BasePythonCheck` and yield `CheckFinding` objects with raw HTTP requests and responses.
+- **Architecture:** Check modules inherit from `BaseTestRunner` and yield `ExecutionResult` objects with raw HTTP requests and responses.
 
 ---
 
-### 5.7 SSL/TLS Configuration Analyzer
+### 5.7 SSL/TLS Configuration Analyzer [ACTIVE]
+> [!NOTE] Implementation Status: **ACTIVE / Implemented-and-Used**
+> - **Wrapper:** `services/execution_engine/runners.py:381` (`GenericProbeRunner` for WSTG-CRYP-01)
+> - **Runtime:** Native Python standard runtime
+> - **Agent:** `ReconAgent` (`tls_inspector`)
+> - **Usage:** Active in Phase 3 baseline (`RUN-PENTESA-BENCH-DEEP-01`).
+
 - **Role:** Evaluates transport layer security posture against WSTG-CRYP-01.
 - **Capabilities:**
   - Enumerates supported TLS versions (`TLSv1.0`, `TLSv1.1`, `TLSv1.2`, `TLSv1.3`).
@@ -333,7 +373,13 @@ All CLI tool subprocesses execute within the worker container under strict sandb
 
 ---
 
-### 5.8 HTTP Security Header Analyzer
+### 5.8 HTTP Security Header Analyzer [ACTIVE]
+> [!NOTE] Implementation Status: **ACTIVE / Implemented-and-Used**
+> - **Wrapper:** `services/execution_engine/runners.py:175` (`SecurityHeadersRunner`)
+> - **Runtime:** Platform code
+> - **Agent:** `WstgAgent` (`headers_analyzer`)
+> - **Usage:** Active in Phase 3, 7 (39 findings derived from header inspection).
+
 - **Role:** Evaluates defensive security headers across discovered endpoints (WSTG-CONF-07).
 - **Inspected Headers:**
   - `Content-Security-Policy` (checks for `unsafe-inline`, missing `default-src`).

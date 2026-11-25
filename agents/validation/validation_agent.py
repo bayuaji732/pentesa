@@ -20,6 +20,85 @@ from services.execution_engine.planner import sync_wstg_instance_for_finding
 from services.orchestrator.state import PentestWorkflowState
 
 
+def evaluate_reproduction_signature(
+    cwe_id: Optional[str],
+    title: str,
+    status_code: Optional[int],
+    response_body: str,
+    response_headers: dict,
+    repro_error: Optional[str] = None
+) -> tuple[bool, str]:
+    """
+    Evaluates whether empirical reproduction succeeded according to the per-class signature table.
+    Enforces the Failure Set invariant: connection error, timeout, or 404/502/503/504 on required paths NEVER promotes.
+    Returns (matched: bool, reason: str).
+    """
+    if repro_error is not None:
+        return False, f"Reproduction connection/timeout error: {repro_error}"
+
+    if status_code is None:
+        return False, "Reproduction probe was not executed or yielded no response"
+
+    # Strict Failure Set: 404/502/503/504 on an endpoint that must exist never promotes
+    if status_code in (404, 502, 503, 504):
+        return False, f"Reproduction probe encountered failure set HTTP {status_code}"
+
+    cwe = (cwe_id or "").upper()
+    title_low = (title or "").lower()
+    body_low = (response_body or "").lower()
+
+    # Class 1: SQL Injection (CWE-89)
+    # Database error signature in body; HTTP 500 is explicitly valid
+    if cwe == "CWE-89" or "sqli" in title_low or "sql injection" in title_low or "sql" in title_low:
+        sql_error_signatures = (
+            "syntax error", "sql syntax", "sqlite3", "sqlite_error",
+            "psycopg2", "postgresql", "pg_", "mysql", "mariadb",
+            "ora-", "oracle", "microsoft ole db", "odbc", "jdbc",
+            "unclosed quotation mark", "driver", "sqlstate"
+        )
+        if any(sig in body_low for sig in sql_error_signatures):
+            return True, f"SQL database error signature matched in body (HTTP {status_code})"
+        if status_code in (200, 201) and ("database error" in body_low or "syntax error" in body_low):
+            return True, f"SQL injection indicator matched (HTTP {status_code})"
+        return False, f"SQL injection database error signature not observed in body (HTTP {status_code})"
+
+    # Class 2: Cross-Site Scripting (XSS / CWE-79)
+    # Unescaped reflection of canary marker / script context in response body
+    if cwe == "CWE-79" or "xss" in title_low or "cross-site scripting" in title_low:
+        xss_indicators = ("<script>", "<script", "alert(", "onerror=", "onload=", "javascript:")
+        if status_code in (200, 201, 206) and any(tag in response_body for tag in xss_indicators):
+            return True, f"Unescaped executable script marker reflected in body (HTTP {status_code})"
+        return False, f"XSS payload not reflected unescaped in response body (HTTP {status_code})"
+
+    # Class 3: Server-Side Template Injection (SSTI / CWE-1336 / CWE-94)
+    # Evaluated marker (e.g. 49 for {{7*7}}) or template engine error in body
+    if cwe in ("CWE-1336", "CWE-94") or "ssti" in title_low or "template injection" in title_low:
+        ssti_markers = ("49", "jinja2", "twig", "freemarker", "velocity", "templatetags")
+        if status_code in (200, 500) and any(m in body_low for m in ssti_markers):
+            return True, f"SSTI evaluated marker or engine syntax observed in body (HTTP {status_code})"
+        return False, f"SSTI signature not observed in response body (HTTP {status_code})"
+
+    # Class 4: IDOR / BOLA (CWE-639 / CWE-284)
+    # Another identity's object/data returned with HTTP 200/206/304
+    if cwe in ("CWE-639", "CWE-284") or "idor" in title_low or "bola" in title_low:
+        if status_code in (200, 206, 304):
+            sensitive_indicators = ("\"id\"", "\"user_id\"", "\"email\"", "\"api_key\"", "\"data\"", "\"profile\"")
+            if any(ind in body_low for ind in sensitive_indicators):
+                return True, f"Object/resource state retrieved successfully (HTTP {status_code})"
+        return False, f"IDOR/BOLA unauthorized resource access not demonstrated (HTTP {status_code})"
+
+    # Class 5: Security Headers / Configuration (CWE-693 / CWE-16)
+    # Header absence independent of status code (provided not in failure set)
+    if cwe in ("CWE-693", "CWE-16") or "header" in title_low or "hsts" in title_low or "csp" in title_low:
+        return True, f"Header inspection completed on HTTP {status_code}"
+
+    # Default / Generic: requires success status code without failure set
+    if status_code in (200, 201, 204, 301, 302):
+        return True, f"Empirical reproduction returned HTTP {status_code}"
+
+    return False, f"Empirical reproduction HTTP {status_code} does not match class signature"
+
+
 class ValidationAgent(BaseAgent):
     """Validation Agent performing empirical reproduction, WAF filtering, and false positive refutations."""
 
@@ -74,6 +153,8 @@ class ValidationAgent(BaseAgent):
             live_req_wire = None
             live_resp_wire = None
             live_repro_error = None
+            repro_body = candidate.get("raw_response") or ""
+            repro_headers = {}
 
             raw_req_excerpt = (candidate.get("raw_request") or "")[:400]
             raw_resp_excerpt = (candidate.get("raw_response") or "")[:900]
@@ -100,6 +181,8 @@ class ValidationAgent(BaseAgent):
                         )
                     repro_status_code = r_live.status_code
                     repro_duration_ms = max(1, int((time.time() - t_start) * 1000))
+                    repro_body = r_live.text
+                    repro_headers = dict(r_live.headers)
                     raw_hdrs = "\r\n".join(f"{k}: {v}" for k, v in list(r_live.headers.items())[:15])
                     live_repro_excerpt = (
                         f"HTTP {r_live.status_code} ({r_live.headers.get('content-type', '')}): "
@@ -117,7 +200,17 @@ class ValidationAgent(BaseAgent):
                     repro_duration_ms = max(1, int((time.time() - t_start) * 1000))
                     live_repro_error = str(exc)
 
-            # 3. LLM Evaluation & Reproduction Reasoning WITH actual observed evidence
+            # 3. Evaluate Empirical Reproduction Signature (Empirical Evidence Gate)
+            sig_matched, sig_reason = evaluate_reproduction_signature(
+                cwe_id=candidate.get("cwe_id"),
+                title=title,
+                status_code=repro_status_code,
+                response_body=repro_body,
+                response_headers=repro_headers,
+                repro_error=live_repro_error,
+            )
+
+            # 4. LLM Evaluation & Reproduction Reasoning WITH actual observed evidence
             candidate_payload = {
                 k: v for k, v in candidate.items() if k not in ("raw_request", "raw_response")
             }
@@ -148,8 +241,9 @@ class ValidationAgent(BaseAgent):
                 confidence="High"
             )
 
-            # 4. Evaluate verdict safely (handle JSON booleans without false matching key names!)
-            is_false_positive = False
+            # 5. Evaluate verdict safely (handle JSON booleans without false matching key names!)
+            # Rule: LLM verdict may DEMOTE candidate, but may NEVER promote over a failed empirical signature!
+            llm_demotes = False
             raw_text = (llm_res.content or "").strip()
             try:
                 clean_json = raw_text
@@ -162,22 +256,40 @@ class ValidationAgent(BaseAgent):
                 parsed = json.loads(clean_json.strip())
                 if isinstance(parsed, dict):
                     if parsed.get("is_valid") is False or parsed.get("is_false_positive") is True:
-                        is_false_positive = True
+                        llm_demotes = True
             except Exception:
                 low = raw_text.lower()
                 if "waf_block_page" in low or ("false_positive" in low and '"is_false_positive": false' not in low):
-                    is_false_positive = True
+                    llm_demotes = True
+
+            is_false_positive = False
+            refute_class = "WAF_BLOCK_PAGE"
+            refute_justification = "Validation analysis refuted candidate as non-exploitable / blocked or lacking empirical confirmation."
+            refute_reason = "VALIDATION_REFUTED"
+
+            if not sig_matched:
+                # Hard empirical gate: Failed reproduction probe or failure set (404/502/503/504) never promotes
+                is_false_positive = True
+                refute_class = "FAILED_EMPIRICAL_REPRODUCTION"
+                refute_justification = f"Empirical reproduction failed: {sig_reason}"
+                refute_reason = "EMPIRICAL_GATE_FAILURE"
+            elif llm_demotes:
+                # LLM verdict demotes candidate to false positive
+                is_false_positive = True
+                refute_class = "WAF_BLOCK_PAGE"
+                refute_justification = "Validation analysis refuted candidate as benign or false positive."
+                refute_reason = "LLM_ANALYSIS_DEMOTION"
 
             if is_false_positive:
                 false_positives.append({
                     "title": title,
-                    "classification": "WAF_BLOCK_PAGE",
-                    "justification": "Validation analysis refuted candidate as non-exploitable / blocked or lacking empirical confirmation."
+                    "classification": refute_class,
+                    "justification": refute_justification
                 })
                 await self.log_tool_call(
                     tool_name="fp_heuristic",
                     input_arguments={"candidate_title": title, "matched_at": matched_at},
-                    output_result={"refuted": True, "reason": "VALIDATION_REFUTED"},
+                    output_result={"refuted": True, "reason": refute_reason, "details": refute_justification},
                     status="SUCCESS"
                 )
             else:

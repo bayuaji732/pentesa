@@ -161,6 +161,7 @@ class ReportContext(BaseModel):
 
     # Findings & Evidence
     findings: List[FindingReportItem]
+    candidate_findings: List[FindingReportItem] = Field(default_factory=list)
     include_raw_evidence: bool = True
 
     # Roadmap

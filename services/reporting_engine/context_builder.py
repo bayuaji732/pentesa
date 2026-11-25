@@ -122,7 +122,13 @@ async def build_report_context(
     )
     findings_raw = list((await session.execute(findings_stmt)).scalars().all())
 
-    # Calculate Risk Counts
+    # Partition confirmed findings vs candidate findings
+    # Confirmed/Remediated/Retested findings count towards risk posture
+    confirmed_statuses = {"Confirmed", "Remediated", "Retested"}
+    confirmed_findings_raw = [f for f in findings_raw if f.status in confirmed_statuses]
+    candidate_findings_raw = [f for f in findings_raw if f.status not in confirmed_statuses]
+
+    # Calculate Risk Counts strictly from confirmed findings
     risk_summary = {
         "Critical": 0,
         "High": 0,
@@ -130,16 +136,14 @@ async def build_report_context(
         "Low": 0,
         "Informational": 0
     }
-    for f in findings_raw:
+    for f in confirmed_findings_raw:
         sev = f.severity.capitalize() if f.severity else "Informational"
         if sev in risk_summary:
             risk_summary[sev] += 1
         else:
             risk_summary["Informational"] += 1
 
-    # Convert Findings to Report Items
-    finding_items: List[FindingReportItem] = []
-    for f in findings_raw:
+    def _to_report_item(f: Finding) -> FindingReportItem:
         primary_evidence: Optional[FindingEvidence] = f.evidence[0] if f.evidence else None
 
         ep_url = f.endpoint.url if f.endpoint and hasattr(f.endpoint, "url") else (
@@ -147,32 +151,33 @@ async def build_report_context(
         )
         ep_method = f.endpoint.http_method if f.endpoint else "GET"
 
-        finding_items.append(
-            FindingReportItem(
-                id=f"FIND-{str(f.id)[:8].upper()}",
-                title=f.title,
-                severity=f.severity,
-                cvss_score=float(f.cvss_score) if f.cvss_score is not None else None,
-                cvss_vector=f.cvss_vector,
-                cwe_id=f.cwe_id or "CWE-Unknown",
-                wstg_id=f.wstg_id or "WSTG-GENERIC",
-                owasp_category=f.owasp_category or "OWASP Top 10",
-                endpoint_url=ep_url,
-                http_method=ep_method,
-                affected_parameter=f.affected_parameter,
-                description=f.description,
-                business_impact=f.business_impact or "Unauthorized access or system manipulation.",
-                remediation_guidance=f.remediation_guidance or "Apply secure input validation and access controls.",
-                reproduction_curl=primary_evidence.reproduction_curl if primary_evidence else None,
-                raw_request=primary_evidence.raw_request if (primary_evidence and options.include_raw_evidence) else None,
-                raw_response=primary_evidence.raw_response if (primary_evidence and options.include_raw_evidence) else None,
-                request_hash_sha256=primary_evidence.request_hash_sha256 if primary_evidence else None,
-                response_hash_sha256=primary_evidence.response_hash_sha256 if primary_evidence else None,
-                screenshot_path=primary_evidence.screenshot_path if primary_evidence else None,
-                status=f.status,
-                confidence=f.confidence
-            )
+        return FindingReportItem(
+            id=f"FIND-{str(f.id)[:8].upper()}",
+            title=f.title,
+            severity=f.severity,
+            cvss_score=float(f.cvss_score) if f.cvss_score is not None else None,
+            cvss_vector=f.cvss_vector,
+            cwe_id=f.cwe_id or "CWE-Unknown",
+            wstg_id=f.wstg_id or "WSTG-GENERIC",
+            owasp_category=f.owasp_category or "OWASP Top 10",
+            endpoint_url=ep_url,
+            http_method=ep_method,
+            affected_parameter=f.affected_parameter,
+            description=f.description,
+            business_impact=f.business_impact or "Unauthorized access or system manipulation.",
+            remediation_guidance=f.remediation_guidance or "Apply secure input validation and access controls.",
+            reproduction_curl=primary_evidence.reproduction_curl if primary_evidence else None,
+            raw_request=primary_evidence.raw_request if (primary_evidence and options.include_raw_evidence) else None,
+            raw_response=primary_evidence.raw_response if (primary_evidence and options.include_raw_evidence) else None,
+            request_hash_sha256=primary_evidence.request_hash_sha256 if primary_evidence else None,
+            response_hash_sha256=primary_evidence.response_hash_sha256 if primary_evidence else None,
+            screenshot_path=primary_evidence.screenshot_path if primary_evidence else None,
+            status=f.status,
+            confidence=f.confidence
         )
+
+    finding_items = [_to_report_item(f) for f in confirmed_findings_raw]
+    candidate_items = [_to_report_item(f) for f in candidate_findings_raw]
 
     # 6. Executive Narrative
     if options.executive_summary_override:
@@ -188,7 +193,12 @@ async def build_report_context(
         elif total > 0:
             posture_assessment = f"The assessment revealed a MODERATE RISK posture with {total} total findings, primarily consisting of medium and low severity defense-in-depth opportunities."
         else:
-            posture_assessment = "The assessment revealed a STRONG SECURITY POSTURE with zero confirmed high-severity vulnerabilities across the tested target scope."
+            posture_assessment = (
+                f"No confirmed vulnerabilities were identified within the tested scope and authorized boundaries "
+                f"during this assessment. This finding is bounded strictly by the executed test modules "
+                f"({coverage_score:.1f}% of planned test catalog) and does not constitute a guarantee of "
+                f"system security. Untested components and out-of-scope services were not evaluated."
+            )
 
         executive_narrative = (
             f"During the penetration testing window, Pentesa conducted an automated and assisted assessment "
@@ -249,6 +259,7 @@ async def build_report_context(
         coverage_score=coverage_score,
         wstg_categories=wstg_categories,
         findings=finding_items,
+        candidate_findings=candidate_items,
         include_raw_evidence=options.include_raw_evidence,
         immediate_actions=immediate_actions[:5],
         near_term_actions=near_term_actions[:5],

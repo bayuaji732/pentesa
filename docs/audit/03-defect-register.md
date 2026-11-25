@@ -65,6 +65,7 @@
 | **DEFECT-RES-01** | **P2** | Resilience / Subprocess | `services/execution_engine/tools/base.py:221` | Subprocess Cancellation Risk: `asyncio.CancelledError` Inherits `BaseException`, Bypassing Cleanup | Open (Documented) | Phase 9 (`BaseException` / explicit cancellation cleanup handler) |
 | **DEFECT-HOST-01** | **P2** | Resilience / Hostile | `packages/common/http_client.py` | Missing Chunk/Streaming Read Timeouts on Hostile HTTP Responses Leading to Indefinite Slow-Drip Hang | Open (Documented) | Phase 9 (`httpx.Timeout(read=5.0, connect=5.0)`) |
 | **DEV-002** | **P2** | Audit Deviation / Auth | `database/seeds/seed_data.py`, `docker-compose.yml` | Out-of-Plan Multi-Admin Bootstrap Seeding Platform Modification | **Closed (Reverted)** | `19a3d8d` (Introduced) / `035be6c` (Reverted; Tag `admin-review-done`) |
+| **DEFECT-AUD-02** | **P1** | Audit / Cryptography | `database/models/audit.py`, `packages/common/audit.py` | Audit Log Hash Chain Broken by `ON DELETE SET NULL` on Foreign Keys Mutating Historical Records on Entity Deletion | **Mitigated (Scratch Rebuild; Fix Wave 1b)** | Schema FK constraint `ON DELETE RESTRICT` or unconstrained UUID scheduled for Wave 1b |
 
 ---
 

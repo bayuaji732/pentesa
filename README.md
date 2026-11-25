@@ -177,11 +177,10 @@ docker compose -p pentesa-prod --env-file .env.production down
 
 ## Reproducible Linux Test Environment
 
-To run the complete automated test suite in an isolated, identical Linux container:
+To run the complete automated unit test suite inside the standardized production worker Linux container across any host OS (Windows, macOS, Linux):
 
 ```bash
-# Run full pytest suite in Docker
-docker compose -f docker-compose.test.yml run --rm test-runner pytest tests/ -v --tb=short
+docker run --rm -v "${PWD}:/app" -w /app -e PENTESA_ENV=test -e PENTESA_ALLOW_TEST_SQLITE=1 -e PENTESA_LLM_PROVIDER=mock -e PENTESA_LAYER2_EGRESS_ENABLED=true pentesa-prod-worker sh -c "pip install -q aiosqlite && pytest tests/unit -v"
 ```
 
 ---

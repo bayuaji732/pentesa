@@ -142,7 +142,7 @@ async def run_smoke_and_matrices():
             tokens[email] = r_l.json()["access_token"]
             print(f"[+] Login 200 OK for {email}")
 
-        print("\n--- 4. RBAC Matrix Verification ---")
+        print("\n--- 4. RBAC Matrix Verification (Smoke Subset) ---")
         now = datetime.datetime.now(datetime.timezone.utc)
         auth_start = (now - datetime.timedelta(hours=1)).isoformat()
         auth_end = (now + datetime.timedelta(days=7)).isoformat()
@@ -177,17 +177,17 @@ async def run_smoke_and_matrices():
         # RBAC Check 1: Viewer cannot list users (System ADMIN required)
         vh = {"Authorization": f"Bearer {tokens['p9test-viewer@pentesa.lab']}"}
         r_v_users = await client.get(f"{API_BASE}/api/v1/users", headers=vh)
-        print(f"[+] RBAC: Viewer list users -> {r_v_users.status_code} (Expected: 403)")
+        print(f"[+] RBAC Smoke Subset: Viewer list users -> {r_v_users.status_code} (Expected: 403)")
         assert r_v_users.status_code == 403
 
         # RBAC Check 2: Viewer can read Project A (VIEWER role authorized)
         r_v_read = await client.get(f"{API_BASE}/api/v1/projects/{proj_a_id}", headers=vh)
-        print(f"[+] RBAC: Viewer read project A -> {r_v_read.status_code} (Expected: 200)")
+        print(f"[+] RBAC Smoke Subset: Viewer read project A -> {r_v_read.status_code} (Expected: 200)")
         assert r_v_read.status_code == 200
 
         # RBAC Check 3: Viewer cannot delete Project A (LEAD role required)
         r_v_del = await client.delete(f"{API_BASE}/api/v1/projects/{proj_a_id}", headers=vh)
-        print(f"[+] RBAC: Viewer delete project A -> {r_v_del.status_code} (Expected: 403)")
+        print(f"[+] RBAC Smoke Subset: Viewer delete project A -> {r_v_del.status_code} (Expected: 403)")
         assert r_v_del.status_code == 403
 
         # RBAC Check 4: Viewer cannot add members to Project A (LEAD role required)
@@ -196,10 +196,10 @@ async def run_smoke_and_matrices():
             headers=vh,
             json={"user_id": str(uuid.uuid4()), "role": "VIEWER"}
         )
-        print(f"[+] RBAC: Viewer add member to Project A -> {r_v_add_mem.status_code} (Expected: 403)")
+        print(f"[+] RBAC Smoke Subset: Viewer add member to Project A -> {r_v_add_mem.status_code} (Expected: 403)")
         assert r_v_add_mem.status_code == 403
 
-        print("\n--- 5. IDOR Matrix Verification ---")
+        print("\n--- 5. IDOR Matrix Verification (Smoke Subset) ---")
         # Create Project B as Admin, assign Tenant B Lead
         r_proj_b = await client.post(
             f"{API_BASE}/api/v1/projects",
@@ -231,17 +231,17 @@ async def run_smoke_and_matrices():
 
         # IDOR Check 1: Tenant B Lead attempts to read Project A (Tenant A)
         r_idor_read = await client.get(f"{API_BASE}/api/v1/projects/{proj_a_id}", headers=tb_h)
-        print(f"[+] IDOR: Tenant B Lead read Project A -> {r_idor_read.status_code} (Expected: 403 or 404)")
+        print(f"[+] IDOR Smoke Subset: Tenant B Lead read Project A -> {r_idor_read.status_code} (Expected: 403 or 404)")
         assert r_idor_read.status_code in (403, 404)
 
         # IDOR Check 2: Tenant B Lead attempts to delete Project A
         r_idor_del = await client.delete(f"{API_BASE}/api/v1/projects/{proj_a_id}", headers=tb_h)
-        print(f"[+] IDOR: Tenant B Lead delete Project A -> {r_idor_del.status_code} (Expected: 403 or 404)")
+        print(f"[+] IDOR Smoke Subset: Tenant B Lead delete Project A -> {r_idor_del.status_code} (Expected: 403 or 404)")
         assert r_idor_del.status_code in (403, 404)
 
         # IDOR Check 3: Tenant B Lead attempts to read Project A findings
         r_idor_findings = await client.get(f"{API_BASE}/api/v1/projects/{proj_a_id}/findings", headers=tb_h)
-        print(f"[+] IDOR: Tenant B Lead read Project A findings -> {r_idor_findings.status_code} (Expected: 403 or 404)")
+        print(f"[+] IDOR Smoke Subset: Tenant B Lead read Project A findings -> {r_idor_findings.status_code} (Expected: 403 or 404)")
         assert r_idor_findings.status_code in (403, 404)
 
         print("\n--- 6. Cleanup of Throwaway Objects (ENV RULES v2) ---")

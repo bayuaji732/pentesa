@@ -98,6 +98,17 @@ def update_readme_sharing_guide(dest_dir: pathlib.Path):
     if not readme_path.exists():
         return
     content = readme_path.read_text(encoding="utf-8")
+    
+    warning_banner = (
+        "> [!CAUTION]\n"
+        "> ### ⚠️ PENTESA AUDIT IN PROGRESS — LAB-ONLY ENVIRONMENT — NOT PRODUCTION-READY ⚠️\n"
+        ">\n"
+        "> **AUDIT NOTICE:** This platform codebase and repository distribution are currently undergoing an extensive, independent multi-phase security, reliability, and architecture audit.\n"
+        "> **SECURITY CLASSIFICATION:** LAB-ONLY EVALUATION. The platform is **NOT PRODUCTION-READY** and must NOT be deployed against external networks, public cloud infrastructure, or untrusted production assets.\n"
+        "> **DEFECT DISCLOSURE:** Multiple open security, safety, and reliability findings are registered in [`docs/audit/03-defect-register.md`](docs/audit/03-defect-register.md) (e.g. `NI-03` Layer-2 egress boundary, `DEFECT-DEP-01` reachable dependency advisories, `DEFECT-AUD-02` audit cascade mutation).\n"
+        "> **GOVERNANCE:** Authorized penetration testing and evaluation must be conducted strictly within isolated test networks (`pentesa-bench-net`) in accordance with `ENVIRONMENTS.md`.\n\n"
+    )
+
     section = (
         "\n\n---\n\n"
         "## Team Collaboration & Sharing Guide\n\n"
@@ -122,9 +133,13 @@ def update_readme_sharing_guide(dest_dir: pathlib.Path):
         "   ```\n"
         "5. Access the Web UI at `http://localhost:3000` and API docs at `http://localhost:8000/docs`.\n"
     )
-    if "## Team Collaboration & Sharing Guide" not in content:
-        readme_path.write_text(content + section, encoding="utf-8")
-        print("[+] Added Team Collaboration & Sharing Guide to README.md.")
+    new_content = content
+    if "### ⚠️ PENTESA AUDIT IN PROGRESS" not in new_content:
+        new_content = warning_banner + new_content
+    if "## Team Collaboration & Sharing Guide" not in new_content:
+        new_content = new_content + section
+    readme_path.write_text(new_content, encoding="utf-8")
+    print("[+] Injected Warning Banner and Team Collaboration Guide to snapshot README.md.")
 
 def recompute_manifests(dest_dir: pathlib.Path):
     print("[*] Recomputing MANIFEST.sha256 files...")

@@ -108,6 +108,12 @@ In accordance with ENV RULES v2, snapshot restores and pre-test backups have bee
   ```
   The platform bootstraps fresh from `.env.production`. No backups are kept.
 
+### 4.1 Cross-Platform Containerized Unit Test Execution
+To run the automated unit test suite in an identical Linux environment regardless of host OS without host Python dependency issues:
+```bash
+docker run --rm -v "${PWD}:/app" -w /app -e PENTESA_ENV=test -e PENTESA_ALLOW_TEST_SQLITE=1 -e PENTESA_LLM_PROVIDER=mock -e PENTESA_LAYER2_EGRESS_ENABLED=true pentesa-prod-worker sh -c "pip install -q aiosqlite && pytest tests/unit -v"
+```
+
 ---
 
 ## 5. Repository Hygiene

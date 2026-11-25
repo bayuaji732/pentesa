@@ -8,6 +8,14 @@ Phases 1 through 8 and Phase 9 Wave 0 are complete (Phase 8 reliability, perform
   - **What changed:** Applied `DEFECT-API-02` fix to `apps/api/dependencies.py` only (`+4/-1` lines), chaining `.selectinload(ProjectMember.user)` onto `selectinload(Project.members)` inside `verify_project_access()`. Regression test moved to `tests/unit/test_defect_api_02_regression.py`. No other production files were modified.
   - **Why:** Approved targeted deviation from the evaluation-only rule to unblock dashboard project-detail reads and web navigation where `GET /api/v1/projects/{project_id}` previously returned HTTP 500 (`ResponseValidationError: MissingGreenlet`).
   - **Evidence scope:** All Phase 6 and Phase 6b baseline evidence (`demo-smoke.txt`, `p6b_live_output.txt`, `score_p6b.txt`, `p6b_rbac_matrix.json`, `p6b_idor_matrix.json`) refers strictly to the **unpatched** codebase at tag `phase6-final`. Post-hotfix verification runs are stored separately as `docs/audit/evidence/phase6/p6b_rerun_after_hotfix_*.txt/json`.
+- **Unplanned Platform Modification DEV-002 (`commit 19a3d8d`, reverted in `035be6c`, tag `admin-review-done`):**
+  - **What changed:** Commit `19a3d8d` modified `database/seeds/seed_data.py`, `docker-compose.yml`, `.env.example`, and `tests/unit/test_default_credentials_and_seeding.py` to support multi-admin bootstrap seeding via numbered `PENTESA_BOOTSTRAP_ADMIN<N>_*` environment variables.
+  - **Why:** Prompted by user request to add team member access to `.env.production`. However, this was an out-of-plan platform change; the existing runtime API `POST /api/v1/users` already supports admin account creation without code modifications.
+  - **Security evaluation & evidence:**
+    - `docker inspect` and `docker exec env` expose bootstrap credentials in plaintext within container environments.
+    - `docker compose config` expands plaintext passwords directly into stdout and log streams.
+    - Re-creation hazard: While a deactivated user is not reactivated on restart, a deleted user is silently recreated by `seed_initial_data()`.
+  - **Remediation:** Reverted commit `19a3d8d` in `035be6c`, scrubbed `PENTESA_BOOTSTRAP_ADMIN2_*` from `docker-compose.yml`, `.env.example`, and `.env.production`, rebuilt container images with `docker compose up -d --build api worker` (zero `-v`), and tagged `admin-review-done`. Both admin accounts remain active in PostgreSQL database and authenticate with HTTP 200.
 
 ## Amendments to the Execution Rules (added during the audit)
 - Evidence standard: every raw evidence file is machine-captured (script/tee), starts with a header (UTC time, git SHA + dirty flag, exact command, DB version, running stack vs in-process) and is NEVER hand-edited. Corrections go in addenda. Maintain MANIFEST.sha256.

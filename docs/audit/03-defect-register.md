@@ -64,6 +64,7 @@
 | **DEFECT-INFRA-01** | **P3** | Infrastructure | `docker-compose.yml`, container host configs | Unbounded Container Host Memory Limits (`MemLimit=0`) and Missing PID Bounds Across Compose Services | **Closed (Wave 0)** | `ded03fa` (Configured mem_limit, cpus, pids_limit across all 5 prod compose services) |
 | **DEFECT-RES-01** | **P2** | Resilience / Subprocess | `services/execution_engine/tools/base.py:221` | Subprocess Cancellation Risk: `asyncio.CancelledError` Inherits `BaseException`, Bypassing Cleanup | Open (Documented) | Phase 9 (`BaseException` / explicit cancellation cleanup handler) |
 | **DEFECT-HOST-01** | **P2** | Resilience / Hostile | `packages/common/http_client.py` | Missing Chunk/Streaming Read Timeouts on Hostile HTTP Responses Leading to Indefinite Slow-Drip Hang | Open (Documented) | Phase 9 (`httpx.Timeout(read=5.0, connect=5.0)`) |
+| **DEV-002** | **P2** | Audit Deviation / Auth | `database/seeds/seed_data.py`, `docker-compose.yml` | Out-of-Plan Multi-Admin Bootstrap Seeding Platform Modification | **Closed (Reverted)** | `19a3d8d` (Introduced) / `035be6c` (Reverted; Tag `admin-review-done`) |
 
 ---
 
@@ -541,6 +542,13 @@
 - **Recommended Fix:** Implement cumulative stream duration enforcement in `packages/common/http_client.py` via `asyncio.timeout()` wrapping the entire request + body iteration stream.
 - **Regression Test:** `tests/unit/test_slow_drip_stream_timeout.py`.
 - **Acceptance Criteria:** Target returning 1 byte/sec is terminated and reported within 5.0 seconds maximum.
+
+### 3.41 DEV-002 / P2: Out-of-Plan Platform Modification for Multi-Admin Bootstrap Seeding
+- **Components:** `database/seeds/seed_data.py`, `docker-compose.yml`, `.env.example`, `apps/api/routers/users.py`
+- **Severity:** **P2 (Medium — Audit Deviation & Credential Hygiene Risk)**
+- **Problem & Root Cause:** Outside the agreed Wave improvement plan, commit `19a3d8d` introduced multi-admin bootstrap seeding via numbered `PENTESA_BOOTSTRAP_ADMIN<N>_*` environment variables. The change was redundant because the runtime API `POST /api/v1/users` already allows administrators to create accounts dynamically. Furthermore, security checks demonstrated that: (1) `docker inspect` and `docker exec env` expose bootstrap credentials in plaintext within container environments; (2) `docker compose config` expands plaintext passwords directly into stdout; and (3) while deactivated accounts are not reactivated on restart, accounts deleted from the database are silently recreated.
+- **Evidence:** `commit 19a3d8d`, `.scratch/check_a1_evidence.py`, `.scratch/test_restart_semantics.py`.
+- **Remediation:** Reverted in commit `035be6c` (tagged `admin-review-done`). All `PENTESA_BOOTSTRAP_ADMIN2_*` references removed from `docker-compose.yml`, `.env.example`, and `.env.production`. Container images rebuilt (`docker compose up -d --build api worker`). Both admin accounts persist in PostgreSQL and authenticate successfully (`HTTP 200`, `/api/v1/auth/me` returns `role: ADMIN`).
 
 
 

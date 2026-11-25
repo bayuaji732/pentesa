@@ -80,7 +80,7 @@ This document catalogs identified improvements, technical debt, and recommended 
 ### P1-FIND-02: Finding API Model Serialization Omits Root Endpoint and Method Strings
 - **Category**: Findings Management & API Schema Integration
 - **Severity**: P1 (Core Data Contract Defect — Phase 7 Mandate)
-- **Status**: Documented; Scheduled for Phase 9 implementation.
+- **Status**: Resolved in Wave 1a (Commit `a683a35`, root endpoint and method strings populated in `FindingResponse`; regression test `tests/unit/test_finding_endpoint_fields.py`).
 - **Problem Statement**:
   The `FindingResponse` schema in `packages/schemas/finding.py` and API router `GET /api/v1/projects/{project_id}/findings` serialize `endpoint_id: Optional[UUID]`, but omit denormalized `endpoint: Optional[str]`, `target: Optional[str]`, and `method: Optional[str]`. Consequently, standard external tools, benchmark scorers (including the Phase 3 frozen `score.py`), and downstream reporting consumers receive empty endpoint strings when inspecting finding objects directly unless they perform a secondary join across `endpoints` and `evidence`.
 - **Proposed Solution**:
@@ -155,7 +155,7 @@ This document catalogs identified improvements, technical debt, and recommended 
 ### P1-AGENT-01: Empirical Reproduction Gating & Hallucination Resistance Invariant in ValidationAgent
 - **Category**: AI Agent System & Vulnerability Validation
 - **Severity**: P1 (Core Functionality & Accuracy Invariant — Governs FR-VV-05, US-04)
-- **Status**: Documented; Scheduled for Phase 9 implementation.
+- **Status**: Resolved in Wave 1a (Commit `f4bb76c`, per-class reproduction signature matrix & failure set empirical gate; regression test `tests/unit/test_validation_agent_empirical_gate.py`).
 - **Problem Statement**:
   In `ValidationAgent.execute()`, candidate findings are validated using an LLM prompt without asserting whether the preceding empirical reproduction probe succeeded. When tested in Phase 5 (`P5-TC-HALLUC-01`), a candidate finding targeting a non-existent endpoint (`/admin/super-exec`) that returned HTTP 404 was hallucinated as `is_valid: true` by the LLM. `ValidationAgent` promoted the finding to `confirmed_findings` without wire proof, resulting in 0.0% hallucination resistance (`DEFECT-AGENT-01`).
 - **Proposed Solution**:
@@ -283,7 +283,7 @@ This document catalogs identified improvements, technical debt, and recommended 
 ### DEFECT-REP-01 & DEFECT-REP-02: Safe Empty-Report Posture, Confirmed/Candidate Separation & Truthful Tooling Disclosure
 - **Category**: PTES Reporting Engine Integrity (Phase 7)
 - **Severity**: `DEFECT-REP-01`: **P1** (High); `DEFECT-REP-02`: **P2** (Medium)
-- **Status**: Documented in Phase 7 (`docs/audit/08-findings-quality-assessment.md`); Scheduled for Phase 9.
+- **Status**: Resolved in Wave 1a (Commits `94e73d0`, `c396bee`, `44fd758`; neutral zero-finding narrative, candidate segregation, and grounded truthful tooling disclosure in `ptes_standard.html`; regression tests `tests/unit/test_reporting_safety_and_status.py`, `tests/unit/test_report_boilerplate_grounding.py`).
 - **Proposed Solution**:
   1. Replace `"STRONG SECURITY POSTURE"` in `services/reporting_engine/context_builder.py:191` with a neutral coverage-qualified statement that never claims the target is secure.
   2. Count only `Confirmed` findings in executive risk totals, separate `Detected`/`Needs Manual Review` items into a clearly labelled unconfirmed section, and add the `Status` column to `renderer.py` (PDF).
@@ -294,7 +294,7 @@ This document catalogs identified improvements, technical debt, and recommended 
 ### DEFECT-REDACT-01: AuthProfile Custom Secret Redaction & Finding Narrative Scrubbing
 - **Category**: Privacy & Evidence Redaction (Phase 7)
 - **Severity**: P2 (Medium — 5/6 canary redaction rate; custom canary leaked in `raw_response`, `description`, HTML)
-- **Status**: Documented in Phase 7; Scheduled for Phase 9.
+- **Status**: Resolved in Wave 1a (Commit `0aca869`, in-memory AuthProfile custom secret scrubbing, canary token regex, and narrative text redaction; regression test `tests/unit/test_canary_redaction_all_surfaces.py`).
 - **Proposed Solution**:
   Pass decrypted project `AuthProfile` secret values as `custom_secrets` into `redact_raw_stream()` across raw HTTP streams, reproduction cURLs, finding text fields (`title`, `description`, `remediation_guidance`), and a final pre-render pass in `context_builder.py`.
 

@@ -34,11 +34,11 @@
 | **SEC-RED-02** | **P1** | Privacy / Leak | `services/evidence_engine/curl_generator.py`, `services/evidence_engine/finding_service.py` | Reproduction cURL Generator Leaks Plaintext Passwords in Request Body | **Closed** | `b65eaf3` (FIX-10) |
 | **EVID-02** | **P1** | Process / Audit | `docs/audit/evidence/phase2/r3_wstg_plan_counts.txt`, `phase2-summary.md` | Discrepancy Between Raw WSTG Coverage Machine Evidence and Summary Reports | **Closed** | Reconciled R3 raw counts (38 planned, 68 N/A, 0 failed) and corrected summary reports |
 | **SEC-LEAK-01** | **P0** | Secrets / Leak | `docker-compose.phase2.yml`, `docs/audit/evidence/phase2/r1_default_admin.txt` | Five Hardcoded Secrets (LiteLLM, DB, Encryption, JWT, Admin Pwd) Committed to Git | **Closed (Rotated & Retired)** | phase2.yml retired via git rm; LiteLLM key rotated upstream; secrets moved to gitignored .env.production |
-| **P1-FIND-02** | **P1** | Data Contract | `packages/schemas/finding.py`, `apps/api/routers/findings.py` | `FindingResponse` Schema Serializes `endpoint_id` but Omits Root `endpoint` and `method` Strings | Open (Documented) | Phase 9 (Finding Schema Normalization & Endpoint Join) |
+| **P1-FIND-02** | **P1** | Data Contract | `packages/schemas/finding.py`, `apps/api/routers/findings.py` | `FindingResponse` Schema Serializes `endpoint_id` but Omits Root `endpoint` and `method` Strings | **Closed (Wave 1a)** | `a683a35` (Populate root endpoint and method in FindingResponse schema) |
 | **DEFECT-AUTH-02** | **P1** | Authorization | `agents/authorization/authz_agent.py`, `services/orchestrator/state.py` | Multi-Identity and Credential Vault Disconnection in AGT-07 | Open (Documented) | Phase 9 (Multi-Tenant Auth & Token Binding) |
 | **DEFECT-BUSL-01** | **P2** | Business Logic | `database/models/finding.py`, `agents/validation/validation_agent.py` | Lack of Automated Business Logic Anomaly Detection & Review Status | Open (Documented) | Phase 9 (FindingStatusEnum & Semantic Heuristics) |
 | **DEFECT-CHAIN-01** | **P2** | Architecture | `database/models/finding.py`, `services/evidence_engine/` | Flat Finding Architecture Without Vulnerability Chaining | Open (Documented) | Phase 9 (Attack Path Graph & Finding Foreign Keys) |
-| **DEFECT-AGENT-01** | **P1** | AI Safety | `agents/validation/validation_agent.py` | ValidationAgent Blind LLM Trust & Synthetic Finding Promotion on 404 Endpoint | Open (Documented) | Phase 9 (Empirical Evidence Gate Invariant) |
+| **DEFECT-AGENT-01** | **P1** | AI Safety | `agents/validation/validation_agent.py` | ValidationAgent Blind LLM Trust & Synthetic Finding Promotion on 404 Endpoint | **Closed (Wave 1a)** | `f4bb76c` (P1-AGENT-01: per-class reproduction signatures & empirical gate) |
 | **COMP-STALE-01** | **P3** | Infrastructure | `infrastructure/docker-compose.prod.yml` | Stale Duplicate Production Compose with Hardcoded Password and Container Collisions | Open (Quarantined) | Retained for reference; quarantined/never started; superseded by root docker-compose.yml |
 | **DISCO-SPA-01** | **P2** | Discovery | `services/discovery_engine/fingerprint.py` | Technology Fingerprinter Misses SPAs Lacking Server Headers | Open (Deferred) | Phase 9 (DOM Parsing Roadmap) |
 | **DEFECT-AUTH-03** | **P2** | Authentication | `apps/api/routers/auth.py` | Missing Rate Limiting on User Login Endpoint (`POST /api/v1/auth/login`) | Open (Documented) | Phase 9 (Redis-backed token bucket rate limiting) |
@@ -51,9 +51,9 @@
 | **P3-TEST-01** | **P3** | Test Harness | `benchmark/p6b/test_runner_p6b.py` | RBAC Matrix Uses Placeholder UUIDs/Empty Bodies Causing 124/215 Expected-Allow Cells to Return 404/422 | Open (Test Improvement) | Phase 9 Test Harness (Seed valid object IDs and schema-valid bodies per route) |
 | **P3-INFRA-02** | **P3** | Infrastructure | `docker-compose.yml` / `docker-compose.sec.yml` (retired) | Hardening Note: Keep DB/Redis Unpublished in Prod; Any Harness DB Port (`127.0.0.1:5433`) Must Stay Loopback-Only | Open (Hardening Note) | Operational Policy / Compose Review |
 | **DEFECT-FIND-03** | **P1** | Findings / Scoring | `services/evidence_engine/finding_service.py`, `services/execution_engine/runners.py` | `cvss_score` and `cvss_vector` Are `NULL` on 39/39 (100%) Production Confirmed Findings | Open (Documented) | Phase 9 (Deterministic CVSS v3.1 Scoring & Validation) |
-| **DEFECT-REP-01** | **P1** | Reporting | `services/reporting_engine/context_builder.py`, `renderer.py` | Empty Reports Claim `"STRONG SECURITY POSTURE"` & Unconfirmed Candidates Conflated with Confirmed Findings | Open (Documented) | Phase 9 (Safe Empty Posture & Confirmed-Only / Separated Counts) |
-| **DEFECT-REP-02** | **P2** | Reporting | `services/reporting_engine/templates/ptes_standard.html` | PTES HTML Report Hardcodes 4 Ungrounded Capability Claims (Layer-2 Proxy, Katana, Httpx, LangGraph) | Open (Documented) | Phase 9 (Truthful Runtime Tooling & Architecture Disclosure) |
-| **DEFECT-REDACT-01** | **P2** | Privacy / Redaction | `services/evidence_engine/finding_service.py`, `redactor.py` | Custom Project Secrets Not Passed to Redactor & Finding Text Fields Unscrubbed (`description`/`title`) | Open (Documented) | Phase 9 (AuthProfile Custom Secret Redaction & Text Field Scrubbing) |
+| **DEFECT-REP-01** | **P1** | Reporting | `services/reporting_engine/context_builder.py`, `renderer.py` | Empty Reports Claim `"STRONG SECURITY POSTURE"` & Unconfirmed Candidates Conflated with Confirmed Findings | **Closed (Wave 1a)** | `94e73d0` (Neutral zero-finding narrative & candidate segregation) / `c396bee` |
+| **DEFECT-REP-02** | **P2** | Reporting | `services/reporting_engine/templates/ptes_standard.html` | PTES HTML Report Hardcodes 4 Ungrounded Capability Claims (Layer-2 Proxy, Katana, Httpx, LangGraph) | **Closed (Wave 1a)** | `44fd758` (Ground PTES report boilerplate in executed runtime tooling) |
+| **DEFECT-REDACT-01** | **P2** | Privacy / Redaction | `services/evidence_engine/finding_service.py`, `redactor.py` | Custom Project Secrets Not Passed to Redactor & Finding Text Fields Unscrubbed (`description`/`title`) | **Closed (Wave 1a)** | `0aca869` (In-memory custom secret scrubbing & narrative redaction) |
 | **DEFECT-DEDUP-01** | **P2** | Deduplication | `services/evidence_engine/finding_service.py` | No Ingestion-Time Deduplication & `endpoint_id=None` Findings Over-Clustered on `"global|ANY"` | Open (Documented) | Phase 9 (Ingestion Dedup Key + Raw-Request URL Fallback in Signature) |
 | **DEFECT-LIFE-01** | **P3** | Findings / Lifecycle | `database/models/finding.py`, `apps/api/routers/findings.py` | Finding Assignment (`assigned_to` Field / Route) Not Implemented | Open (Not Implemented) | Phase 9 (Add `assigned_to` FK & Assignment Endpoint) |
 | **DEFECT-REPRO-01** | **P3** | Evidence / cURL | `services/evidence_engine/curl_generator.py` | Generated `reproduction_curl` Omits Redirect Flag (`-L`) When Target Root Redirects (`bench-dvwa` 302 vs 200) | Open (Documented) | Phase 9 (Record Exact Final Redirected URL in Evidence & cURL) |
@@ -179,6 +179,8 @@
 ### 3.15 DEFECT-FIND-1 / P1 (P1-FIND-02): Finding Response Schema Omits Root Endpoint and Method Strings
 - **Components:** `packages/schemas/finding.py` (`FindingResponse`), `apps/api/routers/findings.py`, `database/models/finding.py`
 - **Severity:** **P1 (High / Core Data Contract Breach)**
+- **Status:** **Closed (Wave 1a)** (`a683a35`)
+- **Regression Suite:** `tests/unit/test_finding_endpoint_fields.py` (4 passed)
 - **Audit Phase & Standard:** Discovered in Phase 3 benchmarking; governed by Phase 7 finding evidence completeness criteria (Fields #3 and #4: endpoint path and HTTP method are mandatory in every finding).
 - **Root Cause Analysis:**
   The FastAPI finding serialization schema (`FindingResponse` in `packages/schemas/finding.py`) defines `endpoint_id: Optional[UUID] = None` but omits denormalized `endpoint: Optional[str] = None` and `method: Optional[str] = None` fields. Furthermore, the underlying SQLAlchemy model `database/models/finding.py` names the parameter column `affected_parameter` (singular), whereas external tooling, reporting consumers, and benchmark scoring engines look for `endpoint`, `method`, and `parameter` / `affected_parameters` (plural).
@@ -275,6 +277,8 @@
 ### 3.21 DEFECT-AGENT-01 / P1 (P1-AGENT-01): ValidationAgent Blind LLM Trust & Synthetic Finding Promotion on 404 Endpoint
 - **Components:** `agents/validation/validation_agent.py:152-215`
 - **Severity:** **P1 (High / Detection Accuracy & False Positive Invariant Violation)**
+- **Status:** **Closed (Wave 1a)** (`f4bb76c`)
+- **Regression Suite:** `tests/unit/test_validation_agent_empirical_gate.py` (3 passed)
 - **Audit Phase & Standard:** Discovered in Phase 5 AI Agent Evaluation (`P5-TC-HALLUC-01`); governs PRD §4.7 (FR-VV-05, US-04).
 - **Defect Description & Root Cause:**
   In `ValidationAgent.execute()`, candidate findings are processed through an empirical reproduction probe followed by LLM-assisted validation parsing. However, the promotion condition evaluates only whether the LLM output explicitly marked `is_valid: false` or `is_false_positive: true`. It does NOT assert that the reproduction probe actually succeeded (`repro_status in (200, 201, 204, 302)`).
@@ -426,6 +430,8 @@
 ### 3.29 DEFECT-REP-01 / P1: Empty Report Claims `"STRONG SECURITY POSTURE"` & Unconfirmed Candidates Conflated with Confirmed Findings
 - **Components:** `services/reporting_engine/context_builder.py:102-192`, `services/reporting_engine/renderer.py:210-241`
 - **Severity:** **P1 (High — Misleading Security Deliverable & Integrity Breach)**
+- **Status:** **Closed (Wave 1a)** (`94e73d0`, `c396bee`)
+- **Regression Suite:** `tests/unit/test_reporting_safety_and_status.py` (2 passed)
 - **Problem:** (1) On a zero-finding project (even with 0 endpoints discovered or 0 tests executed), `context_builder.py:191` emits `"The assessment revealed a STRONG SECURITY POSTURE with zero confirmed high-severity vulnerabilities across the tested target scope"`, falsely claiming the target is secure. (2) `context_builder.py:109` filters only `Finding.status != "False Positive"`, counting unconfirmed `Detected`/`Triaged` candidates directly inside `total_findings` and `risk_summary`, while `renderer.py` (PDF) omits the `Status` column completely.
 - **Root Cause:** Hardcoded optimistic `else:` narrative in `context_builder.py:190-191`, and lack of status-based separation (`Confirmed` vs `Candidate`/`Needs Manual Review`) in `ReportContext` and PDF table columns.
 - **Evidence:** `docs/audit/evidence/phase7/score_p7.txt` (`P7-TC-REP-02`), `docs/audit/evidence/phase7/p7_report_quality_audit.json` (`empty_report_claims_secure=True`, `mixed_total_reported=2`, `pdf_shows_detected_status=False`).
@@ -436,6 +442,8 @@
 ### 3.30 DEFECT-REP-02 / P2: Ungrounded Capability Boilerplate Claims in PTES HTML Report Template
 - **Components:** `services/reporting_engine/templates/ptes_standard.html:334,354,355`
 - **Severity:** **P2 (Medium — Factual Accuracy of Client Deliverables)**
+- **Status:** **Closed (Wave 1a)** (`44fd758`)
+- **Regression Suite:** `tests/unit/test_report_boilerplate_grounding.py` (1 passed)
 - **Problem:** Every generated HTML report hardcodes 4 false platform claims: `"Layer 2 kernel/proxy egress enforcement prevented out-of-scope transmissions"` (`NI-03` absent), `"Katana (headless crawler)"`, `"Httpx (probing)"` (`NI-04` absent), and `"governed by LangGraph"` (`NI-01` absent).
 - **Root Cause:** Static aspirational prose from early design docs left in `ptes_standard.html` instead of binding actual executed tools and runtime architecture from `ReportContext`.
 - **Evidence:** `docs/audit/evidence/phase7/p7_report_quality_audit.json` (`ungrounded_boilerplate_count=4`).
@@ -446,6 +454,8 @@
 ### 3.31 DEFECT-REDACT-01 / P2: Custom Project Secrets Not Passed to Redactor & Finding Text Fields Unscrubbed
 - **Components:** `services/evidence_engine/finding_service.py:478-518`, `services/evidence_engine/redactor.py`
 - **Severity:** **P2 (Medium — Incomplete Credential / Canary Redaction)**
+- **Status:** **Closed (Wave 1a)** (`0aca869`)
+- **Regression Suite:** `tests/unit/test_canary_redaction_all_surfaces.py` (3 passed)
 - **Problem:** While standard regex patterns redacted 5/5 planted secrets (Bearer JWT, Cookie session, JSON password, form password, Luhn PAN), a planted custom canary secret (`PENTESA_P7_CANARY_SECRET_9f8e7d6c`) leaked unredacted in `raw_response`, `finding_description`, and exported `html_report` (`83.33%` overall).
 - **Root Cause:** `FindingService.create_finding()` calls `redact_raw_stream(payload.raw_request)` without passing decrypted project `AuthProfile` secret values as `custom_secrets`, and never runs `redact_raw_stream()` on `finding.title`, `finding.description`, or `finding.remediation_guidance`.
 - **Evidence:** `docs/audit/evidence/phase7/score_p7.txt` (`P7-TC-REDACT-02`), `docs/audit/evidence/phase7/p7_test_results.json`.

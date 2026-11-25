@@ -331,7 +331,7 @@
 
   <!-- SECTION 4: ASSESSMENT SCOPE -->
   <div class="section-title">4. Assessment Scope & Boundaries</div>
-  <p>Testing activities were strictly restricted to the authorized assets defined in the engagement authorization. Layer 2 kernel/proxy egress enforcement prevented out-of-scope transmissions.</p>
+  <p>Testing activities were strictly restricted to the authorized assets defined in the engagement authorization. Pre-flight URL normalization and application-level scope validation prevented out-of-scope transmissions.</p>
   <table class="data-table">
     <thead>
       <tr><th>Scope Type</th><th>Target Descriptor</th><th>Enforcement Policy</th></tr>
@@ -351,8 +351,8 @@
   <p>The engagement combined automated deterministic security tools with specialized AI agents operating under strict zero-shell sandboxes:</p>
   <ul>
     <li><strong>OWASP WSTG v4.2 Framework:</strong> Systematic evaluation across 12 vulnerability categories.</li>
-    <li><strong>Deterministic Tooling:</strong> Nuclei v3 (vulnerability templates), Katana (headless crawler), Ffuf (controlled fuzzing), Httpx (probing).</li>
-    <li><strong>AI Specialized Agents:</strong> Planner, Recon, WSTG, Authorization, Validation, and Reporting agents governed by LangGraph.</li>
+    <li><strong>Deterministic Tooling:</strong> Nuclei v3 (vulnerability templates), Ffuf (controlled fuzzing), and Python HTTP analysis engine (crawling and probing).</li>
+    <li><strong>AI Specialized Agents:</strong> Planner, Recon, WSTG, Authorization, Validation, and Reporting agents governed by the Pentesa WorkflowSupervisor.</li>
   </ul>
 
   <!-- SECTION 6: RULES OF ENGAGEMENT -->

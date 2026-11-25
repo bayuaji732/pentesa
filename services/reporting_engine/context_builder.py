@@ -143,6 +143,25 @@ async def build_report_context(
         else:
             risk_summary["Informational"] += 1
 
+    # Fetch active AuthProfile secrets for defense-in-depth report scrubbing
+    from database.models.auth_profile import AuthProfile
+    from services.evidence_engine.redactor import redact_raw_stream
+    auth_prof_stmt = select(AuthProfile).where(
+        AuthProfile.project_id == project_id,
+        AuthProfile.is_active.is_(True)
+    )
+    auth_profiles = list((await session.execute(auth_prof_stmt)).scalars().all())
+    custom_secrets: List[str] = []
+    for prof in auth_profiles:
+        try:
+            creds = prof.get_credentials()
+            if isinstance(creds, dict):
+                for v in creds.values():
+                    if isinstance(v, str) and len(v.strip()) >= 4:
+                        custom_secrets.append(v.strip())
+        except Exception:
+            pass
+
     def _to_report_item(f: Finding) -> FindingReportItem:
         primary_evidence: Optional[FindingEvidence] = f.evidence[0] if f.evidence else None
 
@@ -153,7 +172,7 @@ async def build_report_context(
 
         return FindingReportItem(
             id=f"FIND-{str(f.id)[:8].upper()}",
-            title=f.title,
+            title=redact_raw_stream(f.title, custom_secrets=custom_secrets),
             severity=f.severity,
             cvss_score=float(f.cvss_score) if f.cvss_score is not None else None,
             cvss_vector=f.cvss_vector,
@@ -163,12 +182,12 @@ async def build_report_context(
             endpoint_url=ep_url,
             http_method=ep_method,
             affected_parameter=f.affected_parameter,
-            description=f.description,
-            business_impact=f.business_impact or "Unauthorized access or system manipulation.",
-            remediation_guidance=f.remediation_guidance or "Apply secure input validation and access controls.",
-            reproduction_curl=primary_evidence.reproduction_curl if primary_evidence else None,
-            raw_request=primary_evidence.raw_request if (primary_evidence and options.include_raw_evidence) else None,
-            raw_response=primary_evidence.raw_response if (primary_evidence and options.include_raw_evidence) else None,
+            description=redact_raw_stream(f.description, custom_secrets=custom_secrets),
+            business_impact=redact_raw_stream(f.business_impact or "Unauthorized access or system manipulation.", custom_secrets=custom_secrets),
+            remediation_guidance=redact_raw_stream(f.remediation_guidance or "Apply secure input validation and access controls.", custom_secrets=custom_secrets),
+            reproduction_curl=redact_raw_stream(primary_evidence.reproduction_curl, custom_secrets=custom_secrets) if primary_evidence and primary_evidence.reproduction_curl else None,
+            raw_request=redact_raw_stream(primary_evidence.raw_request, custom_secrets=custom_secrets) if (primary_evidence and options.include_raw_evidence and primary_evidence.raw_request) else None,
+            raw_response=redact_raw_stream(primary_evidence.raw_response, custom_secrets=custom_secrets) if (primary_evidence and options.include_raw_evidence and primary_evidence.raw_response) else None,
             request_hash_sha256=primary_evidence.request_hash_sha256 if primary_evidence else None,
             response_hash_sha256=primary_evidence.response_hash_sha256 if primary_evidence else None,
             screenshot_path=primary_evidence.screenshot_path if primary_evidence else None,

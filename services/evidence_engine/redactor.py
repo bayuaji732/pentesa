@@ -10,28 +10,43 @@ from typing import Dict, List, Optional
 # Regex patterns for sensitive tokens
 BEARER_TOKEN_REGEX = re.compile(r"(Authorization:\s*Bearer\s+)[A-Za-z0-9_\-\.]{15,}", re.IGNORECASE)
 BASIC_AUTH_REGEX = re.compile(r"(Authorization:\s*Basic\s+)[A-Za-z0-9+/=]{8,}", re.IGNORECASE)
-GENERIC_AUTH_HEADER_REGEX = re.compile(r"(X-Api-Key|Api-Key|Token|Secret|X-Auth-Token)(:\s*)[^\r\n]+", re.IGNORECASE)
+GENERIC_AUTH_HEADER_REGEX = re.compile(
+    r"(X-Api-Key|Api-Key|Token|Secret|X-Auth-Token|X-Canary|X-Custom-[^\r\n:]*|X-[A-Za-z0-9_\-]*Auth[A-Za-z0-9_\-]*)(:\s*)[^\r\n]+",
+    re.IGNORECASE
+)
+
+# Canary tokens & markers
+CANARY_TOKEN_REGEX = re.compile(
+    r"(?:PENTESA_[A-Za-z0-9_]*CANARY[A-Za-z0-9_]*|CANARY_[A-Za-z0-9_]{6,}|[A-Za-z0-9_\-]*canary_secret[A-Za-z0-9_\-]*)",
+    re.IGNORECASE
+)
 
 # JSON password & secret fields
 JSON_PASSWORD_REGEX = re.compile(
-    r'("(?:password|passwd|pass|secret|client_secret|access_token|refresh_token|private_key)"\s*:\s*)"[^"]+"',
+    r'("(?:password|passwd|pass|secret|client_secret|access_token|refresh_token|private_key|canary|vault_secret|api_key|apikey)"\s*:\s*)"[^"]+"',
     re.IGNORECASE
 )
 
 # Form-urlencoded password fields
 FORM_PASSWORD_REGEX = re.compile(
-    r"((?:^|[&?])(?:password|passwd|pass|secret|access_token|token)=)[^&]+",
+    r"((?:^|[&?])(?:password|passwd|pass|secret|access_token|token|canary|api_key|apikey)=)[^&]+",
     re.IGNORECASE
 )
 
 # Session cookies in Cookie or Set-Cookie headers
 COOKIE_TOKEN_REGEX = re.compile(
-    r"((?:session|sessionid|sess|token|jwt|auth|PHPSESSID|JSESSIONID|connect\.sid)=)[^;\r\n]+",
+    r"((?:session|sessionid|sess|token|jwt|auth|canary|PHPSESSID|JSESSIONID|connect\.sid)=)[^;\r\n]+",
     re.IGNORECASE
 )
 
 # Credit card numbers (13 to 16 digits, with optional hyphens or spaces)
 CREDIT_CARD_REGEX = re.compile(r"\b(?:\d{4}[-\s]?){3}\d{4}\b")
+
+# Common words or trivial strings that must not be blindly redacted
+COMMON_STOPWORDS = {
+    "test", "admin", "true", "false", "null", "none", "user", "pass", "auth",
+    "name", "data", "root", "http", "https", "host", "port", "path", "code"
+}
 
 
 def redact_custom_secrets(text: str, secrets: Optional[List[str]] = None) -> str:
@@ -39,9 +54,16 @@ def redact_custom_secrets(text: str, secrets: Optional[List[str]] = None) -> str
     if not text or not secrets:
         return text
     sanitized = text
-    for secret in secrets:
-        if secret and len(secret) >= 4:
-            sanitized = sanitized.replace(secret, "[REDACTED_SECRET]")
+    # Sort descending by length so longer specific phrases are redacted before substrings
+    unique_secrets = sorted(
+        set(s.strip() for s in secrets if s and len(s.strip()) >= 4),
+        key=len,
+        reverse=True
+    )
+    for secret in unique_secrets:
+        if secret.lower() in COMMON_STOPWORDS:
+            continue
+        sanitized = sanitized.replace(secret, "[REDACTED_SECRET]")
     return sanitized
 
 
@@ -97,6 +119,9 @@ def redact_raw_stream(
 
     # Redact credit card numbers
     sanitized = CREDIT_CARD_REGEX.sub("[REDACTED_PAN]", sanitized)
+
+    # Redact planted canary tokens
+    sanitized = CANARY_TOKEN_REGEX.sub("[REDACTED_CANARY]", sanitized)
 
     # Redact custom secrets if provided
     if custom_secrets:

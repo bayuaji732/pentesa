@@ -421,6 +421,29 @@ class FindingService:
             raise ResourceNotFoundError(f"Finding with ID {finding_id} not found.")
         return finding
 
+    async def get_project_custom_secrets(self, project_id: uuid.UUID) -> List[str]:
+        """Fetch active AuthProfile credentials and decrypt strictly in memory for redaction."""
+        from database.models.auth_profile import AuthProfile
+        stmt = select(AuthProfile).where(
+            AuthProfile.project_id == project_id,
+            AuthProfile.is_active.is_(True)
+        )
+        profiles = list((await self.session.execute(stmt)).scalars().all())
+        secrets: List[str] = []
+        for prof in profiles:
+            try:
+                creds = prof.get_credentials()
+                if isinstance(creds, dict):
+                    for v in creds.values():
+                        if isinstance(v, str) and len(v.strip()) >= 4:
+                            secrets.append(v.strip())
+            except Exception as e:
+                import logging
+                logging.getLogger("pentesa.redactor").warning(
+                    f"Fail-closed: unable to decrypt AuthProfile {prof.id} credentials: {e}"
+                )
+        return secrets
+
     async def create_finding(
         self,
         project_id: uuid.UUID,
@@ -441,6 +464,9 @@ class FindingService:
             if not ep_obj:
                 raise ResourceNotFoundError(f"Endpoint {payload.endpoint_id} not found in project.")
 
+        # In-memory custom secrets resolution from AuthProfile
+        custom_secrets = await self.get_project_custom_secrets(project_id)
+
         # AGT-MOCK-01: Auto-tag findings created under simulation or mock detection
         from packages.common.config import settings
         is_mock_active = (getattr(settings, "llm_provider", "") or "").lower() == "mock"
@@ -453,12 +479,26 @@ class FindingService:
         if is_sim and not finding_title.startswith("[SIMULATED]"):
             finding_title = f"[SIMULATED] {finding_title}"
 
+        # DEFECT-REDACT-01: Redact narrative text fields
+        clean_title = redact_raw_stream(finding_title, custom_secrets=custom_secrets)
+        clean_desc = redact_raw_stream(payload.description, custom_secrets=custom_secrets)
+        clean_remed = (
+            redact_raw_stream(payload.remediation_guidance, custom_secrets=custom_secrets)
+            if payload.remediation_guidance
+            else None
+        )
+        clean_impact = (
+            redact_raw_stream(payload.business_impact, custom_secrets=custom_secrets)
+            if payload.business_impact
+            else None
+        )
+
         finding = Finding(
             project_id=project_id,
             endpoint_id=payload.endpoint_id,
             wstg_id=payload.wstg_id,
-            title=finding_title,
-            description=payload.description,
+            title=clean_title,
+            description=clean_desc,
             severity=payload.severity,
             status=payload.status,
             confidence=payload.confidence,
@@ -468,8 +508,8 @@ class FindingService:
             cvss_vector=payload.cvss_vector,
             affected_parameter=payload.affected_parameter,
             detection_source=payload.detection_source,
-            remediation_guidance=payload.remediation_guidance,
-            business_impact=payload.business_impact,
+            remediation_guidance=clean_remed,
+            business_impact=clean_impact,
             is_simulated=is_sim
         )
         self.session.add(finding)
@@ -477,8 +517,8 @@ class FindingService:
 
         # If raw request/response were supplied, attach authentic forensic evidence
         if payload.raw_request and payload.raw_response:
-            sanitized_req = redact_raw_stream(payload.raw_request)
-            sanitized_resp = redact_raw_stream(payload.raw_response)
+            sanitized_req = redact_raw_stream(payload.raw_request, custom_secrets=custom_secrets)
+            sanitized_resp = redact_raw_stream(payload.raw_response, custom_secrets=custom_secrets)
             parsed_method, parsed_target, parsed_hdrs, parsed_body = _parse_raw_http_request(sanitized_req)
             resolved_url = ""
             if parsed_target.lower().startswith(("http://", "https://")):
@@ -495,17 +535,19 @@ class FindingService:
                     resolved_url = f"{ep_origin or f'{scheme}://{ep_obj.fqdn}'}{ep_obj.url_path}"
 
             method_for_curl = parsed_method or (ep_obj.http_method if ep_obj else "GET")
-            repro_curl = payload.reproduction_curl or (
-                generate_reproduction_curl(
+            if payload.reproduction_curl:
+                repro_curl = redact_raw_stream(payload.reproduction_curl, custom_secrets=custom_secrets)
+            elif resolved_url:
+                repro_curl = generate_reproduction_curl(
                     method=method_for_curl,
                     url=resolved_url,
                     headers=parsed_hdrs,
                     body=parsed_body,
                     redact_auth=True,
                 )
-                if resolved_url
-                else "N/A"
-            )
+            else:
+                repro_curl = "N/A"
+            repro_curl = redact_raw_stream(repro_curl, custom_secrets=custom_secrets)
             evidence = FindingEvidence(
                 finding_id=finding.id,
                 raw_request=sanitized_req,

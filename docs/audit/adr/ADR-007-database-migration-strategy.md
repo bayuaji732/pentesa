@@ -1,120 +1,84 @@
 # ADR-007: Database Migration Architecture & Schema Evolution Strategy
 
 > **Document Identifier:** `ADR-007-DB-MIGRATION-STRATEGY`  
-> **Status:** PROPOSED  
+> **Status:** ACCEPTED with conditions  
 > **Date:** 2026-11-25  
 > **Auditors / Authors:** Principal Database Architect & Platform Engineering Team  
-> **Target Release:** Phase 9 Wave 1 Implementation  
-> **Reference Issues:** `P1-FIND-02`, `DEFECT-FIND-03`, `DEFECT-DEDUP-01`, `DEFECT-LIFE-01`  
+> **Target Release:** Phase 9 Wave 1b Implementation  
+> **Reference Issues:** `P1-FIND-02`, `DEFECT-FIND-03`, `DEFECT-DEDUP-01`, `DEFECT-LIFE-01`, `DEFECT-REPRO-01`, `DEFECT-AUD-02`, Password Change  
 
 ---
 
 ## 1. Context & Problem Statement
 
-Pentesa currently relies on SQLAlchemy's `Base.metadata.create_all()` executed during API server startup (`apps/api/main.py:lifespan`). While sufficient for initial prototyping and greenfield database bootstrapping, this approach exhibits severe operational limitations during platform evolution:
+Pentesa historically relied on SQLAlchemy's `Base.metadata.create_all()` executed during API server startup (`apps/api/main.py:lifespan`). While sufficient for initial prototyping and greenfield database bootstrapping, this approach exhibits severe operational limitations during platform evolution:
 
 1. **Inability to Mutate Existing Tables:** `create_all()` only creates missing tables. It cannot alter columns, add constraints, create new indexes, or add foreign keys to existing tables without dropping data or executing manual ad-hoc SQL.
-2. **Impending Wave 1 Schema Evolution Requirements:**
+2. **Impending Wave 1b Schema Evolution Requirements:**
    - `DEFECT-LIFE-01`: Requires `assigned_to UUID REFERENCES users(id) ON DELETE SET NULL` on `findings`.
    - `DEFECT-DEDUP-01`: Requires `dedup_signature VARCHAR(64)` and `occurrence_count INTEGER DEFAULT 1` on `findings`.
    - `DEFECT-FIND-03`: Requires `cvss_source VARCHAR(20) DEFAULT 'ESTIMATED'` on `findings`.
-   - `P1-FIND-02`: Requires denormalized `endpoint_path VARCHAR(2048)` and `http_method VARCHAR(16)` on `findings` (or maintaining joined relation views).
-3. **Data Preservation Invariant (ENV RULES v2):** Production audit chains (1,676 records) and existing engagement benchmark findings must not be destroyed or corrupted during deployment (`zero -v` policy).
+   - `DEFECT-REPRO-01`: Requires structured redirect tracking (`final_url`, `redirect_chain_json`).
+   - `DEFECT-AUD-02`: Requires altering audit log foreign keys (`user_id`, `project_id`) from `ON DELETE SET NULL` to `ON DELETE RESTRICT` (or unconstrained UUID) to protect Merkle hash chain immutability.
+   - Self-Service Password Change: Requires optional `must_change_password BOOLEAN DEFAULT FALSE` on `users`.
+3. **Data Preservation Invariant (ENV RULES v2):** Production audit chains and existing engagement benchmark findings must not be destroyed or corrupted during deployment (`zero -v` policy).
 
 A formalized, safe, and automated database migration architecture is required.
 
 ---
 
-## 2. Evaluation of Architectural Options
+## 2. Decision: Alembic with Baseline Stamping (ACCEPTED with Conditions)
 
-### Option A: Alembic Baseline Migration with Autogenerate (Recommended)
+We adopt **Alembic** using an async SQLAlchemy engine under the following **six mandatory operational conditions**:
 
-- **Architecture:** Initialize Alembic (`alembic init -t async migrations`). Create an initial baseline migration stamping the current production schema version (`phase8_baseline`), followed by versioned, sequential migration scripts for Wave 1 and beyond.
-- **Pros:**
-  - Standard industry practice for SQLAlchemy and FastAPI applications.
-  - Supports automatic schema diffing (`alembic revision --autogenerate`).
-  - Supports bidirectional migrations (upgrade & downgrade).
-  - Integrates seamlessly into CI/CD and container entrypoint scripts (`alembic upgrade head`).
-  - Safe for production: records applied revision hashes in `alembic_version` table.
-- **Cons:**
-  - Requires adding `alembic` package to production dependencies.
-  - Requires initial baseline synchronization so existing production databases don't attempt to re-create existing tables.
+### Condition 1: Dual-Path Schema Bootstrapping (Fresh DB vs Existing Prod)
+1. **Fresh Installation Baseline:**
+   - Running `docker compose up -d` on an empty PostgreSQL database MUST automatically bring up a fully working schema.
+   - The initial baseline migration `0001_initial_schema.py` defines the complete current schema so `alembic upgrade head` creates all tables, indexes, and constraints from scratch without depending on legacy `create_all()`.
+2. **Existing Production Stamping:**
+   - Existing running databases (e.g. `pentesa-prod`) are NOT dropped or recreated.
+   - Before stamping, an automated check runs `alembic check` / autogenerate diff against current SQLAlchemy models. Stamping (`alembic stamp 0001_initial_schema`) is permitted ONLY when the diff against current models is completely empty, or any documented drift is explicitly registered in the audit log.
 
-### Option B: Idempotent Raw SQL Migration Scripts (`database/migrations/*.sql`)
+### Condition 2: One-Shot Locked Execution (Advisory Lock)
+- To prevent race conditions when multiple API containers or task workers start simultaneously, migrations execute inside a PostgreSQL transactional advisory lock:
+  ```python
+  # PostgreSQL transactional advisory lock prevents concurrent migration runners
+  await connection.execute(text("SELECT pg_advisory_xact_lock(84729103);"))
+  ```
+- Alternatively, run migrations as a dedicated one-shot entrypoint or init container prior to web/worker startup.
 
-- **Architecture:** Maintain raw SQL migration scripts executed sequentially by a lightweight Python runner on startup. Each script uses `ALTER TABLE ... ADD COLUMN IF NOT EXISTS ...`.
-- **Pros:**
-  - Zero external dependencies beyond `asyncpg`/`psql`.
-  - Simple to inspect, audit, and review.
-  - Idempotent execution via `IF NOT EXISTS` syntax.
-- **Cons:**
-  - No rollback/downgrade capability.
-  - Manual authoring required for complex constraints, type changes, and index creation.
-  - Schema drift between SQLAlchemy models and SQL scripts must be manually guarded.
+### Condition 3: Ephemeral Pre-Migration Safety Dump
+- Immediately prior to executing migrations on `pentesa-prod`, a temporary database dump is created via `pg_dump`:
+  ```bash
+  docker compose -p pentesa-prod exec -T pentesa-db pg_dump -U pentesa pentesa > /tmp/pentesa_pre_wave1b_backup.sql
+  ```
+- This backup is strictly ephemeral: once the migration and verification suite pass, the temporary file is securely purged, maintaining compliance with ENV RULES v2.
 
-### Option C: In-Place Schema Mutation via `Base.metadata.create_all()` + Manual Psql
+### Condition 4: Authoritative Backfill Rules for Existing Findings
+- For all existing findings currently stored in `pentesa-prod` (e.g. 39 benchmark findings):
+  1. `cvss_source`: Backfilled with `"ESTIMATED"`.
+  2. `occurrence_count`: Backfilled with `1`.
+  3. `dedup_signature`: Computed deterministically from `sha256(project_id:endpoint_path:http_method:cwe_id:title)`.
+  4. `endpoint_path` and `http_method`: Backfilled from joined `endpoints` table, or parsed from `raw_request` request lines where `endpoint_id` is null.
+  5. `assigned_to`: Initialized as `NULL`.
 
-- **Architecture:** Retain `create_all()`, execute ad-hoc `ALTER TABLE` commands manually via `docker exec pentesa-db psql`.
-- **Pros:**
-  - Zero code changes.
-- **Cons:**
-  - Completely unacceptable for production engineering: error-prone, untracked, non-reproducible, and violates auditability requirements.
+### Condition 5: Verified Downgrade Capability
+- Every migration revision file must implement both `upgrade()` and `downgrade()`.
+- The downgrade path must be tested on a throwaway staging database to prove clean rollback capability before applying to production.
 
----
-
-## 3. Decision Matrix
-
-| Evaluation Criteria | Option A: Alembic Async | Option B: Idempotent SQL | Option C: Manual Ad-hoc |
-|---|:---:|:---:|:---:|
-| **Reproducibility & Audit Trail** | **High** (Revision tree) | Medium (Sequential files) | Low (Untracked) |
-| **Safety on Production (Zero Data Loss)** | **High** (`alembic_version`) | High (`IF NOT EXISTS`) | Low (Manual risk) |
-| **Model Synchronization** | **High** (Autogenerate diffs) | Medium (Manual sync) | None |
-| **Rollback / Downgrade Support** | **Full** (Downgrade scripts) | None | None |
-| **Implementation Complexity** | Medium (Setup baseline) | Low | None |
+### Condition 6: Comprehensive Test Matrix
+- Automated test suite must verify migration execution on two distinct target archetypes:
+  1. **Fresh Database:** `alembic upgrade head` executed against an empty SQLite/PostgreSQL instance succeeds with zero errors.
+  2. **Stamped Production Database:** Baseline stamp followed by `upgrade head` succeeds on an existing seeded database without table collision or data loss.
 
 ---
 
-## 4. Proposed Strategy & Phased Adoption
+## 3. Wave Phasing Alignment
 
-We propose adopting **Option A (Alembic with Baseline Stamping)** under a fail-safe, 3-step transition:
-
-### Step 1: Baseline Stamping (Wave 1 Prep)
-1. Initialize Alembic configuration (`alembic.ini` and `database/migrations/`).
-2. Generate baseline migration `0001_phase8_baseline.py` representing current production state.
-3. On existing production database (`pentesa-prod`), stamp the baseline without re-running DDL:
-   ```bash
-   alembic stamp head
-   ```
-
-### Step 2: Wave 1 Additive Migration (`0002_wave1_findings_enhancements.py`)
-Add strictly non-breaking, nullable or default-valued columns to `findings`:
-```sql
-ALTER TABLE findings ADD COLUMN IF NOT EXISTS assigned_to UUID REFERENCES users(id) ON DELETE SET NULL;
-ALTER TABLE findings ADD COLUMN IF NOT EXISTS dedup_signature VARCHAR(64);
-ALTER TABLE findings ADD COLUMN IF NOT EXISTS occurrence_count INTEGER DEFAULT 1 NOT NULL;
-ALTER TABLE findings ADD COLUMN IF NOT EXISTS cvss_source VARCHAR(20) DEFAULT 'ESTIMATED' NOT NULL;
-ALTER TABLE findings ADD COLUMN IF NOT EXISTS endpoint_path VARCHAR(2048);
-ALTER TABLE findings ADD COLUMN IF NOT EXISTS http_method VARCHAR(16);
-
-CREATE INDEX IF NOT EXISTS ix_findings_assigned_to ON findings(assigned_to);
-CREATE INDEX IF NOT EXISTS ix_findings_dedup_sig ON findings(project_id, dedup_signature);
-```
-
-### Step 3: Startup Integration
-In `apps/api/main.py:lifespan`, replace raw `create_all()` with:
-```python
-# Execute pending Alembic migrations safely on startup
-from alembic.config import Config
-from alembic import command
-
-alembic_cfg = Config("alembic.ini")
-command.upgrade(alembic_cfg, "head")
-```
-
----
-
-## 5. Consequences & Rollback Plan
-
-- **Positive:** Guarantees zero data loss on schema changes; provides clean traceability between code and database schema; eliminates manual psql interventions.
-- **Negative:** Adds `alembic>=1.13.0` to `requirements.txt` (+~450KB).
-- **Rollback Plan:** Each migration script must provide a fully tested `downgrade()` function to reverse column additions cleanly if unexpected errors arise.
+- **Wave 1a (Zero Schema Changes):**
+  - No Alembic or database alterations are introduced in Wave 1a.
+  - `P1-FIND-02` populates `endpoint` and `method` in `FindingResponse` via dynamic SQLAlchemy relationship join on `finding.endpoint` with fallback to `raw_request` parsing.
+  - All Wave 1a enhancements (`P1-AGENT-01`, `DEFECT-REP-01`, `DEFECT-REP-02`, `DEFECT-REDACT-01`) operate entirely in-memory and in application service layers.
+- **Wave 1b (Alembic Migration Implementation):**
+  - Implements `ADR-007` requirements under Conditions 1–6.
+  - Executes schema additions for `DEFECT-FIND-03`, `DEFECT-DEDUP-01`, `DEFECT-LIFE-01`, `DEFECT-REPRO-01`, `DEFECT-AUD-02`, and Password Change.

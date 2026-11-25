@@ -222,7 +222,7 @@ async def test_no_mock_finding_in_real_report(db_session, test_project):
         description="Verified missing header",
         severity="Low",
         detection_source="security_headers",
-        status="Detected",
+        status="Confirmed",
         confidence="Confirmed",
         is_simulated=False
     )

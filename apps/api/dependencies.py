@@ -78,6 +78,18 @@ async def get_current_user(
             detail="User account is deactivated"
         )
 
+    # Invalidate tokens issued before password was changed
+    if user.password_changed_at is not None:
+        token_iat = payload.get("iat")
+        if token_iat is not None:
+            changed_ts = user.password_changed_at.timestamp()
+            if token_iat < (changed_ts - 1):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Token revoked: password has been changed since token was issued",
+                    headers={"WWW-Authenticate": "Bearer"}
+                )
+
     return user
 
 

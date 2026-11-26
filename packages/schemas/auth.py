@@ -32,3 +32,15 @@ class TokenPayload(BaseModel):
     iat: int
     email: Optional[str] = None
 
+
+class ChangePasswordRequest(BaseModel):
+    """Request payload for self-service password change."""
+    current_password: str = Field(min_length=1, description="Current password for verification")
+    new_password: str = Field(min_length=12, description="New password meeting security requirements")
+    new_password_confirm: str = Field(min_length=12, description="Confirmation of new password")
+
+
+class MessageResponse(BaseModel):
+    """Standard message response."""
+    message: str
+

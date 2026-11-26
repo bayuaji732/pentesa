@@ -56,7 +56,7 @@ def main():
         "-e", "PENTESA_SECRET_KEY=Phase2_JWT_Secret_Key_32_Bytes_Long_Prod_Ready!",
         "-e", "PENTESA_LLM_PROVIDER=litellm",
         "-e", "PENTESA_LITELLM_BASE_URL=https://uat-ai-gateway.siloamhospitals.com/v1/",
-        "-e", "PENTESA_LITELLM_API_KEY=sk-mCQwNXf15qH4UyLxLVGAQA",
+        "-e", "PENTESA_LITELLM_API_KEY=" + os.getenv("PENTESA_LITELLM_API_KEY", "mock-test-key-inert"),
         "-e", "PENTESA_LITELLM_MODEL=azure/gpt-5.6-terra-dev-gtw",
         "pentesa-api:latest"
     ]
@@ -109,7 +109,7 @@ def main():
         "-e", "PENTESA_SECRET_KEY=Phase2_JWT_Secret_Key_32_Bytes_Long_Prod_Ready!",
         "-e", "PENTESA_LLM_PROVIDER=litellm",
         "-e", "PENTESA_LITELLM_BASE_URL=https://uat-ai-gateway.siloamhospitals.com/v1/",
-        "-e", "PENTESA_LITELLM_API_KEY=sk-mCQwNXf15qH4UyLxLVGAQA",
+        "-e", "PENTESA_LITELLM_API_KEY=" + os.getenv("PENTESA_LITELLM_API_KEY", "mock-test-key-inert"),
         "-e", "PENTESA_LITELLM_MODEL=azure/gpt-5.6-terra-dev-gtw",
         "-e", "PENTESA_BOOTSTRAP_ADMIN=true",
         "pentesa-api:latest"
@@ -131,7 +131,7 @@ def main():
         "-e", "PENTESA_SECRET_KEY=Phase2_JWT_Secret_Key_32_Bytes_Long_Prod_Ready!",
         "-e", "PENTESA_LLM_PROVIDER=litellm",
         "-e", "PENTESA_LITELLM_BASE_URL=https://uat-ai-gateway.siloamhospitals.com/v1/",
-        "-e", "PENTESA_LITELLM_API_KEY=sk-mCQwNXf15qH4UyLxLVGAQA",
+        "-e", "PENTESA_LITELLM_API_KEY=" + os.getenv("PENTESA_LITELLM_API_KEY", "mock-test-key-inert"),
         "-e", "PENTESA_LITELLM_MODEL=azure/gpt-5.6-terra-dev-gtw",
         "-e", "PENTESA_BOOTSTRAP_ADMIN=true",
         "-e", "PENTESA_BOOTSTRAP_ADMIN_EMAIL=admin@pentesa-phase2.lab",
@@ -162,7 +162,7 @@ def main():
         "-e", "PENTESA_BOOTSTRAP_ADMIN_PASSWORD=CyberSecOps_2026!Str0ng#Auth",
         "-e", "PENTESA_LLM_PROVIDER=litellm",
         "-e", "PENTESA_LITELLM_BASE_URL=https://uat-ai-gateway.siloamhospitals.com/v1/",
-        "-e", "PENTESA_LITELLM_API_KEY=sk-mCQwNXf15qH4UyLxLVGAQA",
+        "-e", "PENTESA_LITELLM_API_KEY=" + os.getenv("PENTESA_LITELLM_API_KEY", "mock-test-key-inert"),
         "-e", "PENTESA_LITELLM_MODEL=azure/gpt-5.6-terra-dev-gtw",
         "pentesa-api:latest"
     ]

@@ -365,8 +365,15 @@ async def run_acceptance():
         print("  [+] Canary Sensor: 0 scanner hits confirmed.")
 
         # 7. Token and Cost accounting
-        total_tokens = hw_res["total_tokens"] + (agent.total_tokens if hasattr(agent, "total_tokens") else 0)
-        total_cost = hw_res["cost_usd"] + (agent.total_cost if hasattr(agent, "total_cost") else 0.0)
+        agent_prompt_tokens = agent.current_execution.prompt_tokens or 0 if agent.current_execution else 0
+        agent_completion_tokens = agent.current_execution.completion_tokens or 0 if agent.current_execution else 0
+        agent_tokens = agent_prompt_tokens + agent_completion_tokens
+        agent_cost = float(agent.current_execution.total_cost_usd or 0.0) if agent.current_execution else 0.0
+
+        total_prompt_tokens = hw_res["prompt_tokens"] + agent_prompt_tokens
+        total_completion_tokens = hw_res["completion_tokens"] + agent_completion_tokens
+        total_tokens = hw_res["total_tokens"] + agent_tokens
+        total_cost = hw_res["cost_usd"] + agent_cost
 
         summary_json = {
             "timestamp_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -374,6 +381,10 @@ async def run_acceptance():
             "gateway_health": "PASS",
             "health_tokens": hw_res["total_tokens"],
             "health_cost_usd": hw_res["cost_usd"],
+            "agent_prompt_tokens": agent_prompt_tokens,
+            "agent_completion_tokens": agent_completion_tokens,
+            "agent_total_tokens": agent_tokens,
+            "agent_cost_usd": agent_cost,
             "candidates_before": candidate_count_before,
             "confirmed_after": confirmed_count_after,
             "false_positives": fp_count_after,

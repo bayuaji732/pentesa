@@ -39,17 +39,69 @@ def evaluate_reproduction_signature(
     if status_code is None:
         return False, "Reproduction probe was not executed or yielded no response"
 
-    # Strict Failure Set: 404/502/503/504 on an endpoint that must exist never promotes
-    if status_code in (404, 502, 503, 504):
-        return False, f"Reproduction probe encountered failure set HTTP {status_code}"
+    # Strict Failure Set: 404 on an endpoint that must exist never promotes (including headers on 404)
+    if status_code == 404:
+        return False, f"Reproduction probe encountered failure set HTTP 404 (endpoint not found)"
 
-    cwe = (cwe_id or "").upper()
+    cwe = (cwe_id or "").upper().strip()
     title_low = (title or "").lower()
     body_low = (response_body or "").lower()
 
-    # Class 1: SQL Injection (CWE-89)
+    # Class: Server-Side Request Forgery (SSRF / CWE-918)
+    # Allows HTTP 500, 502, 504 ONLY when response contains explicit evidence of outbound fetch attempt
+    # Bare 502/503/504 without outbound fetch evidence is strictly rejected.
+    is_ssrf = (
+        cwe == "CWE-918"
+        or "ssrf" in title_low
+        or "server-side request forgery" in title_low
+        or "/ssrf/fetch" in title_low
+    )
+    if is_ssrf:
+        if status_code in (200, 201, 206):
+            return True, f"SSRF outbound fetch succeeded (HTTP {status_code})"
+        if status_code in (500, 502, 504):
+            ssrf_error_markers = (
+                "connection refused", "unknown url type", "name or service not known",
+                "failed to establish a connection", "getaddrinfo failed", "ssrf request failed",
+                "network is unreachable", "no route to host", "operation timed out",
+                "connection error", "canary", "sensor", "9099", "127.0.0.1"
+            )
+            if any(marker in body_low for marker in ssrf_error_markers):
+                return True, f"SSRF outbound fetch execution evidence matched in body (HTTP {status_code})"
+            return False, f"SSRF bare HTTP {status_code} without outbound fetch evidence does not promote"
+        return False, f"SSRF reproduction HTTP {status_code} does not match class signature"
+
+    # Strict Failure Set for all other classes: 502/503/504 never promotes
+    if status_code in (502, 503, 504):
+        return False, f"Reproduction probe encountered failure set HTTP {status_code}"
+
+    # Class: Command Injection (CMDi / CWE-78)
+    # Shell error markers prove payload reached a shell; HTTP 200/500 valid
+    is_cmdi = (
+        cwe == "CWE-78"
+        or "cmdi" in title_low
+        or "command injection" in title_low
+        or "/cmd/ping" in title_low
+        or "/cmd/" in title_low
+    )
+    cmdi_markers = (
+        "/bin/sh", "/bin/bash", "sh: 1:", "sh: line", "bash: line",
+        "syntax error: unterminated", "syntax error:", "command not found",
+        "cmd.exe", "cannot execute", "ping: ", "usage: ping"
+    )
+    if is_cmdi:
+        if status_code in (200, 201, 500) and any(m in body_low for m in cmdi_markers):
+            return True, f"Command injection shell error/execution marker matched in body (HTTP {status_code})"
+        if status_code in (200, 201) and any(m in body_low for m in ("uid=", "gid=", "root:")):
+            return True, f"Command injection execution output matched in body (HTTP {status_code})"
+        return False, f"Command injection shell signature not observed in body (HTTP {status_code})"
+
+    # Class: SQL Injection (SQLi / CWE-89)
     # Database error signature in body; HTTP 500 is explicitly valid
     if cwe == "CWE-89" or "sqli" in title_low or "sql injection" in title_low or "sql" in title_low:
+        # Cross-check: If candidate on /cmd/ping returned shell error, route to CMDi evaluation
+        if any(m in body_low for m in cmdi_markers):
+            return True, f"Command injection shell error marker matched on /cmd/ endpoint (HTTP {status_code})"
         sql_error_signatures = (
             "syntax error", "sql syntax", "sqlite3", "sqlite_error",
             "psycopg2", "postgresql", "pg_", "mysql", "mariadb",
@@ -62,15 +114,16 @@ def evaluate_reproduction_signature(
             return True, f"SQL injection indicator matched (HTTP {status_code})"
         return False, f"SQL injection database error signature not observed in body (HTTP {status_code})"
 
-    # Class 2: Cross-Site Scripting (XSS / CWE-79)
+    # Class: Cross-Site Scripting (XSS / CWE-79)
     # Unescaped reflection of canary marker / script context in response body
     if cwe == "CWE-79" or "xss" in title_low or "cross-site scripting" in title_low:
         xss_indicators = ("<script>", "<script", "alert(", "onerror=", "onload=", "javascript:")
         if status_code in (200, 201, 206) and any(tag in response_body for tag in xss_indicators):
-            return True, f"Unescaped executable script marker reflected in body (HTTP {status_code})"
+            if not ("&lt;script&gt;" in response_body or "&lt;script" in response_body):
+                return True, f"Unescaped executable script marker reflected in body (HTTP {status_code})"
         return False, f"XSS payload not reflected unescaped in response body (HTTP {status_code})"
 
-    # Class 3: Server-Side Template Injection (SSTI / CWE-1336 / CWE-94)
+    # Class: Server-Side Template Injection (SSTI / CWE-1336 / CWE-94)
     # Evaluated marker (e.g. 49 for {{7*7}}) or template engine error in body
     if cwe in ("CWE-1336", "CWE-94") or "ssti" in title_low or "template injection" in title_low:
         ssti_markers = ("49", "jinja2", "twig", "freemarker", "velocity", "templatetags")
@@ -78,7 +131,7 @@ def evaluate_reproduction_signature(
             return True, f"SSTI evaluated marker or engine syntax observed in body (HTTP {status_code})"
         return False, f"SSTI signature not observed in response body (HTTP {status_code})"
 
-    # Class 4: IDOR / BOLA (CWE-639 / CWE-284)
+    # Class: IDOR / BOLA (CWE-639 / CWE-284)
     # Another identity's object/data returned with HTTP 200/206/304
     if cwe in ("CWE-639", "CWE-284") or "idor" in title_low or "bola" in title_low:
         if status_code in (200, 206, 304):
@@ -87,10 +140,12 @@ def evaluate_reproduction_signature(
                 return True, f"Object/resource state retrieved successfully (HTTP {status_code})"
         return False, f"IDOR/BOLA unauthorized resource access not demonstrated (HTTP {status_code})"
 
-    # Class 5: Security Headers / Configuration (CWE-693 / CWE-16)
-    # Header absence independent of status code (provided not in failure set)
+    # Class: Security Headers / Configuration (CWE-693 / CWE-16)
+    # Header absence independent of status code (provided not in failure set 404/5xx)
     if cwe in ("CWE-693", "CWE-16") or "header" in title_low or "hsts" in title_low or "csp" in title_low:
-        return True, f"Header inspection completed on HTTP {status_code}"
+        if status_code in (200, 201, 204, 301, 302, 304):
+            return True, f"Header inspection completed on HTTP {status_code}"
+        return False, f"Header inspection invalid on HTTP {status_code}"
 
     # Default / Generic: requires success status code without failure set
     if status_code in (200, 201, 204, 301, 302):

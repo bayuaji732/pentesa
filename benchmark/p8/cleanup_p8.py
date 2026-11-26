@@ -82,7 +82,7 @@ def cleanup_throwaway_entities() -> Dict[str, Any]:
             email = u.get("email", "")
             u_id = u.get("id")
             if (email.startswith("p8test-") or email.startswith("p7test-") or email.startswith("p6test-")) and u.get("is_active"):
-                patch_resp = httpx.patch(
+                patch_resp = httpx.put(
                     f"{API_BASE_URL}/api/v1/users/{u_id}",
                     json={"is_active": False},
                     headers=headers,

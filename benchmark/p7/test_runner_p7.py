@@ -1757,13 +1757,18 @@ class Phase7Evaluator:
         self.results.append(life_res)
         print(f"[{life_res['verdict']:<7}] {life_res['test_id']:<16} - {life_res['details']} ({life_res['duration_seconds']:.3f}s)")
 
-        # Clean up throwaway p7test- projects after test run
+        # Clean up throwaway p7test- projects and deactivate throwaway users after test run
         headers_adm = {"Authorization": f"Bearer {self.admin_token}"}
         async with httpx.AsyncClient(timeout=15.0) as client:
             projs_final = (await client.get(f"{PROD_API_BASE}/api/v1/projects", headers=headers_adm)).json()
             for p in projs_final:
                 if p.get("name", "").startswith("p7test-"):
                     await client.delete(f"{PROD_API_BASE}/api/v1/projects/{p['id']}", headers=headers_adm)
+            users_final = (await client.get(f"{PROD_API_BASE}/api/v1/users", headers=headers_adm)).json()
+            for u in users_final:
+                email = u.get("email", "")
+                if email.startswith("p7test-") and u.get("is_active"):
+                    await client.put(f"{PROD_API_BASE}/api/v1/users/{u['id']}", json={"is_active": False}, headers=headers_adm)
 
         # Save results JSON
         payload = {

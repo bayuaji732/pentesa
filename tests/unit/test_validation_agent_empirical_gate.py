@@ -225,3 +225,314 @@ async def test_validation_agent_demotes_when_llm_classifies_fp_despite_status(db
     # Invariant: LLM demotion is respected
     assert len(out_state.confirmed_findings) == 0
     assert len(out_state.false_positives) == 1
+
+
+@pytest.mark.asyncio
+async def test_validation_agent_confirms_cmdi_shell_syntax_error(db_session: AsyncSession, admin_user: User):
+    """A3 Refinement: CMDi on /cmd/ping returning shell error markers (/bin/sh: syntax error) MUST confirm."""
+    now = datetime.now(timezone.utc)
+    project = Project(
+        id=uuid.uuid4(),
+        name="CMDi Test Project",
+        status="ACTIVE",
+        target_domains=["target.lab"],
+        authorization_start=now - timedelta(days=1),
+        authorization_end=now + timedelta(days=10),
+        created_by=admin_user.id
+    )
+    db_session.add(project)
+    await db_session.flush()
+
+    scope = ScopeRule(
+        project_id=project.id,
+        rule_type="EXACT_DOMAIN",
+        target_type="IN_SCOPE",
+        pattern="target.lab",
+        protocol="http,https"
+    )
+    db_session.add(scope)
+    await db_session.commit()
+
+    candidate = {
+        "title": "Command Injection in 'host' Parameter (/cmd/ping)",
+        "matched_at": "http://target.lab/cmd/ping?host=%27%29%29",
+        "cwe_id": "CWE-78",
+        "wstg_id": "WSTG-INPV-12",
+        "severity": "Critical",
+        "description": "Shell execution error demonstrates command injection",
+        "raw_request": "GET /cmd/ping?host=%27%29%29 HTTP/1.1\r\nHost: target.lab\r\n\r\n",
+        "raw_response": "HTTP/1.1 200 OK\r\n\r\n/bin/sh: 1: Syntax error: Unterminated quoted string\n"
+    }
+
+    state = PentestWorkflowState(
+        project_id=project.id,
+        user_id=admin_user.id,
+        scan_profile="ACTIVE_FULL",
+        target_domains=["target.lab"],
+        candidate_findings=[candidate],
+        confirmed_findings=[],
+        false_positives=[]
+    )
+
+    transport_cmdi = httpx.MockTransport(
+        lambda req: httpx.Response(200, text="/bin/sh: 1: Syntax error: Unterminated quoted string\n")
+    )
+
+    agent = ValidationAgent(
+        session=db_session,
+        llm_provider=FakeMockLLMProvider('{"is_valid": true, "is_false_positive": false}'),
+        http_transport=transport_cmdi
+    )
+
+    out_state = await agent.run(state)
+    assert len(out_state.confirmed_findings) == 1, "CMDi with shell error markers failed to confirm!"
+    assert out_state.confirmed_findings[0]["title"] == candidate["title"]
+
+
+@pytest.mark.asyncio
+async def test_validation_agent_confirms_ssrf_with_outbound_error_evidence(db_session: AsyncSession, admin_user: User):
+    """A3 Refinement: SSRF on /ssrf/fetch returning 502 with outbound fetch error evidence MUST confirm."""
+    now = datetime.now(timezone.utc)
+    project = Project(
+        id=uuid.uuid4(),
+        name="SSRF Test Project",
+        status="ACTIVE",
+        target_domains=["target.lab"],
+        authorization_start=now - timedelta(days=1),
+        authorization_end=now + timedelta(days=10),
+        created_by=admin_user.id
+    )
+    db_session.add(project)
+    await db_session.flush()
+
+    scope = ScopeRule(
+        project_id=project.id,
+        rule_type="EXACT_DOMAIN",
+        target_type="IN_SCOPE",
+        pattern="target.lab",
+        protocol="http,https"
+    )
+    db_session.add(scope)
+    await db_session.commit()
+
+    candidate = {
+        "title": "Server-Side Request Forgery in 'url' Parameter (/ssrf/fetch)",
+        "matched_at": "http://target.lab/ssrf/fetch?url=http://127.0.0.1:9099",
+        "cwe_id": "CWE-918",
+        "wstg_id": "WSTG-INPV-19",
+        "severity": "Critical",
+        "description": "SSRF outbound prober error",
+        "raw_request": "GET /ssrf/fetch?url=http://127.0.0.1:9099 HTTP/1.1\r\nHost: target.lab\r\n\r\n",
+        "raw_response": "HTTP/1.1 502 Bad Gateway\r\n\r\n{\"detail\":\"SSRF request failed: connection refused to 127.0.0.1:9099\"}"
+    }
+
+    state = PentestWorkflowState(
+        project_id=project.id,
+        user_id=admin_user.id,
+        scan_profile="ACTIVE_FULL",
+        target_domains=["target.lab"],
+        candidate_findings=[candidate],
+        confirmed_findings=[],
+        false_positives=[]
+    )
+
+    transport_ssrf = httpx.MockTransport(
+        lambda req: httpx.Response(502, text='{"detail":"SSRF request failed: connection refused to 127.0.0.1:9099"}')
+    )
+
+    agent = ValidationAgent(
+        session=db_session,
+        llm_provider=FakeMockLLMProvider('{"is_valid": true, "is_false_positive": false}'),
+        http_transport=transport_ssrf
+    )
+
+    out_state = await agent.run(state)
+    assert len(out_state.confirmed_findings) == 1, "SSRF with outbound error evidence on 502 failed to confirm!"
+
+
+@pytest.mark.asyncio
+async def test_validation_agent_rejects_ssrf_bare_502_without_evidence(db_session: AsyncSession, admin_user: User):
+    """A3 Refinement: SSRF on bare 502 Bad Gateway without injected evidence MUST NOT promote."""
+    now = datetime.now(timezone.utc)
+    project = Project(
+        id=uuid.uuid4(),
+        name="SSRF Bare 502 Project",
+        status="ACTIVE",
+        target_domains=["target.lab"],
+        authorization_start=now - timedelta(days=1),
+        authorization_end=now + timedelta(days=10),
+        created_by=admin_user.id
+    )
+    db_session.add(project)
+    await db_session.flush()
+
+    scope = ScopeRule(
+        project_id=project.id,
+        rule_type="EXACT_DOMAIN",
+        target_type="IN_SCOPE",
+        pattern="target.lab",
+        protocol="http,https"
+    )
+    db_session.add(scope)
+    await db_session.commit()
+
+    candidate = {
+        "title": "Server-Side Request Forgery in 'url' Parameter",
+        "matched_at": "http://target.lab/ssrf/fetch?url=http://example.com",
+        "cwe_id": "CWE-918",
+        "wstg_id": "WSTG-INPV-19",
+        "severity": "Critical",
+        "description": "SSRF bare 502 gateway error",
+        "raw_request": "GET /ssrf/fetch HTTP/1.1\r\nHost: target.lab\r\n\r\n",
+        "raw_response": "HTTP/1.1 502 Bad Gateway\r\n\r\n<html><body>502 Bad Gateway</body></html>"
+    }
+
+    state = PentestWorkflowState(
+        project_id=project.id,
+        user_id=admin_user.id,
+        scan_profile="ACTIVE_FULL",
+        target_domains=["target.lab"],
+        candidate_findings=[candidate],
+        confirmed_findings=[],
+        false_positives=[]
+    )
+
+    transport_bare_502 = httpx.MockTransport(
+        lambda req: httpx.Response(502, text="<html><body>502 Bad Gateway</body></html>")
+    )
+
+    agent = ValidationAgent(
+        session=db_session,
+        llm_provider=FakeMockLLMProvider('{"is_valid": true, "is_false_positive": false}'),
+        http_transport=transport_bare_502
+    )
+
+    out_state = await agent.run(state)
+    assert len(out_state.confirmed_findings) == 0, "Bare 502 without evidence must NOT promote!"
+    assert len(out_state.false_positives) == 1
+
+
+@pytest.mark.asyncio
+async def test_validation_agent_rejects_headers_on_404(db_session: AsyncSession, admin_user: User):
+    """A3 Refinement: Missing security headers on HTTP 404 (unmapped route) MUST be refuted."""
+    now = datetime.now(timezone.utc)
+    project = Project(
+        id=uuid.uuid4(),
+        name="Headers 404 Project",
+        status="ACTIVE",
+        target_domains=["target.lab"],
+        authorization_start=now - timedelta(days=1),
+        authorization_end=now + timedelta(days=10),
+        created_by=admin_user.id
+    )
+    db_session.add(project)
+    await db_session.flush()
+
+    scope = ScopeRule(
+        project_id=project.id,
+        rule_type="EXACT_DOMAIN",
+        target_type="IN_SCOPE",
+        pattern="target.lab",
+        protocol="http,https"
+    )
+    db_session.add(scope)
+    await db_session.commit()
+
+    candidate = {
+        "title": "Missing Security Headers (CSP, XFO, XCTO)",
+        "matched_at": "http://target.lab/",
+        "cwe_id": "CWE-693",
+        "wstg_id": "WSTG-CLNT-09",
+        "severity": "Low",
+        "description": "Missing defensive security headers",
+        "raw_request": "GET / HTTP/1.1\r\nHost: target.lab\r\n\r\n",
+        "raw_response": "HTTP/1.1 404 Not Found\r\n\r\n{\"detail\":\"Not Found\"}"
+    }
+
+    state = PentestWorkflowState(
+        project_id=project.id,
+        user_id=admin_user.id,
+        scan_profile="ACTIVE_FULL",
+        target_domains=["target.lab"],
+        candidate_findings=[candidate],
+        confirmed_findings=[],
+        false_positives=[]
+    )
+
+    transport_404 = httpx.MockTransport(
+        lambda req: httpx.Response(404, text='{"detail":"Not Found"}')
+    )
+
+    agent = ValidationAgent(
+        session=db_session,
+        llm_provider=FakeMockLLMProvider('{"is_valid": true, "is_false_positive": false}'),
+        http_transport=transport_404
+    )
+
+    out_state = await agent.run(state)
+    assert len(out_state.confirmed_findings) == 0, "Missing security headers on 404 must NOT promote!"
+    assert len(out_state.false_positives) == 1
+    assert "404" in out_state.false_positives[0]["justification"]
+
+
+@pytest.mark.asyncio
+async def test_validation_agent_confirms_cmdi_shell_error_on_500(db_session: AsyncSession, admin_user: User):
+    """A3 Refinement: CMDi returning HTTP 500 with shell error markers MUST promote."""
+    now = datetime.now(timezone.utc)
+    project = Project(
+        id=uuid.uuid4(),
+        name="CMDi 500 Project",
+        status="ACTIVE",
+        target_domains=["target.lab"],
+        authorization_start=now - timedelta(days=1),
+        authorization_end=now + timedelta(days=10),
+        created_by=admin_user.id
+    )
+    db_session.add(project)
+    await db_session.flush()
+
+    scope = ScopeRule(
+        project_id=project.id,
+        rule_type="EXACT_DOMAIN",
+        target_type="IN_SCOPE",
+        pattern="target.lab",
+        protocol="http,https"
+    )
+    db_session.add(scope)
+    await db_session.commit()
+
+    candidate = {
+        "title": "Command Injection in 'host' Parameter (/cmd/ping)",
+        "matched_at": "http://target.lab/cmd/ping?host=%27%29%29",
+        "cwe_id": "CWE-78",
+        "wstg_id": "WSTG-INPV-12",
+        "severity": "Critical",
+        "description": "Shell execution error demonstrates command injection",
+        "raw_request": "GET /cmd/ping?host=%27%29%29 HTTP/1.1\r\nHost: target.lab\r\n\r\n",
+        "raw_response": "HTTP/1.1 500 Internal Server Error\r\n\r\n/bin/sh: 1: Syntax error: Unterminated quoted string\n"
+    }
+
+    state = PentestWorkflowState(
+        project_id=project.id,
+        user_id=admin_user.id,
+        scan_profile="ACTIVE_FULL",
+        target_domains=["target.lab"],
+        candidate_findings=[candidate],
+        confirmed_findings=[],
+        false_positives=[]
+    )
+
+    transport_cmdi_500 = httpx.MockTransport(
+        lambda req: httpx.Response(500, text="/bin/sh: 1: Syntax error: Unterminated quoted string\n")
+    )
+
+    agent = ValidationAgent(
+        session=db_session,
+        llm_provider=FakeMockLLMProvider('{"is_valid": true, "is_false_positive": false}'),
+        http_transport=transport_cmdi_500
+    )
+
+    out_state = await agent.run(state)
+    assert len(out_state.confirmed_findings) == 1, "CMDi on HTTP 500 with shell error markers must confirm!"
+
+

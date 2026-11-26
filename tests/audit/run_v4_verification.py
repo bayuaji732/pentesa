@@ -86,7 +86,7 @@ async def run_v4_verification():
         )
         cf_provider = LiteLLMProvider(
             base_url="https://uat-ai-gateway.siloamhospitals.com/v1",
-            api_key="sk-mCQwNXf15qH4UyLxLVGAQA",
+            api_key=os.getenv("AZURE_OPENAI_API_KEY", "mock-test-key-inert"),
             model="azure/gpt-5.6-terra-dev-gtw",
             transport=cf_transport
         )

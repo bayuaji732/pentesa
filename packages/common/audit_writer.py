@@ -33,6 +33,8 @@ async def record_audit_log(
     ip_address: Optional[str] = None,
     user_agent: Optional[str] = None,
     commit: bool = True,
+    user_email: Optional[str] = None,
+    hash_version: int = 2,
 ) -> AuditLog:
     """
     Record a cryptographically hash-chained audit log entry safely under concurrency.
@@ -78,12 +80,15 @@ async def record_audit_log(
             resource_id=resource_id,
             details=details,
             ip_address=ip_address,
+            hash_version=hash_version,
+            user_email=user_email,
         )
 
         log_entry = AuditLog(
             id=uuid.uuid4(),
             project_id=project_id,
             user_id=user_id,
+            user_email=user_email,
             action=action,
             resource_type=resource_type,
             resource_id=resource_id,
@@ -92,6 +97,7 @@ async def record_audit_log(
             user_agent=user_agent,
             prev_hash=prev_hash,
             hash=entry_hash,
+            hash_version=hash_version,
             created_at=now,
         )
         session.add(log_entry)

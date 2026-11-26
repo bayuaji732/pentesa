@@ -23,11 +23,14 @@ def compute_audit_hash(
     resource_type: str,
     resource_id: Optional[str],
     details: Optional[Dict[str, Any]],
-    ip_address: Optional[str] = None
+    ip_address: Optional[str] = None,
+    hash_version: int = 1,
+    user_email: Optional[str] = None,
 ) -> str:
     """
     Compute cryptographic SHA-256 hash for an audit log entry.
-    Format: prev_hash:timestamp_iso:user_id:action:resource_type:resource_id:ip:canonical_details
+    v1: prev_hash:timestamp_iso:user_id:action:resource_type:resource_id:ip:canonical_details
+    v2: v2:prev_hash:timestamp_iso:user_id:user_email:action:resource_type:resource_id:ip:canonical_details
     """
     if isinstance(timestamp, datetime):
         if timestamp.tzinfo is None:
@@ -40,16 +43,32 @@ def compute_audit_hash(
             ts_str = timestamp.replace("Z", "+00:00")
     else:
         ts_str = str(timestamp)
-    payload = ":".join([
-        prev_hash or GENESIS_HASH,
-        ts_str,
-        str(user_id or ""),
-        action,
-        resource_type,
-        str(resource_id or ""),
-        str(ip_address or ""),
-        canonical_json(details)
-    ])
+
+    if hash_version == 1:
+        payload = ":".join([
+            prev_hash or GENESIS_HASH,
+            ts_str,
+            str(user_id or ""),
+            action,
+            resource_type,
+            str(resource_id or ""),
+            str(ip_address or ""),
+            canonical_json(details)
+        ])
+    else:
+        payload = ":".join([
+            f"v{hash_version}",
+            prev_hash or GENESIS_HASH,
+            ts_str,
+            str(user_id or ""),
+            str(user_email or ""),
+            action,
+            resource_type,
+            str(resource_id or ""),
+            str(ip_address or ""),
+            canonical_json(details)
+        ])
+
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
@@ -81,6 +100,9 @@ def verify_audit_chain(entries: List[Dict[str, Any]]) -> Tuple[bool, Optional[st
         if isinstance(ts, datetime) and ts.tzinfo is None:
             ts = ts.replace(tzinfo=timezone.utc)
 
+        h_version = entry.get("hash_version", 1) or 1
+        u_email = entry.get("user_email")
+
         calculated_hash = compute_audit_hash(
             prev_hash=actual_prev,
             timestamp=ts,
@@ -89,7 +111,9 @@ def verify_audit_chain(entries: List[Dict[str, Any]]) -> Tuple[bool, Optional[st
             resource_type=entry.get("resource_type", ""),
             resource_id=entry.get("resource_id"),
             details=entry.get("details"),
-            ip_address=entry.get("ip_address")
+            ip_address=entry.get("ip_address"),
+            hash_version=h_version,
+            user_email=u_email,
         )
 
         recorded_hash = entry.get("hash")
@@ -103,4 +127,3 @@ def verify_audit_chain(entries: List[Dict[str, Any]]) -> Tuple[bool, Optional[st
         expected_prev = recorded_hash
 
     return True, None, None
-

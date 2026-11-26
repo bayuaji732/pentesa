@@ -28,13 +28,14 @@ MIGRATION_ADVISORY_LOCK_ID = 84729103
 
 
 def get_url() -> str:
-    url = config.get_main_option("sqlalchemy.url")
+    url = (config.get_main_option("sqlalchemy.url") or "").strip()
     if not url:
         url = (
             os.getenv("PENTESA_DATABASE_URL")
             or os.getenv("DATABASE_URL")
             or getattr(settings, "database_url", "")
-        )
+            or ""
+        ).strip()
     if not url:
         url = "sqlite+aiosqlite:///:memory:"
     if url.startswith("postgresql://"):
@@ -71,6 +72,13 @@ def do_run_migrations(connection) -> None:
     )
 
     with context.begin_transaction():
+        if connection.dialect.name == "postgresql":
+            try:
+                connection.execute(
+                    sa.text("ALTER TABLE alembic_version ALTER COLUMN version_num TYPE VARCHAR(128);")
+                )
+            except Exception:
+                pass
         context.run_migrations()
 
 
@@ -110,6 +118,16 @@ def run_migrations_online() -> None:
     """Run migrations in 'online' mode."""
     if context.is_offline_mode():
         run_migrations_offline()
+        return
+
+    url = get_url()
+    if "sqlite" in url.lower():
+        sync_url = url.replace("+aiosqlite", "")
+        connectable = sa.create_engine(sync_url, poolclass=sa.pool.NullPool)
+        with connectable.connect() as connection:
+            do_run_migrations(connection)
+            connection.commit()
+        connectable.dispose()
     else:
         asyncio.run(run_async_migrations())
 

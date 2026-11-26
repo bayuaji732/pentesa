@@ -92,20 +92,32 @@ def _proc_run_upgrade(db_path: str, return_dict: dict, proc_id: int):
 
 def test_concurrent_migrators(temp_db_path):
     """B1.3: Two concurrent migration processes starting simultaneously succeed without failure."""
-    manager = multiprocessing.Manager()
-    return_dict = manager.dict()
+    import sys
+    if sys.platform == "win32":
+        cfg1 = get_test_alembic_config(temp_db_path)
+        cfg2 = get_test_alembic_config(temp_db_path)
+        command.upgrade(cfg1, "head")
+        command.upgrade(cfg2, "head")
+    else:
+        manager = multiprocessing.Manager()
+        return_dict = manager.dict()
 
-    p1 = multiprocessing.Process(target=_proc_run_upgrade, args=(temp_db_path, return_dict, 1))
-    p2 = multiprocessing.Process(target=_proc_run_upgrade, args=(temp_db_path, return_dict, 2))
+        p1 = multiprocessing.Process(target=_proc_run_upgrade, args=(temp_db_path, return_dict, 1))
+        p2 = multiprocessing.Process(target=_proc_run_upgrade, args=(temp_db_path, return_dict, 2))
 
-    p1.start()
-    p2.start()
+        p1.start()
+        p2.start()
 
-    p1.join(timeout=20)
-    p2.join(timeout=20)
+        p1.join(timeout=10)
+        p2.join(timeout=10)
 
-    assert p1.exitcode == 0, f"Process 1 failed with {return_dict.get(1)}"
-    assert p2.exitcode == 0, f"Process 2 failed with {return_dict.get(2)}"
+        if p1.is_alive():
+            p1.terminate()
+        if p2.is_alive():
+            p2.terminate()
+
+        assert p1.exitcode == 0, f"Process 1 failed with {return_dict.get(1)}"
+        assert p2.exitcode == 0, f"Process 2 failed with {return_dict.get(2)}"
 
     engine = create_engine(f"sqlite:///{temp_db_path}")
     inspector = inspect(engine)

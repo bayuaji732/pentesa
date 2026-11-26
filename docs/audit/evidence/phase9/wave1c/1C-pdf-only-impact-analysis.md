@@ -1,32 +1,41 @@
-# Phase 9 Wave 1c: PDF-Only Template Adoption Impact Analysis
+# Phase 9 Wave 1c: PDF-Only Template Architecture & Impact Analysis
 
-> **Document Identifier:** `PENTESA-AUDIT-P9-1C-IMPACT-V1.0`  
+> **Document Identifier:** `PENTESA-AUDIT-P9-1C-IMPACT-V2.0`  
 > **Evaluation Date:** `2026-11-26`  
-> **Scope:** Risk and architectural analysis of adopting the new report template in PDF only vs dual HTML/PDF  
+> **Scope:** Architecture decision: PDF-only reporting pipeline (retirement of HTML reporting engine)  
 > **Auditors:** Principal Software Architect, Security QA Engineer  
+> **Status:** APPROVED ARCHITECTURAL DIRECTION  
 
 ---
 
-## 1. Executive Summary
+## 1. Executive Summary & Architecture Decision
 
-If the new corporate report template (`docs/assets/Report Pentest (nama aplikasi).docx` / `.pdf`) is implemented exclusively within the PDF rendering engine (`ReportRenderer.render_pdf`) while retaining the legacy 17-section PTES layout in the HTML engine (`ReportRenderer.render_html` with `ptes_standard.html`), several technical and governance discrepancies emerge. This document catalogs those impacts and provides an architectural mitigation plan.
-
----
-
-## 2. Identified Impacts & Risks
-
-| Impact Category | Severity | Observed Risk / Divergence | Mitigation / Recommendation |
-|---|:---:|---|---|
-| **Phase 7 Scorer Regression (`p7_html_pdf_fidelity`)** | **High** | The existing test harness (`benchmark/p7/test_runner_p7.py`) asserts section and finding parity between HTML and PDF deliverables. A layout divergence causes HTML/PDF text and section matching checks to fail. | Introduce template-aware scoring in `score_p7b_template.py` evaluating both formats against `template_spec.yaml`. |
-| **User Deliverable Inconsistency** | **Medium** | End users downloading HTML interactive reports will view an extensive 17-section technical report, whereas users downloading PDF will receive a 3–4 page concise executive sign-off document. | Provide parity by authoring `corporate_standard.html` matching the new PDF template layout. |
-| **Sign-Off Table Absence in HTML** | **Low** | The 4-column approval and sign-off table (`Role`, `Nama Perusahaan`, `Nama Individu`, `TTD`) would exist only in PDF exports, leaving web viewers unable to verify sign-off state. | Include the sign-off component in the HTML template. |
-| **CVSS Version Divergence** | **High** | If PDF displays CVSS v4.0 vectors (`CVSS:4.0/...`) while HTML continues displaying CVSS v3.1 or raw severity labels, risk metrics will contradict between deliverables. | Synchronize CVSS v4.0 across `FindingResponse` schema, HTML template, and PDF flowables in Wave 1b. |
-| **Zero-Finding Neutrality Invariance** | **Critical** | Both formats must strictly adhere to `DEFECT-REP-01`. Updating PDF without auditing HTML could risk regression of the neutral security posture rule. | Enforce `policies.neutral_zero_finding: true` across both HTML and PDF engines. |
+The platform transitions exclusively to a **PDF-only reporting pipeline**. All proposals for `corporate_standard.html` and the `template` selection parameter are **DELETED**. 
+- The HTML report renderer (`ReportRenderer.render_html`) and `ptes_standard.html` are deprecated and will be removed at implementation after formal approval (permanently archived via git tag).
+- PDF is established as the sole authoritative deliverable format for penetration testing engagements.
+- HTML-based fidelity checks in the frozen Phase 7 scorer (`score_p7.py`) become **N/A** (Not Applicable) post-deprecation.
 
 ---
 
-## 3. Recommended Architectural Strategy
+## 2. Impact Analysis & Resolution Matrix
 
-To eliminate format fragmentation while honoring client requirements:
-1. **Template Engine Decoupling:** Introduce a `template: str = "corporate_standard"` field in `ReportGenerateRequest` (supporting `"corporate_standard"` as default, with legacy `"ptes_standard"` preserved for exhaustive technical compliance).
-2. **Dual-Format Parity:** In Wave 1c, implement `templates/corporate_standard.html` alongside the ReportLab flowables, ensuring that HTML and PDF views share identical typography, color schemes (`#D9D9D9`, `#FFC000`), table structures, and personnel metadata.
+| Dimension | Impact of PDF-Only Decision | Resolution & Implementation Plan |
+|---|---|---|
+| **HTML Renderer Retirement** | Legacy Jinja2 HTML renderer and `ptes_standard.html` become obsolete technical debt. | Safely remove `render_html()` and HTML template files post-approval. The legacy implementation is preserved and traceable via git tag `archive-html-renderer`. |
+| **Scorer Parity (`p7_html_pdf_fidelity`)** | Frozen Phase 7 scorer evaluated 24 HTML + 24 PDF reports. HTML evaluation will no longer apply. | HTML-based assertions in frozen P7 scorer are classified as **N/A (Retired)**. Modern reporting fidelity is governed exclusively by `benchmark/p7b/score_p7b_template.py` targeting PDF deliverables. |
+| **Single Engine Maintenance** | Eliminates dual-engine formatting drift, layout contradictions, and divergent CSS/ReportLab rendering bugs. | All styling, geometry, tables, and typography are maintained solely within `ReportLab` flowables in `services/reporting_engine/renderer.py`. |
+| **API Simplification** | Eliminates need for `template` parameter or format negotiation query flags. | `POST /api/v1/reports/generate` generates standardized corporate PDF output directly. |
+
+---
+
+## 3. Data Flow & Fallback Neutrality Rules
+
+1. **No Tech Stack Narrative Fallback:**
+   - **Application Description:** Renders `"Not provided"` if absent from `Project.description`.
+   - **Application Purpose:** Renders `"Not provided"` if absent from report parameters. No speculative tech stack descriptions or crawler logs are synthesized.
+2. **Sign-Off Table Personnel Mapping:**
+   - The 4 sign-off roles (`Pentester`, `Reviewer 1`, `PIC / Project Manager`, `Reviewer 2`) come strictly from explicit report parameters (`ReportGenerateRequest`) or dedicated project report metadata.
+   - They do **NOT** fallback to `ProjectMember` roles.
+   - Pre-filled names from Word templates (e.g., `"Devin Gunadi Tampuboon"`, `"Ferdinand Winaya"`, `"Yuan Yudistira"`) are **NEVER** used as defaults. Unassigned roles render blank / `"-"`.
+3. **Neutral Zero-Finding Posture (`DEFECT-REP-01`):**
+   - Projects with 0 confirmed findings state: *"No vulnerabilities were confirmed within the tested scope and rules of engagement."* (Zero claims of "strong security posture").

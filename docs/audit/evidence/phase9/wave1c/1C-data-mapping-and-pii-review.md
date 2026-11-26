@@ -21,19 +21,27 @@ This matrix maps every field and structural element from the target corporate re
 | **Lead Pentester Name**| `"[Nama Pentester]"` | `User.full_name` (Lead Tester) | Exists (`context.lead_tester`) | Direct mapping |
 | **Completion Date** | `"Pentest Completion Date"` | `Project.updated_at` / `end_date` | Exists (`context.end_date`) | Table 1 Column 2 |
 | **Retest Date** | `"Retest Completion Date"` | `ReportGenerateRequest.retest_date` | **Missing** (Hardcoded `"-"` fallback) | Add optional `retest_date` to `ReportGenerateRequest` |
-| **App Description** | `<description of apps...>` | `Project.description` | Exists (`context.executive_narrative`) | Preserve project description |
-| **App Purpose** | `<explain purpose/feature>` | `Project.purpose` / Report Options | **Missing** (No `purpose` column) | Add `purpose: Optional[str]` to `ReportGenerateRequest` (fallback to tech stack description) |
+| **App Description** | `<description of apps...>` | `Project.description` | Exists (`context.executive_narrative`) | Renders `"Not provided"` if absent (no tech stack fallback) |
+| **App Purpose** | `<explain purpose/feature>` | Report Options / Metadata | Needs Change (No purpose column) | Add `purpose: Optional[str]` to `ReportGenerateRequest`; renders `"Not provided"` if absent (no tech stack fallback) |
 | **Scope of Work** | `<url/api/IP>` | `ScopeRule.pattern` list | Exists (`context.target_scope`) | Render list of target URLs & IPs |
 | **Summary Table: No** | `1, 2, 3...` | Loop index (`1`-based) | Exists (`enumerate(findings, 1)`) | Table 2 Col 1 |
 | **Summary: Temuan** | Vulnerability Title | `Finding.title` | Exists (`finding.title`) | Table 2 Col 2 |
 | **Summary: Severity** | High, Medium, Low, Info | `Finding.severity` | Exists (`finding.severity`) | Table 2 Col 3 (with `#FFC000` Amber fill) |
-| **Summary: Method** | `"Dynamic/Automated"` | `FindingEvidence.tool` / `source` | Exists in evidence | Map runner tool (`ffuf`, `nuclei`, `wstg`) to Method |
-| **Summary: Status** | `"Confirmed"` | `Finding.status` | Exists (`finding.status`) | Table 2 Col 5 |
-| **Sign-Off: Roles** | Pentester, Reviewer 1, PIC, Reviewer 2 | Role labels | Static Structure | Table 3 Col 1 |
-| **Sign-Off: Organization** | Company / Organization Name | `Project.client_name` | Exists (`context.client_name`) | Table 3 Col 2 (Dynamic, never hardcoded) |
-| **Sign-Off: Names** | Reviewer Individual Names | `ProjectMember.user.full_name` | Partial (`ProjectMember` exists) | Dynamically query project members by assigned role |
-| **Sign-Off: TTD** | Signature Block | Blank line / Digital Hash | Blank signature cell | Table 3 Col 4 (blank for signing) |
-| **Detail: Title** | `{n}. {Title} ({CVSS}) Description:`| `Finding.title` + CVSS v4.0 | **Missing CVSS v4.0** (`FIND-03`) | Implement CVSS v4.0 in Wave 1b |
+| **Summary: Method** | `"Dynamic/Automated"` | `FindingEvidence.tool` / `source` | Exists (`evidence.tool`) | Maps prober/tool to Method (Dynamic / Automated) |
+| **Summary: Status** | `"Confirmed"` | `Finding.status` | Exists (`finding.status`) | Table 2 Col 5 (Confirmed only) |
+| **Sign-Off: Roles** | Pentester, Reviewer 1, PIC, Reviewer 2 | Static Structure | Exists | Table 3 Col 1 |
+| **Sign-Off: Organization** | Company / Organization Name | `ReportGenerateRequest` / Client | Needs Change | Explicit parameter (never hardcoded Siloam) |
+| **Sign-Off: Names** | Reviewer Individual Names | `ReportGenerateRequest` metadata | Needs Change | Explicit report parameters/metadata (NOT `ProjectMember` roles; template pre-filled names NEVER defaults) |
+| **Sign-Off: TTD** | Signature Block | Blank line / Digital Hash | Exists | Table 3 Col 4 (blank for signing) |
+| **Detail: Title** | `{n}. {Title} ({CVSS}) Description:`| `Finding.title` + CVSS v4.0 | Needs Schema (`DEFECT-FIND-03`) | Implement CVSS v4.0 in Wave 1b |
+
+---
+
+## 1.1 Data Mapping Summary Counts
+- **Exists in Current System / As-Is:** **14 elements** (Cover Title, App Name, Pentester Subtitle, Lead Pentester Name, Completion Date, Scope of Work, Summary No, Summary Temuan, Summary Severity, Summary Method, Summary Status, Sign-Off Roles, Sign-Off TTD, Detail Fields [Endpoints, Impact, Mitigation, Reference, POC]).
+- **Needs Change (Parameters / Formatting / Logic):** **6 elements** (Corporate Logo path, Retest Date param, App Description `"Not provided"` logic, App Purpose `"Not provided"` logic, Sign-Off Organization param, Sign-Off Names explicit metadata mapping).
+- **Needs Schema Migration:** **1 element** (CVSS v4.0 `cvss_score`, `cvss_vector`, `cvss_source` on `findings` table per `DEFECT-FIND-03` / `ADR-009`).
+- **Total Mapped Elements:** **21 elements**.
 | **Detail: Endpoints** | `"The affected URL endpoints are:"` | `FindingResponse.endpoint` | Exists (`finding.endpoint`) | Direct mapping |
 | **Detail: Impact** | `"Impact:"` | `Finding.impact` | Exists (`finding.impact`) | Direct mapping |
 | **Detail: Mitigation**| `"Mitigation:"` | `Finding.remediation` | Exists (`finding.remediation`) | Direct mapping |

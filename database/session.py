@@ -38,11 +38,27 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             raise
 
 
+def run_migrations_programmatic(url: str = None) -> None:
+    """Run Alembic migrations programmatically up to head."""
+    from alembic.config import Config
+    from alembic import command
+    cfg = Config("alembic.ini")
+    if url:
+        cfg.set_main_option("sqlalchemy.url", url)
+    command.upgrade(cfg, "head")
+
+
 async def init_db(custom_engine: AsyncEngine = None) -> None:
-    """Create all tables in the database."""
+    """Apply Alembic migrations or create tables in test sqlite."""
     target_engine = custom_engine or engine
-    async with target_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    url = str(target_engine.url)
+    if ":memory:" in url or ("sqlite" in url and "test" in (getattr(settings, "env", "") or "").lower()):
+        async with target_engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+    else:
+        import asyncio
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, run_migrations_programmatic, url)
 
 
 async def close_db(custom_engine: AsyncEngine = None) -> None:

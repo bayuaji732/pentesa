@@ -1,0 +1,170 @@
+version: "1.0"
+spec_name: "pentesa-report-template-spec-v1"
+authoritative_reference: "docs/assets/Report Pentest (nama aplikasi).docx"
+
+page:
+  format: "A4"
+  width_mm: 210.0
+  height_mm: 297.0
+  margins_mm:
+    top: 25.4
+    bottom: 25.4
+    left: 25.4
+    right: 25.4
+  printable_width_mm: 159.2
+  printable_height_mm: 246.2
+
+colors:
+  table_header_bg: "#D9D9D9"
+  table_border: "#000000"
+  severity_high_bg: "#FFC000"
+  text_primary: "#000000"
+  text_muted: "#64748B"
+  code_bg: "#F1F5F9"
+
+typography:
+  title:
+    font: "Helvetica-Bold"
+    size_pt: 18.0
+    align: "center"
+  app_name:
+    font: "Helvetica-Bold"
+    size_pt: 18.0
+    align: "center"
+  pentester_label:
+    font: "Helvetica-Bold"
+    size_pt: 14.0
+    align: "center"
+  pentester_name:
+    font: "Helvetica-Bold"
+    size_pt: 20.0
+    align: "center"
+  h1:
+    font: "Helvetica-Bold"
+    size_pt: 14.0
+    align: "left"
+    space_before_pt: 12.0
+    space_after_pt: 6.0
+  body:
+    font: "Helvetica"
+    size_pt: 11.0
+    align: "left"
+    line_spacing: 1.15
+  code:
+    font: "Courier"
+    size_pt: 8.5
+    align: "left"
+
+sections:
+  - id: "cover"
+    required: true
+    elements:
+      - "classification_badge"
+      - "document_title"
+      - "application_name"
+      - "branding_image_optional"
+      - "pentester_label"
+      - "pentester_name"
+      - "table_dates"
+  - id: "application_description"
+    required: true
+    title: "Application Description:"
+  - id: "application_purpose"
+    required: true
+    title: "Application Purpose:"
+  - id: "scope_of_work"
+    required: true
+    title: "Scope of Work"
+  - id: "summary"
+    required: true
+    title: "Summary:"
+    table: "table_findings_summary"
+  - id: "signoff"
+    required: true
+    table: "table_signoff"
+  - id: "detail_vulnerability"
+    required: true
+    banner: "Detail Vulnerability"
+    repeat_per_finding: true
+
+tables:
+  table_dates:
+    rows: 2
+    cols: 2
+    border_width_pt: 0.5
+    border_color: "#000000"
+    columns:
+      - title: "Pentest Completion Date"
+        width_mm: 60.0
+      - title: "Retest Completion Date"
+        width_mm: 99.2
+
+  table_findings_summary:
+    cols: 5
+    header_bg: "#D9D9D9"
+    border_width_pt: 0.5
+    border_color: "#000000"
+    columns:
+      - title: "No"
+        width_mm: 15.0
+        align: "center"
+      - title: "Temuan"
+        width_mm: 76.0
+        align: "left"
+      - title: "Severity"
+        width_mm: 26.8
+        align: "center"
+        highlight_bg: "#FFC000"
+      - title: "Method"
+        width_mm: 20.7
+        align: "center"
+      - title: "Status"
+        width_mm: 20.7
+        align: "center"
+
+  table_signoff:
+    cols: 4
+    header_bg: "#D9D9D9"
+    border_width_pt: 0.5
+    border_color: "#000000"
+    columns:
+      - title: "Role"
+        width_mm: 30.0
+      - title: "Nama Perusahaan/Nama Individu"
+        width_mm: 60.0
+      - title: "Nama Individu"
+        width_mm: 42.0
+      - title: "TTD"
+        width_mm: 27.2
+
+finding_detail:
+  header_format: "{index}. {title} ({cvss_v4_vector}) Description:"
+  subsections_order:
+    - "The affected URL endpoints are:"
+    - "Impact:"
+    - "Mitigation:"
+    - "Reference:"
+    - "POC:"
+
+cvss_v4:
+  prefix: "CVSS:4.0/"
+  base_metrics:
+    - "AV"  # Attack Vector: N, A, L, P
+    - "AC"  # Attack Complexity: L, H
+    - "AT"  # Attack Requirements: N, P
+    - "PR"  # Privileges Required: N, L, H
+    - "UI"  # User Interaction: N, P, A
+    - "VC"  # Vulnerable System Confidentiality: H, L, N
+    - "VI"  # Vulnerable System Integrity: H, L, N
+    - "VA"  # Vulnerable System Availability: H, L, N
+    - "SC"  # Subsequent System Confidentiality: H, L, N
+    - "SI"  # Subsequent System Integrity: H, L, N
+    - "SA"  # Subsequent System Availability: H, L, N
+
+policies:
+  neutral_zero_finding: true
+  confirmed_only_summary: true
+  unverified_candidates_segregated: true
+  estimated_cvss_disclosure: true
+  automation_tooling_disclosure: true
+  pii_no_hardcoded_staff: true

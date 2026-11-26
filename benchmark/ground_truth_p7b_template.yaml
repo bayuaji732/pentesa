@@ -1,0 +1,73 @@
+test_suite: "P7B-Report-Template-Fidelity"
+version: "1.0"
+spec_ref: "benchmark/p7b/template_spec.yaml"
+
+test_cases:
+  - id: "P7B-TC-GEOM-01"
+    name: "Physical Page Geometry & Margins"
+    target: "pdf"
+    assertions:
+      page_format: "A4"
+      mediabox_width_pt: 595.28
+      mediabox_height_pt: 841.89
+      tolerance_pt: 1.0
+      margins_top_mm: 25.4
+      margins_bottom_mm: 25.4
+      margins_left_mm: 25.4
+      margins_right_mm: 25.4
+      printable_width_mm: 159.2
+
+  - id: "P7B-TC-COLOR-01"
+    name: "Table Colors and Severity Shading"
+    target: "both"
+    assertions:
+      header_background_hex: "#D9D9D9"
+      severity_high_background_hex: "#FFC000"
+      border_color_hex: "#000000"
+      border_width_pt: 0.5
+
+  - id: "P7B-TC-TABLE-01"
+    name: "Mandatory Four-Table Architecture"
+    target: "both"
+    assertions:
+      tables_count: 4
+      table_1_dates:
+        rows: 2
+        cols: 2
+        col1_text: "Pentest Completion Date"
+        col2_text: "Retest Completion Date"
+      table_2_summary:
+        cols: 5
+        headers: ["No", "Temuan", "Severity", "Method", "Status"]
+      table_3_signoff:
+        cols: 4
+        headers: ["Role", "Nama Perusahaan/Nama Individu", "Nama Individu", "TTD"]
+      table_4_banner:
+        banner_text: "Detail Vulnerability"
+
+  - id: "P7B-TC-CVSS4-01"
+    name: "CVSS v4.0 Vector Conformance"
+    target: "both"
+    assertions:
+      vector_prefix: "CVSS:4.0/"
+      vector_mandatory_metrics: ["AV", "AC", "AT", "PR", "UI", "VC", "VI", "VA", "SC", "SI", "SA"]
+      status_qualifiers: ["ESTIMATED", "REVIEWED"]
+
+  - id: "P7B-TC-PII-01"
+    name: "Zero Hardcoded Names & Typo Hygiene"
+    target: "both"
+    assertions:
+      forbidden_hardcoded_strings:
+        - "Siloam Interantional Hospitals"
+      dynamic_personnel_mapping: true
+
+  - id: "P7B-TC-POLICY-01"
+    name: "Zero-Finding Neutrality & Segregation"
+    target: "both"
+    assertions:
+      neutral_statement_when_empty: "No vulnerabilities were confirmed within the tested scope and rules of engagement."
+      forbidden_secure_claims:
+        - "STRONG SECURITY POSTURE"
+        - "completely secure"
+        - "zero risk"
+      unconfirmed_candidate_segregation: true

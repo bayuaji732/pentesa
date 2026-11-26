@@ -87,7 +87,7 @@ def scan_working_tree():
 
 def scan_git_history():
     findings = []
-    cmd = ["git", "log", "-p", "--all", "--full-diff"]
+    cmd = ["git", "log", "-p", "--all", "--full-diff", "--no-textconv", "--no-ext-diff"]
     try:
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=REPO_ROOT)
         current_commit = "UNKNOWN"
@@ -101,7 +101,11 @@ def scan_git_history():
             elif line.startswith("diff --git"):
                 parts = line.strip().split()
                 if len(parts) >= 4:
-                    current_file = parts[3].lstrip("b/")
+                    raw_file = parts[3]
+                    if raw_file.startswith("b/"):
+                        current_file = raw_file[2:]
+                    else:
+                        current_file = raw_file
                 line_num = 0
             elif line.startswith("+") and not line.startswith("+++"):
                 line_num += 1
@@ -134,6 +138,12 @@ def scan_sanitized_snapshot():
                 tar.extractall(path=temp_path, filter="data")
             except TypeError:
                 tar.extractall(path=temp_path)
+
+        # Exclude non-shareable corporate assets (logos, company templates)
+        assets_dir = temp_path / "docs" / "assets"
+        if assets_dir.exists():
+            import shutil
+            shutil.rmtree(assets_dir)
 
         # Sanitize files
         for root, _, files in os.walk(temp_path):

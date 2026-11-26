@@ -1,814 +1,183 @@
 {
-  "_forensic_header": {
-    "timestamp_utc": "2026-11-23T05:26:36.149574+00:00",
-    "header_added_utc": "2026-11-23T07:11:56.076337+00:00",
-    "git_commit": "782e894253addad3d45794d05aef4ab6cea6d29f (DIRTY during run; committed at efb1c38)",
-    "exact_command": ".venv\\Scripts\\python.exe -u benchmark/p7/test_runner_p7.py",
-    "runner_p7_sha256": "4736fb5df2517b25dcc383b69754f075d8108dc85c9612348127830b7c60385f",
-    "ground_truth_p7_sha256": "acd209a69a3b0c8a83d936f498945797e8842fcb815b8295cc31129957c0cac4",
-    "scorer_p7_sha256": "2741d23c5df6183517cd25cab0a390fb8318e52d5f58084a0b9963bd5bd66ddd",
-    "database_engine": "PostgreSQL 16 Alpine (pentesa-db)",
-    "target_stack": "http://127.0.0.1:8000 (pentesa-prod, running stack, post hotfix-api-02)"
-  },
-  "total_findings": 39,
-  "strict_mean_completeness_pct": 46.7,
-  "joined_api_mean_completeness_pct": 60.0,
+  "total_findings": 2,
+  "strict_mean_completeness_pct": 60.0,
+  "joined_api_mean_completeness_pct": 73.3,
   "strict_per_field_presence": {
     "id": {
-      "present": 39,
-      "total": 39,
+      "present": 2,
+      "total": 2,
       "pct": 100.0
     },
     "target": {
       "present": 0,
-      "total": 39,
+      "total": 2,
       "pct": 0.0
     },
     "endpoint": {
-      "present": 0,
-      "total": 39,
-      "pct": 0.0
+      "present": 2,
+      "total": 2,
+      "pct": 100.0
     },
     "method": {
-      "present": 0,
-      "total": 39,
-      "pct": 0.0
+      "present": 2,
+      "total": 2,
+      "pct": 100.0
     },
     "parameter": {
       "present": 0,
-      "total": 39,
+      "total": 2,
       "pct": 0.0
     },
     "wstg_id": {
-      "present": 39,
-      "total": 39,
+      "present": 2,
+      "total": 2,
       "pct": 100.0
     },
     "cwe_id": {
-      "present": 39,
-      "total": 39,
+      "present": 2,
+      "total": 2,
       "pct": 100.0
     },
     "detection_source": {
-      "present": 39,
-      "total": 39,
+      "present": 2,
+      "total": 2,
       "pct": 100.0
     },
     "reproduction_procedure": {
       "present": 0,
-      "total": 39,
+      "total": 2,
       "pct": 0.0
     },
     "actual_evidence": {
       "present": 0,
-      "total": 39,
+      "total": 2,
       "pct": 0.0
     },
     "severity_justification": {
-      "present": 39,
-      "total": 39,
+      "present": 2,
+      "total": 2,
       "pct": 100.0
     },
     "confidence": {
-      "present": 39,
-      "total": 39,
+      "present": 2,
+      "total": 2,
       "pct": 100.0
     },
     "false_positive_assessment": {
       "present": 0,
-      "total": 39,
+      "total": 2,
       "pct": 0.0
     },
     "remediation": {
       "present": 0,
-      "total": 39,
+      "total": 2,
       "pct": 0.0
     },
     "validation_status": {
-      "present": 39,
-      "total": 39,
+      "present": 2,
+      "total": 2,
       "pct": 100.0
     }
   },
   "joined_api_per_field_presence": {
     "id": {
-      "present": 39,
-      "total": 39,
+      "present": 2,
+      "total": 2,
       "pct": 100.0
     },
     "target": {
       "present": 0,
-      "total": 39,
+      "total": 2,
       "pct": 0.0
     },
     "endpoint": {
-      "present": 0,
-      "total": 39,
-      "pct": 0.0
+      "present": 2,
+      "total": 2,
+      "pct": 100.0
     },
     "method": {
-      "present": 0,
-      "total": 39,
-      "pct": 0.0
+      "present": 2,
+      "total": 2,
+      "pct": 100.0
     },
     "parameter": {
       "present": 0,
-      "total": 39,
+      "total": 2,
       "pct": 0.0
     },
     "wstg_id": {
-      "present": 39,
-      "total": 39,
+      "present": 2,
+      "total": 2,
       "pct": 100.0
     },
     "cwe_id": {
-      "present": 39,
-      "total": 39,
+      "present": 2,
+      "total": 2,
       "pct": 100.0
     },
     "detection_source": {
-      "present": 39,
-      "total": 39,
+      "present": 2,
+      "total": 2,
       "pct": 100.0
     },
     "reproduction_procedure": {
-      "present": 39,
-      "total": 39,
+      "present": 2,
+      "total": 2,
       "pct": 100.0
     },
     "actual_evidence": {
-      "present": 39,
-      "total": 39,
+      "present": 2,
+      "total": 2,
       "pct": 100.0
     },
     "severity_justification": {
-      "present": 39,
-      "total": 39,
+      "present": 2,
+      "total": 2,
       "pct": 100.0
     },
     "confidence": {
-      "present": 39,
-      "total": 39,
+      "present": 2,
+      "total": 2,
       "pct": 100.0
     },
     "false_positive_assessment": {
       "present": 0,
-      "total": 39,
+      "total": 2,
       "pct": 0.0
     },
     "remediation": {
       "present": 0,
-      "total": 39,
+      "total": 2,
       "pct": 0.0
     },
     "validation_status": {
-      "present": 39,
-      "total": 39,
+      "present": 2,
+      "total": 2,
       "pct": 100.0
     }
   },
   "extra_api_observations": {
-    "affected_parameter_singular_present": 18,
+    "affected_parameter_singular_present": 2,
     "cvss_score_present": 0,
     "cvss_vector_present": 0
   },
   "per_finding": [
     {
-      "id": "b0beaa4a-cd7c-4375-b7ff-8a48feef5880",
-      "project": "Phase4-Bench-crapi-Run3",
-      "title": "Exposed Environment Configuration File (.env)",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": false,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "f3054322-9069-4790-b1cc-c1c1efc5d51c",
-      "project": "Phase4-Bench-crapi-Run3",
-      "title": "Missing Security Headers (CSP, XFO, XCTO)",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": false,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "d42679b6-1147-43e6-89c1-fec217388b12",
-      "project": "Phase4-Bench-crapi-Run2",
-      "title": "Exposed Environment Configuration File (.env)",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": false,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "910283b7-7336-47e8-ab77-3655a13db04d",
-      "project": "Phase4-Bench-crapi-Run2",
-      "title": "Missing Security Headers (CSP, XFO, XCTO)",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": false,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "d8277970-7bee-4050-b998-616628940d06",
-      "project": "Phase4-Bench-crapi-Run1",
-      "title": "Exposed Environment Configuration File (.env)",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": false,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "ad0be37d-e928-4d0e-9c2c-3bdaf7600ad4",
-      "project": "Phase4-Bench-crapi-Run1",
-      "title": "Missing Security Headers (CSP, XFO, XCTO)",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": false,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "644947a9-a758-4f14-8a6e-f373564ed5c6",
-      "project": "Phase4-Bench-juiceshop-Run3",
-      "title": "SQL Injection in Product Search Parameter",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": true,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "fdbf013c-e8a5-4783-b477-964529c868ed",
-      "project": "Phase4-Bench-juiceshop-Run3",
-      "title": "Missing Security Headers (CSP, XFO, XCTO)",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": false,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "dd9e62e0-7517-4e99-b37f-705dce54c962",
-      "project": "Phase4-Bench-juiceshop-Run2",
-      "title": "SQL Injection in Product Search Parameter",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": true,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "f7dd2732-92a2-44b4-bc11-8f8882b31b6c",
-      "project": "Phase4-Bench-juiceshop-Run2",
-      "title": "Missing Security Headers (CSP, XFO, XCTO)",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": false,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "2fc910d2-0fdc-4124-8b16-0a8ce38b713b",
-      "project": "Phase4-Bench-juiceshop-Run1",
-      "title": "SQL Injection in Product Search Parameter",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": true,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "85b56a73-a976-497e-abf8-6fce903dafe4",
-      "project": "Phase4-Bench-juiceshop-Run1",
-      "title": "Missing Security Headers (CSP, XFO, XCTO)",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": false,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "b9c620ba-902e-4730-879a-19865086dd91",
-      "project": "Phase4-Bench-pentesa-bench-Run3",
-      "title": "Reflected Cross-Site Scripting (XSS) in 'name' Parameter (/ssti/render)",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": true,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "3c64403c-8400-4a31-b557-68f72012eae4",
-      "project": "Phase4-Bench-pentesa-bench-Run3",
-      "title": "SQL Injection in 'q' Parameter (/sqli/search)",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": true,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "afee9739-a769-4b45-9225-9e69d87cd75c",
-      "project": "Phase4-Bench-pentesa-bench-Run2",
-      "title": "Reflected Cross-Site Scripting (XSS) in 'name' Parameter (/ssti/render)",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": true,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "23f14bad-ec0d-4269-8330-11fe1b1725e2",
-      "project": "Phase4-Bench-pentesa-bench-Run2",
-      "title": "SQL Injection in 'q' Parameter (/sqli/search)",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": true,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "4adee4d6-4c7b-4644-840e-b2280e5ea2e4",
-      "project": "Phase4-Bench-pentesa-bench-Run1",
-      "title": "Reflected Cross-Site Scripting (XSS) in 'name' Parameter (/ssti/render)",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": true,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "0e668640-dd5f-45c0-b196-5a4dca4a8ef9",
-      "project": "Phase4-Bench-pentesa-bench-Run1",
-      "title": "SQL Injection in 'q' Parameter (/sqli/search)",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": true,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "60247d06-209d-447f-b628-41362194c353",
-      "project": "Phase3-Bench-pentesa-bench-seeded-Run3",
-      "title": "Reflected Cross-Site Scripting (XSS) in 'name' Parameter (/ssti/render)",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": true,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "891dd66b-3eed-4f2c-99f9-4f7ddf52245f",
-      "project": "Phase3-Bench-pentesa-bench-seeded-Run3",
-      "title": "SQL Injection in 'q' Parameter (/sqli/search)",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": true,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "7776e626-d22e-4940-be6f-a565dad6b6ff",
-      "project": "Phase3-Bench-pentesa-bench-seeded-Run2",
-      "title": "SQL Injection in 'q' Parameter (/sqli/search)",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": true,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "3838f7e2-3be8-4661-9d23-009dd23e903f",
-      "project": "Phase3-Bench-pentesa-bench-seeded-Run2",
-      "title": "Reflected Cross-Site Scripting (XSS) in 'name' Parameter (/ssti/secure)",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": true,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "585303cd-39a7-4fe3-91b4-798a162d420a",
+      "id": "8c469c3d-25c8-46e0-a4ff-bba7398589ab",
       "project": "Phase3-Bench-pentesa-bench-seeded-Run1",
       "title": "Reflected Cross-Site Scripting (XSS) in 'name' Parameter (/ssti/render)",
-      "strict_completeness_pct": 46.7,
+      "strict_completeness_pct": 60.0,
       "strict_missing": [
         "target",
-        "endpoint",
-        "method",
         "parameter",
         "reproduction_procedure",
         "actual_evidence",
         "false_positive_assessment",
         "remediation"
       ],
-      "joined_api_completeness_pct": 60.0,
+      "joined_api_completeness_pct": 73.3,
       "joined_api_missing": [
         "target",
-        "endpoint",
-        "method",
         "parameter",
         "false_positive_assessment",
         "remediation"
@@ -818,450 +187,26 @@
       "has_cvss_score": false
     },
     {
-      "id": "c03b79af-b606-4868-8e76-3b54bcd1b67c",
+      "id": "4d303267-db2c-4918-9719-3dfb477a4cef",
       "project": "Phase3-Bench-pentesa-bench-seeded-Run1",
       "title": "SQL Injection in 'q' Parameter (/sqli/search)",
-      "strict_completeness_pct": 46.7,
+      "strict_completeness_pct": 60.0,
       "strict_missing": [
         "target",
-        "endpoint",
-        "method",
         "parameter",
         "reproduction_procedure",
         "actual_evidence",
         "false_positive_assessment",
         "remediation"
       ],
-      "joined_api_completeness_pct": 60.0,
+      "joined_api_completeness_pct": 73.3,
       "joined_api_missing": [
         "target",
-        "endpoint",
-        "method",
         "parameter",
         "false_positive_assessment",
         "remediation"
       ],
       "has_affected_parameter_singular": true,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "a5256858-be48-4a48-acf1-d3d9ad817c81",
-      "project": "Phase3-Bench-crapi-Run3",
-      "title": "Exposed Environment Configuration File (.env)",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": false,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "b6390a70-07dc-421b-be59-6b27afac07e4",
-      "project": "Phase3-Bench-crapi-Run3",
-      "title": "Missing Security Headers (CSP, XFO, XCTO)",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": false,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "114c23d0-d325-45fd-b2d9-bff68570f661",
-      "project": "Phase3-Bench-crapi-Run2",
-      "title": "Exposed Environment Configuration File (.env)",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": false,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "7e267ad9-36d2-4526-9b8d-9d01076c0945",
-      "project": "Phase3-Bench-crapi-Run2",
-      "title": "Missing Security Headers (CSP, XFO, XCTO)",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": false,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "8d88c3f6-8c65-4786-84e7-5c60c45347e2",
-      "project": "Phase3-Bench-crapi-Run1",
-      "title": "Exposed Environment Configuration File (.env)",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": false,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "2111c877-5ebb-4ed6-b7f9-f98afe782b46",
-      "project": "Phase3-Bench-crapi-Run1",
-      "title": "Missing Security Headers (CSP, XFO, XCTO)",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": false,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "27ffba9c-3739-464a-8b59-c4a242928292",
-      "project": "Phase3-Bench-dvwa-Run3",
-      "title": "Missing Security Headers (CSP, XFO, XCTO)",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": false,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "cd62cee4-fe76-48af-bf7d-5b146d005bbb",
-      "project": "Phase3-Bench-dvwa-Run2",
-      "title": "Missing Security Headers (CSP, XFO, XCTO)",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": false,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "17cad9e1-4b9b-4ec5-81e9-90383bbb3783",
-      "project": "Phase3-Bench-dvwa-Run1",
-      "title": "Missing Security Headers (CSP, XFO, XCTO)",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": false,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "40a72d1c-3ac2-413a-bafd-30ce9254bb23",
-      "project": "Phase3-Bench-juiceshop-Run3",
-      "title": "SQL Injection in Product Search Parameter",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": true,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "f1965d27-2114-4b2a-b4fd-79403f9c9f0c",
-      "project": "Phase3-Bench-juiceshop-Run3",
-      "title": "Missing Security Headers (CSP, XFO, XCTO)",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": false,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "c7bb6551-5cea-42d7-a666-8731eb8ec67a",
-      "project": "Phase3-Bench-juiceshop-Run2",
-      "title": "SQL Injection in Product Search Parameter",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": true,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "109e8525-9cf4-4495-bc81-5725c963c2b9",
-      "project": "Phase3-Bench-juiceshop-Run2",
-      "title": "Missing Security Headers (CSP, XFO, XCTO)",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": false,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "a824593d-ddea-4c28-b619-707a7ecb209e",
-      "project": "Phase3-Bench-juiceshop-Run1",
-      "title": "SQL Injection in Product Search Parameter",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": true,
-      "has_endpoint_id": false,
-      "has_cvss_score": false
-    },
-    {
-      "id": "56c25c1d-4c4d-4dc1-ae74-a360d3fe770c",
-      "project": "Phase3-Bench-juiceshop-Run1",
-      "title": "Missing Security Headers (CSP, XFO, XCTO)",
-      "strict_completeness_pct": 46.7,
-      "strict_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "reproduction_procedure",
-        "actual_evidence",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "joined_api_completeness_pct": 60.0,
-      "joined_api_missing": [
-        "target",
-        "endpoint",
-        "method",
-        "parameter",
-        "false_positive_assessment",
-        "remediation"
-      ],
-      "has_affected_parameter_singular": false,
       "has_endpoint_id": false,
       "has_cvss_score": false
     }

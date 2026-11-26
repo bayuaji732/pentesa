@@ -1,24 +1,24 @@
 # Repository Share-Readiness Secrets & PII Scan Report
 
 > **Scan Scope:** (1) Working Tree (uncommitted/tracked excluding `.env*` secrets), (2) Full Git History (`git log -p --all`), and (3) Sanitized Snapshot INCLUDING `docs/audit/evidence/`.
-> **Total Detections:** Working Tree: 568, Git History: 707, Sanitized Snapshot: 509.
+> **Total Detections:** Working Tree: 573, Git History: 738, Sanitized Snapshot: 528.
 > **Masking Policy:** All detected secrets, emails, paths, and internal hostnames are masked with SHA/truncated boundaries per ENV RULES v2.
 
 ## 1. Summary by Detection Category
 
 | Detection Type | Working Tree | Git History | Sanitized Snapshot |
 |---|---|---|---|
-| `BEARER_TOKEN` | 26 | 26 | 26 |
-| `EMPLOYEE_EMAIL` | 10 | 10 | 0 |
-| `INTERNAL_HOSTNAME` | 28 | 30 | 0 |
-| `INTERNAL_IP_RFC1918` | 138 | 139 | 134 |
+| `BEARER_TOKEN` | 27 | 27 | 27 |
+| `EMPLOYEE_EMAIL` | 10 | 14 | 0 |
+| `INTERNAL_HOSTNAME` | 30 | 38 | 0 |
+| `INTERNAL_IP_RFC1918` | 138 | 143 | 138 |
 | `JWT_TOKEN` | 8 | 11 | 8 |
-| `PASSWORD_ASSIGNMENT` | 20 | 22 | 17 |
+| `PASSWORD_ASSIGNMENT` | 21 | 23 | 18 |
 | `PRIVATE_KEY` | 0 | 3 | 0 |
 | `SK_KEY` | 9 | 14 | 9 |
 | `URL_CREDENTIAL` | 3 | 1 | 1 |
-| `WINDOWS_USER_PATH` | 326 | 451 | 314 |
-| **Total** | **568** | **707** | **509** |
+| `WINDOWS_USER_PATH` | 327 | 464 | 327 |
+| **Total** | **573** | **738** | **528** |
 
 ## 2. Summary by Top-Level Directory
 
@@ -27,17 +27,16 @@
 | `(root)` | 4 | 24 | 4 |
 | `agents/` | 3 | 8 | 3 |
 | `apps/` | 3 | 2 | 1 |
-| `benchmark/` | 35 | 0 | 35 |
+| `benchmark/` | 36 | 36 | 35 |
 | `data/` | 19 | 9 | 9 |
 | `database/` | 1 | 1 | 1 |
-| `docs/` | 405 | 504 | 379 |
-| `enchmark/` | 0 | 36 | 0 |
+| `docs/` | 408 | 519 | 388 |
 | `integrations/` | 0 | 34 | 0 |
 | `packages/` | 3 | 3 | 3 |
-| `scripts/` | 37 | 28 | 22 |
+| `scripts/` | 37 | 43 | 31 |
 | `services/` | 3 | 3 | 3 |
 | `skills/` | 1 | 1 | 1 |
-| `tests/` | 54 | 54 | 48 |
+| `tests/` | 55 | 55 | 49 |
 
 ## 3. Evidence Handling Policy for Raw HTTP Captures & Test Fixtures
 
@@ -168,11 +167,11 @@ The snapshot build injects the following mandatory caution banner at the top of 
 | `docs/audit/00-preflight-report.md` | 244 | `WINDOWS_USER_PATH` | `/u****me` |
 | `docs/audit/00-preflight-report.md` | 244 | `WINDOWS_USER_PATH` | `/u****d}` |
 | `docs/audit/03-defect-register.md` | 46 | `WINDOWS_USER_PATH` | `/u****d}` |
-| `docs/audit/03-defect-register.md` | 76 | `INTERNAL_IP_RFC1918` | `17****.5` |
-| `docs/audit/03-defect-register.md` | 78 | `INTERNAL_IP_RFC1918` | `17****.5` |
-| `docs/audit/03-defect-register.md` | 374 | `WINDOWS_USER_PATH` | `/u****d}` |
-| `docs/audit/03-defect-register.md` | 378 | `WINDOWS_USER_PATH` | `/u****d}` |
-| `docs/audit/03-defect-register.md` | 387 | `WINDOWS_USER_PATH` | `/u****d}` |
+| `docs/audit/03-defect-register.md` | 77 | `INTERNAL_IP_RFC1918` | `17****.5` |
+| `docs/audit/03-defect-register.md` | 79 | `INTERNAL_IP_RFC1918` | `17****.5` |
+| `docs/audit/03-defect-register.md` | 379 | `WINDOWS_USER_PATH` | `/u****d}` |
+| `docs/audit/03-defect-register.md` | 383 | `WINDOWS_USER_PATH` | `/u****d}` |
+| `docs/audit/03-defect-register.md` | 392 | `WINDOWS_USER_PATH` | `/u****d}` |
 | `docs/audit/05b-advanced-pentest-validation.md` | 185 | `WINDOWS_USER_PATH` | `/U****er` |
 | `docs/audit/05b-advanced-pentest-validation.md` | 185 | `WINDOWS_USER_PATH` | `/U****er` |
 | `docs/audit/05b-advanced-pentest-validation.md` | 252 | `WINDOWS_USER_PATH` | `/U****er` |
@@ -266,6 +265,14 @@ The snapshot build injects the following mandatory caution banner at the top of 
 | `docs/audit/10-improvement-roadmap.md` | 188 | `WINDOWS_USER_PATH` | `/u****d}` |
 | `docs/audit/10-improvement-roadmap.md` | 190 | `WINDOWS_USER_PATH` | `/u****d}` |
 | `docs/audit/10-improvement-roadmap.md` | 436 | `WINDOWS_USER_PATH` | `/u****d}` |
+| `docs/audit/evidence/hygiene/share-scan.md` | 46 | `INTERNAL_IP_RFC1918` | `17****.0` |
+| `docs/audit/evidence/hygiene/share-scan.md` | 46 | `INTERNAL_IP_RFC1918` | `10****.0` |
+| `docs/audit/evidence/hygiene/share-scan.md` | 62 | `WINDOWS_USER_PATH` | `C:****er` |
+| `docs/audit/evidence/hygiene/share-scan.md` | 62 | `WINDOWS_USER_PATH` | `C:****er` |
+| `docs/audit/evidence/hygiene/share-scan.md` | 63 | `WINDOWS_USER_PATH` | `/U****er` |
+| `docs/audit/evidence/hygiene/share-scan.md` | 63 | `WINDOWS_USER_PATH` | `/U****er` |
+| `docs/audit/evidence/hygiene/share-scan.md` | 63 | `WINDOWS_USER_PATH` | `/U****er` |
+| `docs/audit/evidence/hygiene/share-scan.md` | 63 | `WINDOWS_USER_PATH` | `fi****er` |
 | `docs/audit/evidence/phase2/15_api_contract.txt` | 71 | `WINDOWS_USER_PATH` | `/u****d}` |
 | `docs/audit/evidence/phase2/15_api_contract.txt` | 88 | `WINDOWS_USER_PATH` | `/u****d}` |
 | `docs/audit/evidence/phase2/2A-addendum.md` | 99 | `INTERNAL_IP_RFC1918` | `17****.5` |
@@ -511,6 +518,7 @@ The snapshot build injects the following mandatory caution banner at the top of 
 | `docs/audit/evidence/phase9/wave0/sec_leak_02_test_after.txt` | 10 | `WINDOWS_USER_PATH` | `C:****er` |
 | `docs/audit/evidence/phase9/wave0/sec_leak_02_test_after.txt` | 12 | `WINDOWS_USER_PATH` | `C:****er` |
 | `docs/audit/evidence/phase9/wave0/sec_leak_02_test_before.txt` | 11 | `WINDOWS_USER_PATH` | `C:****er` |
+| `docs/audit/evidence/phase9/wave1/1A-plan.md` | 133 | `WINDOWS_USER_PATH` | `/u****me` |
 | `docs/diagrams/scope-validation-flow.mermaid` | 14 | `INTERNAL_IP_RFC1918` | `10****.0` |
 | `packages/common/security.py` | 27 | `PASSWORD_ASSIGNMENT` | `pa****r)` |
 | `packages/schemas/scope.py` | 14 | `INTERNAL_IP_RFC1918` | `19****.0` |
@@ -533,6 +541,15 @@ The snapshot build injects the following mandatory caution banner at the top of 
 | `scripts/part2a_runner.py` | 304 | `INTERNAL_IP_RFC1918` | `10****.1` |
 | `scripts/part2a_runner.py` | 306 | `INTERNAL_IP_RFC1918` | `10****.1` |
 | `scripts/part2a_runner.py` | 978 | `BEARER_TOKEN` | `Be****45` |
+| `scripts/share_readiness_scan.py` | 36 | `WINDOWS_USER_PATH` | `/U****er` |
+| `scripts/share_readiness_scan.py` | 36 | `WINDOWS_USER_PATH` | `/U****er` |
+| `scripts/share_readiness_scan.py` | 234 | `INTERNAL_IP_RFC1918` | `17****.0` |
+| `scripts/share_readiness_scan.py` | 234 | `INTERNAL_IP_RFC1918` | `10****.0` |
+| `scripts/share_readiness_scan.py` | 251 | `WINDOWS_USER_PATH` | `/U****er` |
+| `scripts/share_readiness_scan.py` | 251 | `WINDOWS_USER_PATH` | `/U****er` |
+| `scripts/share_readiness_scan.py` | 251 | `WINDOWS_USER_PATH` | `/U****er` |
+| `scripts/share_readiness_scan.py` | 251 | `WINDOWS_USER_PATH` | `fi****er` |
+| `scripts/verify_audit_chain_live.py` | 24 | `PASSWORD_ASSIGNMENT` | `pw****()` |
 | `scripts/verify_deployment.py` | 174 | `PASSWORD_ASSIGNMENT` | `pa****rd` |
 | `scripts/verify_prod_wave0_and_matrices.py` | 158 | `INTERNAL_IP_RFC1918` | `17****.0` |
 | `scripts/verify_prod_wave0_and_matrices.py` | 211 | `INTERNAL_IP_RFC1918` | `17****.0` |
@@ -563,6 +580,7 @@ The snapshot build injects the following mandatory caution banner at the top of 
 | `tests/unit/test_audit_chain.py` | 34 | `INTERNAL_IP_RFC1918` | `10****.1` |
 | `tests/unit/test_audit_chain.py` | 44 | `INTERNAL_IP_RFC1918` | `10****.1` |
 | `tests/unit/test_baseline_adapter.py` | 19 | `PASSWORD_ASSIGNMENT` | `pa****et` |
+| `tests/unit/test_canary_redaction_all_surfaces.py` | 54 | `BEARER_TOKEN` | `Be****89` |
 | `tests/unit/test_credential_encryption_and_redaction.py` | 109 | `INTERNAL_IP_RFC1918` | `19****.0` |
 | `tests/unit/test_credential_encryption_and_redaction.py` | 178 | `BEARER_TOKEN` | `Be****45` |
 | `tests/unit/test_credential_encryption_and_redaction.py` | 197 | `BEARER_TOKEN` | `Be****78` |

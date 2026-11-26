@@ -571,6 +571,25 @@
 - **Evidence:** `commit 19a3d8d`, `.scratch/check_a1_evidence.py`, `.scratch/test_restart_semantics.py`.
 - **Remediation:** Reverted in commit `035be6c` (tagged `admin-review-done`). All `PENTESA_BOOTSTRAP_ADMIN2_*` references removed from `docker-compose.yml`, `.env.example`, and `.env.production`. Container images rebuilt (`docker compose up -d --build api worker`). Both admin accounts persist in PostgreSQL and authenticate successfully (`HTTP 200`, `/api/v1/auth/me` returns `role: ADMIN`).
 
+### 3.42 DEFECT-AUD-02 / P1: Audit Log Chain Invalidation via Foreign Key ON DELETE SET NULL Row Mutation
+- **Components:** `database/models/audit.py:21`, `packages/common/audit.py:46`, `database/models/user.py`
+- **Severity:** **P1 (High — Audit Log Cryptographic Integrity Invariant Breach)**
+- **Problem:** Cryptographic audit log hash verification (`verify_audit_chain`) fails when a user account referenced by prior audit records is deleted.
+- **Root Cause:** In `database/models/audit.py`, `AuditLog.user_id` is defined as `mapped_column(Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)`. When any user entity is deleted, PostgreSQL cascades `SET NULL` onto all historical `audit_logs` rows authored by that user. Because `compute_audit_hash()` incorporates `str(user_id or "")` in the hash preimage (`prev_hash:timestamp_iso:user_id:action:resource_type:resource_id:ip:canonical_details`), this in-place database mutation retroactively changes the payload string from the user's UUID string to an empty string `""`. Consequently, recomputing SHA-256 hashes during audit verification results in a mismatch at that entry and all subsequent entries in the Merkle chain.
+- **Evidence:** 
+  - Historical evidence: Hash chain failure at record 1598 in the pre-rebuild database, where a test cleanup script executed a direct database deletion (`DELETE FROM users WHERE email LIKE 'p...%'` — required because the runtime API lacks a user deletion route per `P3-API-01`).
+  - Model code: `ForeignKey("users.id", ondelete="SET NULL")` in `database/models/audit.py:21`.
+  - Hash computation: `payload` includes `str(user_id or "")` in `packages/common/audit.py:46`.
+- **Prod Rebuild Impact Statement:**
+  - The scratch rebuild of the production PostgreSQL container destroyed all historical audit logs (1,598+ records reset to 0/genesis), all projects, all findings, all endpoints, and all evidence records.
+  - Following the rebuild, the live acceptance run and Phase 7 verification generated 127 fresh audit log records, all of which recomputed and verified successfully (`is_valid: True`, 0 broken links) because user entities were not deleted.
+- **Proposed Remediation (Wave 1b / ADR-007):**
+  1. **Schema Constraint:** Alter `audit_logs.user_id` foreign key from `ON DELETE SET NULL` to `ON DELETE RESTRICT` (or `NO ACTION`), making user rows immutable if audit log events reference them.
+  2. **Hash Payload Snapshotting:** Alternatively or additionally, snapshot the immutable user identifier/email into `AuditLog.details` at creation time, ensuring that even if external references decouple, the cryptographic hash preimage remains permanently immutable.
+  3. **Alembic Migration:** Implement the foreign key constraint migration via Alembic in Wave 1b.
+  4. **Regression Test:** Add `tests/unit/test_audit_chain_cascade_protection.py` to assert that attempting to delete an audited user is either rejected by PostgreSQL (`IntegrityError`) or that user deletion cannot mutate historical audit rows.
+
+
 
 
 

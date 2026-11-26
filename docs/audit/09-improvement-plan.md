@@ -47,6 +47,7 @@ The table below catalogs all 30 open defects and architectural gaps across Phase
 | **P3-TEST-01** | **P3** | P6 | `benchmark/p6b/` | RBAC Matrix Uses Empty Placeholder Bodies Causing 404/422 Returns | **S** | Low | Test harness only | Re-run RBAC matrix; assert all 215 routes evaluate actual auth |
 | **P3-INFRA-02** | **P3** | P6 | `docker-compose.yml` | Harness DB Port Must Remain Loopback-Only (`127.0.0.1:5433`) | **S** | Low | Operational check | Verify port bindings via `netstat` / `docker ps` |
 | **DEFECT-LIFE-01** | **P3** | P7 | `database/models/finding.py` | Finding Assignment (`assigned_to` Field / Route) Not Implemented | **S** | Low | None | `PUT /findings/{id}/assign`: assert assignment persisted |
+| **DEFECT-AUD-02** | **P1** | P8/P9 | `database/models/audit.py` | Audit Log Hash Chain Invalidation via Foreign Key `ON DELETE SET NULL` | **S** | Low | Requires Wave 1b Alembic ADR-007 | User deletion test: assert historical audit log rows immutable and hash chain intact |
 | **DEFECT-REPRO-01**| **P3** | P7 | `services/evidence_engine/` | Generated `reproduction_curl` Omits Redirect Flag (`-L`) When Target Redirects | **S** | Low | None | Generate cURL for redirecting target; assert `-L` present |
 
 ---

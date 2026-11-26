@@ -71,6 +71,13 @@ def extract_git_archive(tag: str, dest_dir: pathlib.Path):
             tar.extractall(path=dest_dir)
     print(f"[+] Extracted archive to temporary directory: {dest_dir}")
 
+def prune_non_shareable_assets(dest_dir: pathlib.Path):
+    """Exclude non-shareable corporate assets (logos, company templates) from distribution."""
+    assets_dir = dest_dir / "docs" / "assets"
+    if assets_dir.exists():
+        shutil.rmtree(assets_dir)
+        print(f"[+] Pruned non-shareable corporate assets: {assets_dir}")
+
 def sanitize_tree(dest_dir: pathlib.Path):
     print("[*] Sanitizing text files in temporary copy...")
     modified_count = 0
@@ -218,6 +225,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmp_dir:
         temp_path = pathlib.Path(tmp_dir)
         extract_git_archive(tag, temp_path)
+        prune_non_shareable_assets(temp_path)
         sanitize_tree(temp_path)
         update_readme_sharing_guide(temp_path)
         recompute_manifests(temp_path)

@@ -48,12 +48,12 @@ async def check_gateway_once(
     }
     payload = {
         "model": model,
-        "messages": [{"role": "user", "content": "1"}],
-        "max_tokens": 1
+        "messages": [{"role": "user", "content": "Reply OK"}],
+        "max_completion_tokens": 50
     }
 
     try:
-        async with httpx.AsyncClient(timeout=timeout) as client:
+        async with httpx.AsyncClient(timeout=timeout, verify=False) as client:
             resp = await client.post(chat_url, json=payload, headers=headers)
             if resp.status_code == 200:
                 data = resp.json()

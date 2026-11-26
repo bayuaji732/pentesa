@@ -886,15 +886,20 @@ class Phase7Evaluator:
     async def provision_p7_user(self) -> None:
         headers = {"Authorization": f"Bearer {self.admin_token}"}
         email = "p7test-lead@pentesa.lab"
-        pwd = f"P7Test_{uuid.uuid4().hex[:12]}!Aa1"
+        pwd = "P7Test_Lead2026!Aa1"
         async with httpx.AsyncClient(timeout=15.0) as client:
             ru = await client.post(
                 f"{PROD_API_BASE}/api/v1/users",
                 json={"email": email, "password": pwd, "full_name": "p7test Evaluation Lead", "role": "LEAD", "is_active": True},
                 headers=headers,
             )
-            assert ru.status_code in (200, 201), f"Failed creating p7test user: {ru.status_code} {ru.text}"
-            self.p7_lead_id = ru.json()["id"]
+            if ru.status_code == 409:
+                ru2 = await client.get(f"{PROD_API_BASE}/api/v1/users", headers=headers)
+                u = next((x for x in ru2.json() if x["email"] == email), None)
+                self.p7_lead_id = u["id"] if u else ""
+            else:
+                assert ru.status_code in (200, 201), f"Failed creating p7test user: {ru.status_code} {ru.text}"
+                self.p7_lead_id = ru.json()["id"]
             rl = await client.post(f"{PROD_API_BASE}/api/v1/auth/login", json={"email": email, "password": pwd})
             assert rl.status_code == 200
             self.p7_lead_token = rl.json()["access_token"]
@@ -1686,6 +1691,13 @@ class Phase7Evaluator:
 
         # Phase A: Read-only audit on existing prod data first
         await self.authenticate_admin()
+        # Clean any prior leftover throwaway p7test- projects first
+        headers = {"Authorization": f"Bearer {self.admin_token}"}
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            projs_clean = (await client.get(f"{PROD_API_BASE}/api/v1/projects", headers=headers)).json()
+            for p in projs_clean:
+                if p.get("name", "").startswith("p7test-"):
+                    await client.delete(f"{PROD_API_BASE}/api/v1/projects/{p['id']}", headers=headers)
         await self.load_prod_data_readonly()
 
         phase_a_tests = [
@@ -1744,6 +1756,14 @@ class Phase7Evaluator:
         life_res["duration_seconds"] = round(time.time() - t0, 3)
         self.results.append(life_res)
         print(f"[{life_res['verdict']:<7}] {life_res['test_id']:<16} - {life_res['details']} ({life_res['duration_seconds']:.3f}s)")
+
+        # Clean up throwaway p7test- projects after test run
+        headers_adm = {"Authorization": f"Bearer {self.admin_token}"}
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            projs_final = (await client.get(f"{PROD_API_BASE}/api/v1/projects", headers=headers_adm)).json()
+            for p in projs_final:
+                if p.get("name", "").startswith("p7test-"):
+                    await client.delete(f"{PROD_API_BASE}/api/v1/projects/{p['id']}", headers=headers_adm)
 
         # Save results JSON
         payload = {
